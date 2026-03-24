@@ -33,30 +33,30 @@ const navGroups: NavGroup[] = [
   {
     label: "Engineering",
     items: [
-      { icon: Component, label: "BOM Explorer", path: "/bom" },
-      { icon: DatabaseBackup, label: "PL Knowledge Hub", path: "/pl" },
+      { icon: Component, label: "BOM Explorer", path: "/bom", roles: ['admin', 'supervisor', 'engineer'] },
+      { icon: DatabaseBackup, label: "PL Knowledge Hub", path: "/pl", roles: ['admin', 'supervisor', 'engineer'] },
     ]
   },
   {
     label: "Workflow",
     items: [
-      { icon: Briefcase, label: "Work Ledger", path: "/ledger" },
-      { icon: ShieldAlert, label: "Cases", path: "/cases" },
-      { icon: CheckSquare, label: "Approvals", path: "/approvals" },
+      { icon: Briefcase, label: "Work Ledger", path: "/ledger", roles: ['admin', 'supervisor', 'engineer'] },
+      { icon: ShieldAlert, label: "Cases", path: "/cases", roles: ['admin', 'supervisor', 'engineer', 'reviewer'] },
+      { icon: CheckSquare, label: "Approvals", path: "/approvals", roles: ['admin', 'supervisor', 'engineer', 'reviewer'] },
     ]
   },
   {
     label: "Reports",
     items: [
-      { icon: BarChart3, label: "Reports", path: "/reports" },
-      { icon: FileBarChart, label: "Ledger Reports", path: "/ledger-reports" },
+      { icon: BarChart3, label: "Reports", path: "/reports", roles: ['admin', 'supervisor'] },
+      { icon: FileBarChart, label: "Ledger Reports", path: "/ledger-reports", roles: ['admin', 'supervisor'] },
     ]
   },
   {
     label: "System",
     items: [
       { icon: ServerCog, label: "Admin", path: "/admin", roles: ['admin'] },
-      { icon: Activity, label: "OCR Monitor", path: "/ocr", roles: ['admin', 'engineer'] },
+      { icon: Activity, label: "OCR Monitor", path: "/ocr", roles: ['admin'] },
       { icon: ClipboardList, label: "Audit Log", path: "/audit", roles: ['admin'] },
       { icon: Megaphone, label: "Banners", path: "/banners", roles: ['admin'] },
       { icon: Settings, label: "Settings", path: "/settings", roles: ['admin'] },

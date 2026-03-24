@@ -3,39 +3,51 @@ import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_DOCUMENTS, MOCK_AUDIT_LOG } from '../lib/mock';
 import { MOCK_APPROVALS, MOCK_OCR_JOBS, MOCK_NOTIFICATIONS } from '../lib/mockExtended';
 import { useAuth } from '../lib/auth';
+import type { UserRole } from '../lib/auth';
 import {
   FileText, CheckSquare, ServerCog, AlertCircle, ArrowRight,
-  Clock, Activity, TrendingUp, Users, FolderOpen, Component,
-  Briefcase, ShieldAlert, Bell, ChevronRight
+  Activity, FolderOpen, Component, Briefcase, ShieldAlert, Bell, ChevronRight
 } from 'lucide-react';
+
+interface QuickAction {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  desc: string;
+  path: string;
+  color: string;
+  roles?: UserRole[];
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const pendingApprovals = MOCK_APPROVALS.filter(a => a.status === 'Pending').length;
   const ocrFailed = MOCK_OCR_JOBS.filter(j => j.status === 'Failed').length;
   const ocrProcessing = MOCK_OCR_JOBS.filter(j => j.status === 'Processing').length;
   const unread = MOCK_NOTIFICATIONS.filter(n => !n.read).length;
 
-  const kpiCards = [
-    { icon: FileText, label: 'Total Documents', value: MOCK_DOCUMENTS.length, sub: '3 active PL records', color: 'text-teal-400', bg: 'bg-teal-500/10', path: '/documents' },
-    { icon: CheckSquare, label: 'Pending Approvals', value: pendingApprovals, sub: `${MOCK_APPROVALS.length} total requests`, color: 'text-amber-400', bg: 'bg-amber-500/10', path: '/approvals' },
-    { icon: ServerCog, label: 'OCR Jobs', value: MOCK_OCR_JOBS.length, sub: `${ocrFailed} failed, ${ocrProcessing} running`, color: 'text-blue-400', bg: 'bg-blue-500/10', path: '/ocr' },
-    { icon: Bell, label: 'Unread Alerts', value: unread, sub: 'Notifications & system alerts', color: 'text-rose-400', bg: 'bg-rose-500/10', path: '/approvals' },
+  const allKpiCards = [
+    { icon: FileText, label: 'Total Documents', value: MOCK_DOCUMENTS.length, sub: '3 active PL records', color: 'text-teal-400', bg: 'bg-teal-500/10', path: '/documents', roles: undefined },
+    { icon: CheckSquare, label: 'Pending Approvals', value: pendingApprovals, sub: `${MOCK_APPROVALS.length} total requests`, color: 'text-amber-400', bg: 'bg-amber-500/10', path: '/approvals', roles: ['admin', 'supervisor', 'engineer', 'reviewer'] as UserRole[] },
+    { icon: ServerCog, label: 'OCR Jobs', value: MOCK_OCR_JOBS.length, sub: `${ocrFailed} failed, ${ocrProcessing} running`, color: 'text-blue-400', bg: 'bg-blue-500/10', path: '/ocr', roles: ['admin'] as UserRole[] },
+    { icon: Bell, label: 'Unread Alerts', value: unread, sub: 'Notifications & system alerts', color: 'text-rose-400', bg: 'bg-rose-500/10', path: '/approvals', roles: undefined },
   ];
 
-  const quickActions = [
-    { icon: FolderOpen, label: 'Document Hub', desc: 'Browse & manage documents', path: '/documents', color: 'text-teal-400 bg-teal-500/10' },
-    { icon: Component, label: 'BOM Explorer', desc: 'Locomotive hierarchy tree', path: '/bom', color: 'text-blue-400 bg-blue-500/10' },
-    { icon: Briefcase, label: 'Work Ledger', desc: 'Track work records', path: '/ledger', color: 'text-indigo-400 bg-indigo-500/10' },
-    { icon: ShieldAlert, label: 'Cases', desc: 'Open discrepancy cases', path: '/cases', color: 'text-rose-400 bg-rose-500/10' },
-    { icon: CheckSquare, label: 'Approvals', desc: 'Review pending decisions', path: '/approvals', color: 'text-amber-400 bg-amber-500/10' },
-    { icon: ServerCog, label: 'OCR Monitor', desc: 'Extraction pipeline status', path: '/ocr', color: 'text-purple-400 bg-purple-500/10' },
+  const kpiCards = allKpiCards.filter(card => !card.roles || hasPermission(card.roles));
+
+  const allQuickActions: QuickAction[] = [
+    { icon: FolderOpen, label: 'Document Hub', desc: 'Browse & manage documents', path: '/documents', color: 'text-teal-400 bg-teal-500/10', roles: undefined },
+    { icon: Component, label: 'BOM Explorer', desc: 'Locomotive hierarchy tree', path: '/bom', color: 'text-blue-400 bg-blue-500/10', roles: ['admin', 'supervisor', 'engineer'] },
+    { icon: Briefcase, label: 'Work Ledger', desc: 'Track work records', path: '/ledger', color: 'text-indigo-400 bg-indigo-500/10', roles: ['admin', 'supervisor', 'engineer'] },
+    { icon: ShieldAlert, label: 'Cases', desc: 'Open discrepancy cases', path: '/cases', color: 'text-rose-400 bg-rose-500/10', roles: ['admin', 'supervisor', 'engineer', 'reviewer'] },
+    { icon: CheckSquare, label: 'Approvals', desc: 'Review pending decisions', path: '/approvals', color: 'text-amber-400 bg-amber-500/10', roles: ['admin', 'supervisor', 'engineer', 'reviewer'] },
+    { icon: ServerCog, label: 'OCR Monitor', desc: 'Extraction pipeline status', path: '/ocr', color: 'text-purple-400 bg-purple-500/10', roles: ['admin'] },
   ];
+
+  const quickActions = allQuickActions.filter(action => !action.roles || hasPermission(action.roles as UserRole[]));
 
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto">
-      {/* Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">Dashboard</h1>
@@ -49,7 +61,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {kpiCards.map(card => {
           const Icon = card.icon;
@@ -74,7 +85,6 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Documents */}
         <GlassCard className="p-6 lg:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-white">Recent Documents</h2>
@@ -111,10 +121,8 @@ export default function Dashboard() {
           </div>
         </GlassCard>
 
-        {/* Activity & Recent Events */}
         <div className="space-y-4">
-          {/* Pending Approvals Callout */}
-          {pendingApprovals > 0 && (
+          {pendingApprovals > 0 && hasPermission(['admin', 'supervisor', 'engineer', 'reviewer']) && (
             <GlassCard className="p-4 border-amber-500/30 bg-amber-950/10">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
@@ -129,7 +137,6 @@ export default function Dashboard() {
             </GlassCard>
           )}
 
-          {/* Quick Audit */}
           <GlassCard className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Activity className="w-4 h-4 text-teal-400" />
@@ -146,35 +153,38 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <button onClick={() => navigate('/audit')} className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 mt-3 transition-colors">
-              Full audit log <ChevronRight className="w-3 h-3" />
-            </button>
+            {hasPermission(['admin']) && (
+              <button onClick={() => navigate('/audit')} className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 mt-3 transition-colors">
+                Full audit log <ChevronRight className="w-3 h-3" />
+              </button>
+            )}
           </GlassCard>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-lg font-bold text-white mb-4">Quick Navigation</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {quickActions.map(action => {
-            const Icon = action.icon;
-            return (
-              <GlassCard
-                key={action.label}
-                className="p-4 text-center hover:border-teal-500/40 cursor-pointer group transition-all"
-                onClick={() => navigate(action.path)}
-              >
-                <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <p className="text-xs font-semibold text-slate-200">{action.label}</p>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{action.desc}</p>
-              </GlassCard>
-            );
-          })}
+      {quickActions.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-white mb-4">Quick Navigation</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {quickActions.map(action => {
+              const Icon = action.icon;
+              return (
+                <GlassCard
+                  key={action.label}
+                  className="p-4 text-center hover:border-teal-500/40 cursor-pointer group transition-all"
+                  onClick={() => navigate(action.path)}
+                >
+                  <div className={`w-10 h-10 rounded-xl ${action.color} flex items-center justify-center mx-auto mb-2 transition-transform group-hover:scale-110`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <p className="text-xs font-semibold text-slate-200">{action.label}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{action.desc}</p>
+                </GlassCard>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
