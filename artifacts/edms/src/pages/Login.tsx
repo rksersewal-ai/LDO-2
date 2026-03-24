@@ -1,0 +1,117 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useAuth } from '../lib/auth';
+import { Shield, Loader2, AlertCircle, Eye, EyeOff, Lock } from 'lucide-react';
+
+export default function Login() {
+  const navigate = useNavigate();
+  const { login, isLoading, error, clearError } = useAuth();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    const ok = await login(username, password);
+    if (ok) navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-teal-900/20 via-slate-950 to-green-900/10 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo & Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-teal-500/30">
+            <span className="text-white font-bold text-2xl">L2</span>
+          </div>
+          <h1 className="text-3xl font-bold text-white mb-1">LDO-2 EDMS</h1>
+          <p className="text-slate-400 text-sm">Enterprise Document Management System</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-slate-900/60 backdrop-blur-xl border border-teal-500/20 rounded-2xl p-8 shadow-2xl shadow-teal-950/50">
+          <div className="flex items-center gap-2 mb-6">
+            <Shield className="w-5 h-5 text-teal-400" />
+            <h2 className="text-lg font-semibold text-slate-100">Secure Sign In</h2>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-rose-300">{error}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1.5">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                className="w-full bg-slate-950/50 border border-teal-500/20 text-slate-200 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-teal-400/50 focus:ring-1 focus:ring-teal-400/50 transition-all placeholder:text-slate-500"
+                placeholder="e.g. a.kowalski"
+                required
+                autoComplete="username"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-400 mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="w-full bg-slate-950/50 border border-teal-500/20 text-slate-200 text-sm rounded-xl px-4 py-3 pr-11 focus:outline-none focus:border-teal-400/50 focus:ring-1 focus:ring-teal-400/50 transition-all placeholder:text-slate-500"
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold text-sm transition-all shadow-lg shadow-teal-900/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Authenticating…</>
+              ) : (
+                <><Lock className="w-4 h-4" /> Sign In</>
+              )}
+            </button>
+          </form>
+        </div>
+
+        <div className="mt-6 p-4 bg-slate-900/30 border border-slate-800/50 rounded-xl">
+          <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Demo Credentials</p>
+          <div className="space-y-1">
+            {[
+              { u: 'admin', p: 'admin123', r: 'Admin' },
+              { u: 'a.kowalski', p: 'ldo2pass', r: 'Engineer' },
+              { u: 'm.chen', p: 'ldo2pass', r: 'Reviewer' },
+              { u: 's.patel', p: 'ldo2pass', r: 'Supervisor' },
+            ].map(c => (
+              <button
+                key={c.u}
+                onClick={() => { setUsername(c.u); setPassword(c.p); clearError(); }}
+                className="w-full text-left text-xs text-slate-400 hover:text-teal-300 transition-colors px-2 py-1 rounded-lg hover:bg-slate-800/50"
+              >
+                <span className="font-mono text-teal-400">{c.u}</span> / <span className="font-mono text-slate-500">{c.p}</span>
+                <span className="ml-2 text-slate-600">({c.r})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -4,6 +4,32 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+## LDO-2 EDMS (`artifacts/edms`)
+
+Enterprise Document Management System for engineering documents, BOMs, and approvals.
+
+### Key Details
+- **Framework**: React + Vite + TypeScript
+- **Styling**: Tailwind CSS v4 — dark teal glass-morphism theme (slate-950 bg, teal-500/emerald gradients)
+- **Routing**: react-router v7 with `createBrowserRouter`
+- **Auth**: In-memory mock auth (`src/lib/auth.tsx`) — demo credentials: admin/admin123, a.kowalski/ldo2pass, m.chen/ldo2pass, s.patel/ldo2pass
+- **Data**: All mock/in-memory, no real backend. Main data files: `src/lib/mock.ts`, `src/lib/mockExtended.ts`, `src/lib/bomData.ts`
+- **Animation**: Framer Motion (`motion`) for sidebar and UI
+
+### Pages (17 total)
+`Login`, `Dashboard`, `DocumentHub`, `DocumentDetail`, `BOMExplorer`, `PLKnowledgeHub`, `PLDetail`, `WorkLedger`, `LedgerReports`, `Cases`, `Approvals`, `Reports`, `AdminWorkspace`, `OCRMonitor`, `AuditLog`, `Settings`, `BannerManagement`, `RestrictedAccess`, `DesignSystem`
+
+### BOM Data Structure
+- `PL_DATABASE` in `bomData.ts`: 7 WAP7 locomotive PL records (38100000–38150000) with full metadata
+- `INITIAL_BOM_TREE`: Hierarchical BOM tree for BOM Explorer
+- Utilities: `findNode`, `searchTree`, `countNodes`, `cloneTree`, `removeNode`
+
+### Role-based Access
+- `admin`: Full access to all pages including Admin, Banners, Audit
+- `engineer`: Documents, BOM, PL Hub, Work Ledger, Cases
+- `reviewer`: Documents, Approvals, Cases
+- `supervisor`: All except Admin/Banners
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
