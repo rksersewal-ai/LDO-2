@@ -1,340 +1,264 @@
-import { useState, useCallback } from 'react';
-import { GlassCard, Badge, Button, Input } from '../components/ui/Shared';
-import { INITIAL_BOM_TREE, findNode, searchTree, countNodes, PL_DATABASE, cloneTree } from '../lib/bomData';
-import type { BOMNode } from '../lib/bomData';
-import {
-  Component, Search, ChevronRight, ChevronDown, Box, Layers, Cpu,
-  Shield, Plus, Minus, Hash, AlertCircle, ZoomIn, List, GitBranch,
-  Database, ArrowRight, X, Eye
-} from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { motion } from 'framer-motion';
+import {
+  Train, Layers, Zap, Package, Plus, ArrowRight,
+  ChevronRight, Search, Filter, Clock, GitBranch,
+} from 'lucide-react';
+import { PRODUCTS } from '../lib/bomData';
+import type { Product } from '../lib/bomData';
+import { GlassCard, Badge, Button, Input, FilterPills, PageHeader } from '../components/ui/Shared';
 
-function NodeIcon({ type }: { type: string }) {
-  if (type === 'assembly') return <Box className="w-4 h-4 text-blue-400" />;
-  if (type === 'sub-assembly') return <Layers className="w-4 h-4 text-indigo-400" />;
-  return <Cpu className="w-4 h-4 text-slate-400" />;
+const PRODUCT_ICONS: Record<string, React.ElementType> = {
+  Train, Container: Package, Layers, Zap,
+};
+
+function lifecycleBadgeVariant(lc: string): "success" | "warning" | "info" | "default" {
+  if (lc === 'Production') return 'success';
+  if (lc === 'In Development') return 'info';
+  if (lc === 'Prototyping') return 'warning';
+  return 'default';
 }
 
-function tagColor(tag: string) {
-  const t = tag.toLowerCase();
-  if (t.includes('safety vital')) return 'bg-rose-900/40 text-rose-300 border-rose-500/30';
-  if (t.includes('high voltage')) return 'bg-amber-900/40 text-amber-300 border-amber-500/30';
-  if (t.includes('electrical') || t.includes('electronics')) return 'bg-blue-900/40 text-blue-300 border-blue-500/30';
-  return 'bg-slate-800 text-slate-400 border-slate-700';
+function categoryColor(cat: string): string {
+  if (cat.includes('Passenger')) return 'from-blue-500/10 to-teal-500/10 border-blue-500/20';
+  if (cat.includes('Freight')) return 'from-amber-500/10 to-orange-500/10 border-amber-500/20';
+  if (cat.includes('EMU')) return 'from-purple-500/10 to-indigo-500/10 border-purple-500/20';
+  if (cat.includes('Electrical')) return 'from-emerald-500/10 to-teal-500/10 border-emerald-500/20';
+  return 'from-teal-500/10 to-slate-500/10 border-teal-500/20';
 }
 
-function BOMTreeNode({
-  node,
-  level,
-  isExpanded,
-  toggleExpand,
-  selectedId,
-  onSelect,
-  searchMatches,
-}: {
-  node: BOMNode;
-  level: number;
-  isExpanded: boolean;
-  toggleExpand: (id: string) => void;
-  selectedId: string | null;
-  onSelect: (node: BOMNode) => void;
-  searchMatches: Set<string>;
-}) {
-  const hasChildren = node.children.length > 0;
-  const plRecord = PL_DATABASE[node.id];
-  const isMatch = searchMatches.size > 0 && searchMatches.has(node.id);
-  const isSelected = selectedId === node.id;
+function categoryIconColor(cat: string): string {
+  if (cat.includes('Passenger')) return 'text-blue-400';
+  if (cat.includes('Freight')) return 'text-amber-400';
+  if (cat.includes('EMU')) return 'text-purple-400';
+  if (cat.includes('Electrical')) return 'text-emerald-400';
+  return 'text-teal-400';
+}
+
+const CATEGORIES = ['All', 'Passenger Locomotive', 'Freight Locomotive', 'EMU Rolling Stock', 'Electrical Component'];
+const LIFECYCLES = ['All', 'Production', 'In Development', 'Prototyping'];
+
+function ProductCard({ product, index }: { product: Product; index: number }) {
+  const navigate = useNavigate();
+  const Icon = PRODUCT_ICONS[product.icon] || Package;
+  const gradClass = categoryColor(product.category);
+  const iconColor = categoryIconColor(product.category);
 
   return (
-    <div>
-      <div
-        className={`flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-all group ${
-          isSelected ? 'bg-teal-500/15 border border-teal-500/25' : 'hover:bg-slate-800/40'
-        } ${isMatch ? 'ring-1 ring-teal-500/50' : ''}`}
-        style={{ marginLeft: `${level * 20}px` }}
-        onClick={() => { onSelect(node); if (hasChildren) toggleExpand(node.id); }}
-      >
-        <div className="flex items-center gap-1 shrink-0 w-6">
-          {hasChildren ? (
-            <button onClick={e => { e.stopPropagation(); toggleExpand(node.id); }} className="text-slate-500 hover:text-teal-400 transition-colors">
-              {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            </button>
-          ) : (
-            <div className="w-3.5 h-3.5 ml-0.5 rounded-full border border-slate-700 bg-slate-800" />
-          )}
-        </div>
-        <NodeIcon type={node.type} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-slate-200 truncate">{node.name}</span>
-            {plRecord?.safetyVital && <Shield className="w-3 h-3 text-rose-400 shrink-0" title="Safety Vital" />}
-            <span className="font-mono text-[10px] text-teal-400 shrink-0">{node.id}</span>
-          </div>
-          <div className="flex items-center gap-3 text-[10px] text-slate-500 mt-0.5">
-            <span>Rev {node.revision}</span>
-            <span>Qty: {node.quantity}</span>
-            <span>{node.unitOfMeasure}</span>
-            {node.tags.slice(0, 2).map(tag => (
-              <span key={tag} className={`px-1 py-0.5 border rounded text-[9px] ${tagColor(tag)}`}>{tag}</span>
-            ))}
-          </div>
-        </div>
-        {hasChildren && (
-          <span className="text-[10px] text-slate-600 shrink-0">{node.children.length}</span>
-        )}
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: index * 0.06, ease: 'easeOut' }}
+      whileHover={{ y: -3, transition: { duration: 0.15 } }}
+      className={`relative group glass-card rounded-2xl bg-gradient-to-br ${gradClass} border cursor-pointer overflow-hidden transition-shadow duration-200 hover:shadow-xl hover:shadow-teal-950/40`}
+      onClick={() => navigate(`/bom/${product.id}`)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && navigate(`/bom/${product.id}`)}
+    >
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gradient-to-br from-teal-500/5 to-transparent pointer-events-none" />
 
-      {hasChildren && isExpanded && (
-        <div>
-          {node.children.map(child => (
-            <BOMTreeNode
-              key={child.id}
-              node={child}
-              level={level + 1}
-              isExpanded={isExpanded}
-              toggleExpand={toggleExpand}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              searchMatches={searchMatches}
-            />
-          ))}
+      <div className="p-6">
+        {/* Icon + Badge row */}
+        <div className="flex items-start justify-between mb-4">
+          <div className={`w-11 h-11 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-center ${iconColor}`}>
+            <Icon className="w-5 h-5" />
+          </div>
+          <Badge variant={lifecycleBadgeVariant(product.lifecycle)}>{product.lifecycle}</Badge>
         </div>
-      )}
-    </div>
+
+        {/* Name + subtitle */}
+        <h3 className="text-base font-bold text-white mb-0.5 tracking-tight">{product.name}</h3>
+        <p className="text-xs text-slate-400 mb-1">{product.subtitle}</p>
+        <p className="text-[11px] text-slate-500 line-clamp-2 mb-4 leading-relaxed">{product.description}</p>
+
+        {/* Stats row */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+            <GitBranch className="w-3 h-3 text-teal-500" />
+            <span className="font-mono text-teal-400 font-semibold">{product.total}</span>
+            <span>nodes</span>
+          </div>
+          <span className="w-px h-3 bg-slate-700" />
+          <div className="text-[11px] text-slate-400">
+            <span className="font-mono text-blue-400">{product.assemblies}</span> assy
+          </div>
+          <span className="w-px h-3 bg-slate-700" />
+          <div className="text-[11px] text-slate-400">
+            <span className="font-mono text-slate-300">{product.parts}</span> parts
+          </div>
+        </div>
+
+        {/* Footer row */}
+        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          <div>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Root PL</p>
+            <p className="font-mono text-[11px] text-teal-400">{product.rootPL}</p>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-teal-400 group-hover:text-teal-300 transition-colors">
+            <span>View BOM</span>
+            <ArrowRight className="w-3.5 h-3.5 translate-x-0 group-hover:translate-x-0.5 transition-transform" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
-function RecursiveTree({ nodes, level, expanded, toggleExpand, selectedId, onSelect, searchMatches }: {
-  nodes: BOMNode[]; level: number; expanded: Set<string>; toggleExpand: (id: string) => void;
-  selectedId: string | null; onSelect: (node: BOMNode) => void; searchMatches: Set<string>;
-}) {
+function CreateNewCard() {
   return (
-    <>
-      {nodes.map(node => (
-        <div key={node.id}>
-          <BOMTreeNode
-            node={node}
-            level={level}
-            isExpanded={expanded.has(node.id)}
-            toggleExpand={toggleExpand}
-            selectedId={selectedId}
-            onSelect={onSelect}
-            searchMatches={searchMatches}
-          />
-          {node.children.length > 0 && expanded.has(node.id) && (
-            <RecursiveTree
-              nodes={node.children}
-              level={level + 1}
-              expanded={expanded}
-              toggleExpand={toggleExpand}
-              selectedId={selectedId}
-              onSelect={onSelect}
-              searchMatches={searchMatches}
-            />
-          )}
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: 4 * 0.06, ease: 'easeOut' }}
+      whileHover={{ y: -3, transition: { duration: 0.15 } }}
+      className="relative glass-card rounded-2xl border-2 border-dashed border-teal-500/25 hover:border-teal-400/50 cursor-pointer group transition-all duration-200 overflow-hidden"
+    >
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-teal-500/5 pointer-events-none" />
+      <div className="p-6 h-full flex flex-col items-center justify-center text-center min-h-[240px]">
+        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center mb-3 group-hover:bg-teal-500/20 transition-colors">
+          <Plus className="w-5 h-5 text-teal-400" />
         </div>
-      ))}
-    </>
+        <p className="text-sm font-semibold text-teal-400 mb-1 group-hover:text-teal-300 transition-colors">Create New BOM</p>
+        <p className="text-[11px] text-slate-500 leading-relaxed">Define a new product structure and start building your bill of materials</p>
+      </div>
+    </motion.div>
   );
 }
 
 export default function BOMExplorer() {
-  const navigate = useNavigate();
-  const [bom] = useState(INITIAL_BOM_TREE);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set(['38100000']));
-  const [selectedNode, setSelectedNode] = useState<BOMNode | null>(null);
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<'tree' | 'flat'>('tree');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [lifecycleFilter, setLifecycleFilter] = useState('All');
 
-  const searchMatches = search.trim() ? searchTree(bom, search) : new Set<string>();
-  const stats = countNodes(bom);
+  const filtered = PRODUCTS.filter(p => {
+    const matchSearch = !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.subtitle.toLowerCase().includes(search.toLowerCase()) ||
+      p.category.toLowerCase().includes(search.toLowerCase()) ||
+      p.rootPL.includes(search);
+    const matchCat = categoryFilter === 'All' || p.category === categoryFilter;
+    const matchLife = lifecycleFilter === 'All' || p.lifecycle === lifecycleFilter;
+    return matchSearch && matchCat && matchLife;
+  });
 
-  const toggleExpand = useCallback((id: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const expandAll = () => {
-    const allIds = new Set<string>();
-    function collect(nodes: BOMNode[]) { for (const n of nodes) { allIds.add(n.id); collect(n.children); } }
-    collect(bom);
-    setExpanded(allIds);
-  };
-
-  const collapseAll = () => setExpanded(new Set(['38100000']));
-
-  const plRecord = selectedNode ? PL_DATABASE[selectedNode.id] : null;
+  const totalNodes = PRODUCTS.reduce((s, p) => s + p.total, 0);
+  const totalParts = PRODUCTS.reduce((s, p) => s + p.parts, 0);
 
   return (
-    <div className="space-y-4 max-w-[1400px] mx-auto h-[calc(100vh-160px)] flex flex-col">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-1">BOM Explorer</h1>
-          <p className="text-slate-400 text-sm">WAP7 Locomotive Product Structure — Drag & Drop Hierarchy Editor</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-1 text-xs border border-slate-700 rounded-lg overflow-hidden">
-            <button onClick={() => setViewMode('tree')} className={`px-3 py-1.5 flex items-center gap-1 ${viewMode === 'tree' ? 'bg-teal-500/20 text-teal-300' : 'text-slate-500 hover:text-slate-300'}`}>
-              <GitBranch className="w-3.5 h-3.5" /> Tree
-            </button>
-            <button onClick={() => setViewMode('flat')} className={`px-3 py-1.5 flex items-center gap-1 ${viewMode === 'flat' ? 'bg-teal-500/20 text-teal-300' : 'text-slate-500 hover:text-slate-300'}`}>
-              <List className="w-3.5 h-3.5" /> Flat
-            </button>
+    <div className="space-y-6 max-w-[1400px] mx-auto">
+      <PageHeader
+        title="BOM Explorer"
+        subtitle="Select a product to explore its full Bill of Materials hierarchy"
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm">
+              <Filter className="w-3.5 h-3.5" /> Export
+            </Button>
+            <Button size="sm">
+              <Plus className="w-3.5 h-3.5" /> New BOM
+            </Button>
           </div>
-          <Button variant="secondary"><Plus className="w-4 h-4" /> Add Node</Button>
-          <Button variant="secondary" onClick={() => navigate('/pl')}>
-            <Database className="w-4 h-4" /> PL Hub
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
-      {/* Stats Bar */}
-      <div className="flex gap-4 text-xs">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: 'Total Nodes', value: stats.total },
-          { label: 'Assemblies', value: stats.assemblies },
-          { label: 'Parts', value: stats.parts },
+          { label: 'Products', value: PRODUCTS.length, accent: true },
+          { label: 'Total Nodes', value: totalNodes, accent: false },
+          { label: 'In Production', value: PRODUCTS.filter(p => p.lifecycle === 'Production').length, accent: false },
+          { label: 'Total Parts', value: totalParts, accent: false },
         ].map(s => (
-          <GlassCard key={s.label} className="px-3 py-2 flex items-center gap-2">
-            <span className="text-slate-400">{s.label}</span>
-            <span className="font-bold text-teal-400">{s.value}</span>
+          <GlassCard key={s.label} className="px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-0.5">{s.label}</p>
+            <p className={`text-2xl font-bold ${s.accent ? 'text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400' : 'text-slate-100'}`}>
+              {s.value}
+            </p>
           </GlassCard>
         ))}
       </div>
 
-      <div className="flex-1 flex gap-4 min-h-0">
-        {/* Tree Panel */}
-        <GlassCard className="flex flex-col" style={{ width: selectedNode ? '55%' : '100%', transition: 'width 0.3s ease' }}>
-          <div className="p-4 border-b border-slate-700/50">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <Input
-                  placeholder="Search by name, PL number, or tag..."
-                  className="pl-9 w-full"
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-1">
-                <button onClick={expandAll} className="px-2 py-1 text-xs text-slate-400 hover:text-teal-300 border border-slate-700 rounded-lg transition-colors">
-                  Expand All
-                </button>
-                <button onClick={collapseAll} className="px-2 py-1 text-xs text-slate-400 hover:text-teal-300 border border-slate-700 rounded-lg transition-colors">
-                  Collapse
-                </button>
-              </div>
-            </div>
-            {search && searchMatches.size > 0 && (
-              <p className="text-xs text-teal-400 mt-2">{searchMatches.size} nodes match "{search}"</p>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto p-3 space-y-0.5 custom-scrollbar">
-            <RecursiveTree
-              nodes={bom}
-              level={0}
-              expanded={expanded}
-              toggleExpand={toggleExpand}
-              selectedId={selectedNode?.id ?? null}
-              onSelect={setSelectedNode}
-              searchMatches={searchMatches}
+      {/* Filters */}
+      <GlassCard className="p-4">
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Input
+              placeholder="Search products, PL numbers..."
+              className="pl-9 w-full"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
             />
           </div>
-        </GlassCard>
-
-        {/* Detail Panel */}
-        {selectedNode && (
-          <GlassCard className="flex-1 flex flex-col min-w-0">
-            <div className="flex items-center justify-between p-4 border-b border-slate-700/50">
-              <div className="flex items-center gap-2">
-                <NodeIcon type={selectedNode.type} />
-                <h2 className="text-sm font-bold text-white truncate">{selectedNode.name}</h2>
-              </div>
-              <button onClick={() => setSelectedNode(null)} className="text-slate-500 hover:text-white transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+          <div className="flex flex-wrap gap-4 items-center">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5 font-semibold">Category</p>
+              <FilterPills options={CATEGORIES} value={categoryFilter} onChange={setCategoryFilter} />
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-              {/* BOM Properties */}
-              <div>
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">BOM Properties</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'PL Number', value: selectedNode.id, mono: true },
-                    { label: 'Revision', value: selectedNode.revision, mono: true },
-                    { label: 'Type', value: selectedNode.type },
-                    { label: 'Quantity', value: String(selectedNode.quantity) },
-                    { label: 'Find No.', value: selectedNode.findNumber },
-                    { label: 'Unit', value: selectedNode.unitOfMeasure },
-                  ].map(f => (
-                    <div key={f.label}>
-                      <p className="text-[10px] text-slate-500">{f.label}</p>
-                      <p className={`text-xs font-medium text-slate-200 ${f.mono ? 'font-mono text-teal-400' : ''}`}>{f.value}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tags */}
-              {selectedNode.tags.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tags</h3>
-                  <div className="flex flex-wrap gap-1">
-                    {selectedNode.tags.map(tag => (
-                      <span key={tag} className={`px-1.5 py-0.5 border rounded text-[10px] ${tagColor(tag)}`}>{tag}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* PL Record Info */}
-              {plRecord && (
-                <div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">PL Record</h3>
-                  <div className="p-3 bg-slate-800/30 rounded-xl border border-slate-700/50 space-y-2">
-                    {plRecord.safetyVital && (
-                      <div className="flex items-center gap-2 text-rose-400 text-xs">
-                        <Shield className="w-3.5 h-3.5" /> Safety Vital Item
-                      </div>
-                    )}
-                    <div><p className="text-[10px] text-slate-500">Owner</p><p className="text-xs text-slate-200">{plRecord.owner}</p></div>
-                    <div><p className="text-[10px] text-slate-500">Department</p><p className="text-xs text-slate-200">{plRecord.department}</p></div>
-                    <div><p className="text-[10px] text-slate-500">Lifecycle</p><p className="text-xs text-teal-300">{plRecord.lifecycleState}</p></div>
-                    {plRecord.weight && <div><p className="text-[10px] text-slate-500">Weight</p><p className="text-xs text-slate-200">{plRecord.weight}</p></div>}
-                    {plRecord.supplier && <div><p className="text-[10px] text-slate-500">Supplier</p><p className="text-xs text-slate-200">{plRecord.supplier}</p></div>}
-                  </div>
-                </div>
-              )}
-
-              {/* Children */}
-              {selectedNode.children.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Children ({selectedNode.children.length})</h3>
-                  <div className="space-y-1">
-                    {selectedNode.children.map(c => (
-                      <div key={c.id} className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/30 hover:bg-slate-800/50 cursor-pointer transition-colors" onClick={() => setSelectedNode(c)}>
-                        <NodeIcon type={c.type} />
-                        <span className="text-xs text-slate-300 flex-1 truncate">{c.name}</span>
-                        <span className="font-mono text-[10px] text-teal-400">{c.id}</span>
-                        <span className="text-[10px] text-slate-500">×{c.quantity}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <Button className="w-full" onClick={() => navigate(`/pl/${selectedNode.id}`)}>
-                <Eye className="w-4 h-4" /> Open PL Record
-              </Button>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-slate-500 mb-1.5 font-semibold">Lifecycle</p>
+              <FilterPills options={LIFECYCLES} value={lifecycleFilter} onChange={setLifecycleFilter} />
             </div>
-          </GlassCard>
+          </div>
+        </div>
+        {(categoryFilter !== 'All' || lifecycleFilter !== 'All' || search) && (
+          <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5">
+            <span className="text-xs text-slate-400">Showing <span className="text-teal-400 font-semibold">{filtered.length}</span> of {PRODUCTS.length} products</span>
+            <button
+              onClick={() => { setSearch(''); setCategoryFilter('All'); setLifecycleFilter('All'); }}
+              className="text-xs text-slate-500 hover:text-slate-300 underline transition-colors"
+            >
+              Clear filters
+            </button>
+          </div>
         )}
-      </div>
+      </GlassCard>
+
+      {/* Product grid */}
+      {filtered.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {filtered.map((product, i) => (
+            <ProductCard key={product.id} product={product} index={i} />
+          ))}
+          <CreateNewCard />
+        </div>
+      ) : (
+        <GlassCard className="p-16 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center mx-auto mb-4">
+            <Search className="w-6 h-6 text-slate-500" />
+          </div>
+          <p className="text-slate-300 font-medium mb-1">No products found</p>
+          <p className="text-slate-500 text-sm mb-4">Try adjusting your search or filter criteria</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setCategoryFilter('All'); setLifecycleFilter('All'); }}>
+            Clear filters
+          </Button>
+        </GlassCard>
+      )}
+
+      {/* Recent activity */}
+      <GlassCard className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-4 h-4 text-slate-500" />
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">Recently Modified</h3>
+        </div>
+        <div className="space-y-2">
+          {[...PRODUCTS].sort((a, b) => b.lastModified.localeCompare(a.lastModified)).slice(0, 3).map(p => (
+            <div key={p.id} className="flex items-center justify-between py-1.5 px-2 rounded-lg hover:bg-slate-800/40 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{p.name}</span>
+                <span className="text-xs text-slate-500">{p.subtitle}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-500">{p.lastModified}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-teal-400 transition-colors" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
     </div>
   );
 }

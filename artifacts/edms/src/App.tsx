@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import DocumentHub from './pages/DocumentHub';
 import DocumentDetail from './pages/DocumentDetail';
 import BOMExplorer from './pages/BOMExplorer';
+import BOMProductView from './pages/BOMProductView';
 import PLKnowledgeHub from './pages/PLKnowledgeHub';
 import PLDetail from './pages/PLDetail';
 import WorkLedger from './pages/WorkLedger';
@@ -21,9 +22,9 @@ import Settings from './pages/Settings';
 import BannerManagement from './pages/BannerManagement';
 import RestrictedAccess from './pages/RestrictedAccess';
 import DesignSystem from './pages/DesignSystem';
+import DocumentIngestion from './pages/DocumentIngestion';
 
 const ALL_ROLES = ['admin', 'supervisor', 'engineer', 'reviewer', 'viewer'] as const;
-const STAFF_ROLES = ['admin', 'supervisor', 'engineer', 'reviewer'] as const;
 const ADMIN_ONLY = ['admin'] as const;
 const ADMIN_SUPERVISOR = ['admin', 'supervisor'] as const;
 const ENGINEER_UP = ['admin', 'supervisor', 'engineer'] as const;
@@ -55,6 +56,14 @@ const router = createBrowserRouter([
         ),
       },
       {
+        path: 'documents/ingest',
+        element: (
+          <ProtectedRoute allowedRoles={[...ALL_ROLES]}>
+            <DocumentIngestion />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'documents/:id',
         element: (
           <ProtectedRoute allowedRoles={[...ALL_ROLES]}>
@@ -67,6 +76,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute allowedRoles={[...ENGINEER_UP]}>
             <BOMExplorer />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: 'bom/:productId',
+        element: (
+          <ProtectedRoute allowedRoles={[...ENGINEER_UP]}>
+            <BOMProductView />
           </ProtectedRoute>
         ),
       },

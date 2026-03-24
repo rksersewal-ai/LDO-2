@@ -16,13 +16,27 @@ Enterprise Document Management System for engineering documents, BOMs, and appro
 - **Data**: All mock/in-memory, no real backend. Main data files: `src/lib/mock.ts`, `src/lib/mockExtended.ts`, `src/lib/bomData.ts`
 - **Animation**: Framer Motion (`motion`) for sidebar and UI
 
-### Pages (17 total)
-`Login`, `Dashboard`, `DocumentHub`, `DocumentDetail`, `BOMExplorer`, `PLKnowledgeHub`, `PLDetail`, `WorkLedger`, `LedgerReports`, `Cases`, `Approvals`, `Reports`, `AdminWorkspace`, `OCRMonitor`, `AuditLog`, `Settings`, `BannerManagement`, `RestrictedAccess`, `DesignSystem`
+### Pages (19 total)
+`Login`, `Dashboard`, `DocumentHub`, `DocumentDetail`, `DocumentIngestion`, `BOMExplorer`, `BOMProductView`, `PLKnowledgeHub`, `PLDetail`, `WorkLedger`, `LedgerReports`, `Cases`, `Approvals`, `Reports`, `AdminWorkspace`, `OCRMonitor`, `AuditLog`, `Settings`, `BannerManagement`, `RestrictedAccess`, `DesignSystem`
 
-### BOM Data Structure
-- `PL_DATABASE` in `bomData.ts`: 7 WAP7 locomotive PL records (38100000–38150000) with full metadata
-- `INITIAL_BOM_TREE`: Hierarchical BOM tree for BOM Explorer
+### BOM Data Structure (expanded)
+- `PL_DATABASE`: 40+ PL records across 4 products — WAP7 (38xxxxx), WAG-9HC (46xxxxx), DETC (52xxxxx), Traction Motor (60xxxxx)
+- `PRODUCTS`: Array of 4 product catalog entries with id, name, category, lifecycle, rootPL, stats
+- `BOM_TREES`: Map of `productId → BOMNode[]` for wap7, wag9hc, detc, tractionmotor
+- `INITIAL_BOM_TREE` / `WAG9HC_BOM_TREE` / `DETC_BOM_TREE` / `TRACTION_MOTOR_BOM_TREE`: Hierarchical trees
 - Utilities: `findNode`, `searchTree`, `countNodes`, `cloneTree`, `removeNode`
+
+### Routing
+- `/bom` — BOM Explorer product catalog (ENGINEER_UP)
+- `/bom/:productId` — Per-product BOM tree with DnD (ENGINEER_UP)
+- `/documents/ingest` — Document Ingestion form (ALL_ROLES)
+
+### Design System
+- **Fonts**: DM Sans (UI text) + IBM Plex Mono (codes/IDs) via Google Fonts in index.css
+- **Glass cards**: `glass-card` CSS utility — `bg-slate-900/50 backdrop-blur-xl border border-white/6 shadow-[0_8px_32px_rgba(0,0,0,0.4)]`
+- **Filter pills**: `.pill-filter`, `.pill-filter-active`, `.pill-filter-inactive` CSS utilities
+- **Page transitions**: Framer Motion AnimatePresence fade (100ms) in AppLayout
+- **BOM drag-and-drop**: react-dnd v16 with HTML5Backend, GripVertical handles, hover-based reorder
 
 ### Role-based Access
 - `admin`: Full access to all pages including Admin, Banners, Audit
