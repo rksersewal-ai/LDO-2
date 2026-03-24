@@ -369,6 +369,49 @@ export const PL_DATABASE: Record<string, PLRecord> = {
     whereUsed: [{ parentPL: "46140000", parentName: "Driver's Cab Assembly", quantity: 1, findNumber: "20" }],
     changeHistory: [], tags: ["Ergonomics", "Safety Vital", "ZTCS"], lastModified: "2025-06-20", createdDate: "2022-07-01",
   },
+  "46132000": {
+    plNumber: "46132000", name: "Auxiliary Converter Module", description: "Auxiliary power converter supplying 3-phase 415V 50Hz for hotel loads: lighting, fans, battery charger, and compressor.",
+    type: "sub-assembly", revision: "B.1", lifecycleState: "Production", owner: "M. Iyer", department: "Electronics Division",
+    weight: "145 kg", unitOfMeasure: "EA", classification: "Electronics — Auxiliary Converter", safetyVital: false, source: "Buy",
+    supplier: "Medha Servo Drives", supplierPartNo: "AUX-CONV-415V-B1", alternates: [], substitutes: [],
+    effectivity: { dateFrom: "2023-01-01" },
+    linkedDocuments: [{ docId: "DOC-2026-7301", title: "Auxiliary Converter Test Report", type: "Test Report", revision: "B.1", status: "Approved", fileType: "PDF", size: "11.0 MB", date: "2025-05-10" }],
+    linkedDrawings: [{ drawingId: "DWG-AUXCONV-001", title: "Aux Converter Installation Schematic", sheetNo: "1/2", revision: "B.1", status: "Released", format: "A2" }],
+    whereUsed: [{ parentPL: "46130000", parentName: "IGBT Converter Cabinet", quantity: 1, findNumber: "20" }],
+    changeHistory: [], tags: ["Electronics", "Auxiliary Power", "415V"], lastModified: "2025-06-01", createdDate: "2022-01-01",
+  },
+  "46143000": {
+    plNumber: "46143000", name: "Cab Air Conditioning Unit", description: "Roof-mounted cab A/C unit. 5kW cooling, 3kW heating. Automatic temperature control, air filtration.",
+    type: "part", revision: "A.1", lifecycleState: "Production", owner: "C. Rajan", department: "Cab Design Division",
+    weight: "78 kg", unitOfMeasure: "EA", classification: "HVAC — Cab Comfort", safetyVital: false, source: "Buy",
+    supplier: "Behr India Ltd", supplierPartNo: "CAB-AC-5KW-A1", alternates: [], substitutes: [],
+    effectivity: { dateFrom: "2023-06-01" },
+    linkedDocuments: [],
+    linkedDrawings: [{ drawingId: "DWG-CAB-AC-001", title: "Cab A/C Mounting Layout", sheetNo: "1/1", revision: "A.1", status: "Released", format: "A3" }],
+    whereUsed: [{ parentPL: "46140000", parentName: "Driver's Cab Assembly", quantity: 1, findNumber: "30" }],
+    changeHistory: [], tags: ["HVAC", "Cab Comfort", "Electrical"], lastModified: "2025-05-01", createdDate: "2022-08-01",
+  },
+  "46150000": {
+    plNumber: "46150000", name: "Sanding System Assembly", description: "Gravity-fed pneumatic sanding system for wheel-rail adhesion improvement. Tank capacity 70 kg per axle.",
+    type: "sub-assembly", revision: "A.2", lifecycleState: "Production", owner: "D. Pillai", department: "Bogie Design Division",
+    weight: "42 kg", unitOfMeasure: "EA", classification: "Running Gear — Adhesion Control", safetyVital: true, source: "Make",
+    alternates: [], substitutes: [], effectivity: { dateFrom: "2023-01-01" },
+    linkedDocuments: [{ docId: "DOC-2026-7401", title: "Sanding System Procedure", type: "Procedure", revision: "A.2", status: "Approved", fileType: "PDF", size: "5.5 MB", date: "2025-04-20" }],
+    linkedDrawings: [{ drawingId: "DWG-SAND-001", title: "Sanding System Layout", sheetNo: "1/2", revision: "A.2", status: "Released", format: "A2" }],
+    whereUsed: [{ parentPL: "46100000", parentName: "WAG-9HC Locomotive", quantity: 6, findNumber: "50" }],
+    changeHistory: [], tags: ["Adhesion Control", "Safety Vital", "Pneumatic"], lastModified: "2025-04-30", createdDate: "2022-03-01",
+  },
+  "46160000": {
+    plNumber: "46160000", name: "Horn & Warning System", description: "Dual-tone electropneumatic horn (high 475Hz / low 370Hz) with compressor bypass relay for tunnels.",
+    type: "part", revision: "A.1", lifecycleState: "Production", owner: "C. Rajan", department: "Cab Design Division",
+    weight: "8 kg", unitOfMeasure: "EA", classification: "Safety System — Warning", safetyVital: true, source: "Buy",
+    supplier: "Roots Industries India Ltd", supplierPartNo: "HORN-DT-475-A1", alternates: [], substitutes: [],
+    effectivity: { dateFrom: "2023-06-01" },
+    linkedDocuments: [],
+    linkedDrawings: [],
+    whereUsed: [{ parentPL: "46100000", parentName: "WAG-9HC Locomotive", quantity: 2, findNumber: "60" }],
+    changeHistory: [], tags: ["Safety Vital", "Warning", "Pneumatic"], lastModified: "2025-03-01", createdDate: "2022-04-01",
+  },
 
   // ─── DETC Double-Deck EMU ─────────────────────────────────────────────────
   "52000000": {
@@ -475,6 +518,58 @@ export const PL_DATABASE: Record<string, PLRecord> = {
     linkedDrawings: [{ drawingId: "DWG-VVVF-001", title: "VVVF Converter Layout", sheetNo: "1/3", revision: "A.2", status: "Preliminary", format: "A1" }],
     whereUsed: [{ parentPL: "52030000", parentName: "Traction Equipment Package", quantity: 1, findNumber: "20" }],
     changeHistory: [], tags: ["Electronics", "IGBT", "Regenerative", "Safety Vital"], lastModified: "2025-10-05", createdDate: "2024-01-01",
+  },
+  "52040000": {
+    plNumber: "52040000", name: "Passenger Interior Assembly", description: "Complete passenger interior package including seating, inter-deck staircase, flooring, and overhead grab rails.",
+    type: "sub-assembly", revision: "A.1", lifecycleState: "In Development", owner: "A. Verma", department: "Interior Design Division",
+    weight: "9,400 kg", unitOfMeasure: "EA", classification: "Interior — Passenger Saloon", safetyVital: false, source: "Make",
+    alternates: [], substitutes: [], effectivity: { dateFrom: "2026-01-01" },
+    linkedDocuments: [{ docId: "DOC-2026-9001", title: "Passenger Interior General Arrangement", type: "Drawing", revision: "A.1", status: "Draft", fileType: "PDF", size: "24.0 MB", date: "2025-11-10" }],
+    linkedDrawings: [{ drawingId: "DWG-DETC-INT-001", title: "Interior Saloon GA", sheetNo: "1/6", revision: "A.1", status: "Preliminary", format: "A0" }],
+    whereUsed: [{ parentPL: "52000000", parentName: "DETC Motor Coach", quantity: 1, findNumber: "40" }],
+    changeHistory: [], tags: ["Interior", "Passenger", "Comfort"], lastModified: "2025-11-20", createdDate: "2024-02-01",
+  },
+  "52041000": {
+    plNumber: "52041000", name: "Upper Deck Seating Module", description: "84-seat upper deck saloon unit with longitudinal and transverse seating, luggage racks, and anti-vandal coatings.",
+    type: "sub-assembly", revision: "A.1", lifecycleState: "In Development", owner: "A. Verma", department: "Interior Design Division",
+    weight: "3,200 kg", unitOfMeasure: "EA", classification: "Interior — Seating", safetyVital: false, source: "Make",
+    alternates: [], substitutes: [], effectivity: { dateFrom: "2026-01-01" },
+    linkedDocuments: [],
+    linkedDrawings: [{ drawingId: "DWG-DETC-USD-001", title: "Upper Deck Seating Arrangement", sheetNo: "1/3", revision: "A.1", status: "Preliminary", format: "A1" }],
+    whereUsed: [{ parentPL: "52040000", parentName: "Passenger Interior Assembly", quantity: 1, findNumber: "10" }],
+    changeHistory: [], tags: ["Interior", "Seating", "Upper Deck"], lastModified: "2025-10-15", createdDate: "2024-03-01",
+  },
+  "52042000": {
+    plNumber: "52042000", name: "Lower Deck Seating Module", description: "68-seat lower deck saloon unit with priority seating, wheelchair bays, and inter-deck staircase access panel.",
+    type: "sub-assembly", revision: "A.1", lifecycleState: "In Development", owner: "A. Verma", department: "Interior Design Division",
+    weight: "2,900 kg", unitOfMeasure: "EA", classification: "Interior — Seating", safetyVital: false, source: "Make",
+    alternates: [], substitutes: [], effectivity: { dateFrom: "2026-01-01" },
+    linkedDocuments: [],
+    linkedDrawings: [{ drawingId: "DWG-DETC-LSD-001", title: "Lower Deck Seating Arrangement", sheetNo: "1/3", revision: "A.1", status: "Preliminary", format: "A1" }],
+    whereUsed: [{ parentPL: "52040000", parentName: "Passenger Interior Assembly", quantity: 1, findNumber: "20" }],
+    changeHistory: [], tags: ["Interior", "Seating", "Lower Deck", "Accessibility"], lastModified: "2025-10-15", createdDate: "2024-03-01",
+  },
+  "52050000": {
+    plNumber: "52050000", name: "HVAC System", description: "Roof-mounted HVAC system. Cooling 30 kW, heating 20 kW per coach. HEPA filtration, automatic climate control.",
+    type: "sub-assembly", revision: "A.2", lifecycleState: "In Development", owner: "P. Singh", department: "Mechanical Systems Division",
+    weight: "1,800 kg", unitOfMeasure: "EA", classification: "HVAC — Passenger Comfort", safetyVital: false, source: "Buy",
+    supplier: "Faiveley Transport India", supplierPartNo: "HVAC-DETC-30KW-A2", alternates: [], substitutes: [],
+    effectivity: { dateFrom: "2026-01-01" },
+    linkedDocuments: [{ docId: "DOC-2026-9201", title: "HVAC Performance Test Report", type: "Test Report", revision: "A.2", status: "Draft", fileType: "PDF", size: "16.0 MB", date: "2025-10-05" }],
+    linkedDrawings: [{ drawingId: "DWG-DETC-HVAC-001", title: "HVAC Unit Roof Mounting", sheetNo: "1/3", revision: "A.2", status: "Preliminary", format: "A1" }],
+    whereUsed: [{ parentPL: "52000000", parentName: "DETC Motor Coach", quantity: 2, findNumber: "50" }],
+    changeHistory: [], tags: ["HVAC", "Passenger Comfort", "HEPA"], lastModified: "2025-10-20", createdDate: "2024-04-01",
+  },
+  "52051000": {
+    plNumber: "52051000", name: "Rooftop A/C Condenser Unit", description: "Variable-speed compressor rooftop condenser for DETC HVAC. R134a refrigerant, 15 kW cooling capacity per unit.",
+    type: "part", revision: "A.1", lifecycleState: "In Development", owner: "P. Singh", department: "Mechanical Systems Division",
+    weight: "420 kg", unitOfMeasure: "EA", classification: "HVAC — Condenser", safetyVital: false, source: "Buy",
+    supplier: "Faiveley Transport India", supplierPartNo: "COND-15KW-R134A-A1", alternates: [], substitutes: [],
+    effectivity: { dateFrom: "2026-01-01" },
+    linkedDocuments: [],
+    linkedDrawings: [{ drawingId: "DWG-DETC-COND-001", title: "Condenser Unit Outline", sheetNo: "1/1", revision: "A.1", status: "Preliminary", format: "A3" }],
+    whereUsed: [{ parentPL: "52050000", parentName: "HVAC System", quantity: 2, findNumber: "10" }],
+    changeHistory: [], tags: ["HVAC", "Refrigerant", "Rooftop"], lastModified: "2025-09-10", createdDate: "2024-04-15",
   },
 
   // ─── Traction Motor HS-15250A Standalone ─────────────────────────────────
@@ -679,6 +774,7 @@ export const WAG9HC_BOM_TREE: BOMNode[] = [
         unitOfMeasure: "EA", tags: ["Electronics", "IGBT"],
         children: [
           { id: "46131000", name: "4-Quadrant Converter Module", type: "sub-assembly", revision: "B.1", quantity: 2, findNumber: "10", unitOfMeasure: "EA", tags: ["Electronics", "Regenerative"], children: [] },
+          { id: "46132000", name: "Auxiliary Converter Module", type: "sub-assembly", revision: "B.1", quantity: 1, findNumber: "20", unitOfMeasure: "EA", tags: ["Electronics", "Auxiliary Power"], children: [] },
         ]
       },
       {
@@ -687,8 +783,11 @@ export const WAG9HC_BOM_TREE: BOMNode[] = [
         children: [
           { id: "46141000", name: "LOCOTROL Remote Control Unit", type: "part", revision: "A.1", quantity: 1, findNumber: "10", unitOfMeasure: "EA", tags: ["Electronics", "Safety Vital"], children: [] },
           { id: "46142000", name: "Cab Desk Assembly", type: "part", revision: "A.2", quantity: 1, findNumber: "20", unitOfMeasure: "EA", tags: ["Ergonomics", "ZTCS"], children: [] },
+          { id: "46143000", name: "Cab Air Conditioning Unit", type: "part", revision: "A.1", quantity: 1, findNumber: "30", unitOfMeasure: "EA", tags: ["HVAC", "Cab Comfort"], children: [] },
         ]
       },
+      { id: "46150000", name: "Sanding System Assembly", type: "sub-assembly", revision: "A.2", quantity: 6, findNumber: "50", unitOfMeasure: "EA", tags: ["Adhesion Control", "Safety Vital"], children: [] },
+      { id: "46160000", name: "Horn & Warning System", type: "part", revision: "A.1", quantity: 2, findNumber: "60", unitOfMeasure: "EA", tags: ["Safety Vital", "Warning"], children: [] },
     ]
   }
 ];
@@ -720,6 +819,21 @@ export const DETC_BOM_TREE: BOMNode[] = [
         children: [
           { id: "52031000", name: "DETC Traction Motor (1BW-4236)", type: "part", revision: "A.1", quantity: 4, findNumber: "10", unitOfMeasure: "EA", tags: ["Electrical", "Safety Vital"], children: [] },
           { id: "52032000", name: "VVVF Power Converter", type: "sub-assembly", revision: "A.2", quantity: 1, findNumber: "20", unitOfMeasure: "EA", tags: ["Electronics", "Regenerative"], children: [] },
+        ]
+      },
+      {
+        id: "52040000", name: "Passenger Interior Assembly", type: "sub-assembly", revision: "A.1", quantity: 1, findNumber: "40",
+        unitOfMeasure: "EA", tags: ["Interior", "Passenger"],
+        children: [
+          { id: "52041000", name: "Upper Deck Seating Module", type: "sub-assembly", revision: "A.1", quantity: 1, findNumber: "10", unitOfMeasure: "EA", tags: ["Interior", "Seating"], children: [] },
+          { id: "52042000", name: "Lower Deck Seating Module", type: "sub-assembly", revision: "A.1", quantity: 1, findNumber: "20", unitOfMeasure: "EA", tags: ["Interior", "Seating", "Accessibility"], children: [] },
+        ]
+      },
+      {
+        id: "52050000", name: "HVAC System", type: "sub-assembly", revision: "A.2", quantity: 2, findNumber: "50",
+        unitOfMeasure: "EA", tags: ["HVAC", "Passenger Comfort"],
+        children: [
+          { id: "52051000", name: "Rooftop A/C Condenser Unit", type: "part", revision: "A.1", quantity: 2, findNumber: "10", unitOfMeasure: "EA", tags: ["HVAC", "Refrigerant"], children: [] },
         ]
       },
     ]

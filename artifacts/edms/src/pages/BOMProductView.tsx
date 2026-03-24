@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Box, Layers, Cpu, Shield, Search, ChevronRight, ChevronDown,
   GripVertical, X, ExternalLink, FileText, ArrowLeft,
-  GitBranch, Eye, AlertCircle, Hash,
+  GitBranch, Eye, AlertCircle, Hash, ChevronUp,
 } from 'lucide-react';
 import { PRODUCTS, BOM_TREES, PL_DATABASE, searchTree, countNodes, cloneTree, findNode } from '../lib/bomData';
 import type { BOMNode } from '../lib/bomData';
@@ -32,10 +32,10 @@ function tagColor(tag: string) {
 }
 
 function DraggableBOMRow({
-  node, index, parentId, level, isExpanded, toggleExpand,
+  node, index, parentId, level, siblingCount, isExpanded, toggleExpand,
   selectedId, onSelect, searchMatches, onMove, children,
 }: {
-  node: BOMNode; index: number; parentId: string | null; level: number;
+  node: BOMNode; index: number; parentId: string | null; level: number; siblingCount: number;
   isExpanded: boolean; toggleExpand: (id: string) => void;
   selectedId: string | null; onSelect: (node: BOMNode) => void;
   searchMatches: Set<string>; onMove: (parentId: string | null, from: number, to: number) => void;
@@ -84,9 +84,29 @@ function DraggableBOMRow({
         } ${isMatch ? 'ring-1 ring-teal-500/40' : ''} ${isOver && canDrop ? 'border-teal-400/50 bg-teal-500/8' : ''}`}
         onClick={() => onSelect(node)}
       >
-        {/* Drag handle */}
-        <div ref={drag as unknown as React.Ref<HTMLDivElement>} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-500 hover:text-teal-400" onClick={e => e.stopPropagation()}>
-          <GripVertical className="w-3.5 h-3.5" />
+        {/* Drag handle + keyboard up/down controls */}
+        <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity -ml-1" onClick={e => e.stopPropagation()}>
+          <div ref={drag as unknown as React.Ref<HTMLDivElement>} className="cursor-grab active:cursor-grabbing p-1 text-slate-500 hover:text-teal-400 transition-colors" title="Drag to reorder">
+            <GripVertical className="w-3.5 h-3.5" />
+          </div>
+          <div className="flex flex-col gap-px">
+            <button
+              disabled={index === 0}
+              onClick={e => { e.stopPropagation(); onMove(parentId, index, index - 1); }}
+              className="p-0.5 text-slate-600 hover:text-teal-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+              aria-label="Move up"
+            >
+              <ChevronUp className="w-2.5 h-2.5" />
+            </button>
+            <button
+              disabled={index >= siblingCount - 1}
+              onClick={e => { e.stopPropagation(); onMove(parentId, index, index + 1); }}
+              className="p-0.5 text-slate-600 hover:text-teal-400 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+              aria-label="Move down"
+            >
+              <ChevronDown className="w-2.5 h-2.5" />
+            </button>
+          </div>
         </div>
 
         {/* Expand toggle */}
@@ -148,6 +168,7 @@ function BOMTreeLevel({
           index={index}
           parentId={parentId}
           level={level}
+          siblingCount={nodes.length}
           isExpanded={expanded.has(node.id)}
           toggleExpand={toggleExpand}
           selectedId={selectedId}
