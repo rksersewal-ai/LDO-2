@@ -10,7 +10,7 @@ import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared
 import { usePLItems } from '../hooks/usePLItems';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
-import type { PLNumber, InspectionCategory } from '../lib/types';
+import type { PLNumber, InspectionCategory, SafetyClassification } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 
@@ -43,7 +43,7 @@ interface CreatePLFormData {
   controllingAgency: string;
   status: string;
   safetyCritical: boolean;
-  safetyClassification: string;
+  safetyClassification: SafetyClassification | '';
   severityOfFailure: string;
   consequences: string;
   functionality: string;
@@ -355,13 +355,12 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Safety Classification">
-                <Select value={form.safetyClassification} onChange={e => setForm(f => ({ ...f, safetyClassification: e.target.value }))} className="w-full">
+                <Select value={form.safetyClassification} onChange={e => setForm(f => ({ ...f, safetyClassification: e.target.value as SafetyClassification | '' }))} className="w-full">
                   <option value="">— Select —</option>
-                  <option value="SIL-1">SIL-1</option>
-                  <option value="SIL-2">SIL-2</option>
-                  <option value="SIL-3">SIL-3</option>
-                  <option value="SIL-4">SIL-4</option>
-                  <option value="Non-SIL">Non-SIL</option>
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="CRITICAL">CRITICAL</option>
                 </Select>
               </Field>
               <Field label="Severity of Failure">
@@ -516,7 +515,7 @@ export default function PLKnowledgeHub() {
       controllingAgency: data.controllingAgency,
       status: data.status as 'ACTIVE' | 'UNDER_REVIEW' | 'OBSOLETE',
       safetyCritical: data.safetyCritical,
-      safetyClassification: data.safetyClassification as any || undefined,
+      safetyClassification: data.safetyClassification || undefined,
       severityOfFailure: data.severityOfFailure || undefined,
       consequences: data.consequences || undefined,
       functionality: data.functionality || undefined,

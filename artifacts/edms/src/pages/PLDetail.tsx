@@ -680,7 +680,7 @@ function PLNumberDetailView({
                 </div>
                 {(pl.engineeringChanges ?? []).length > 5 && (
                   <button
-                    onClick={() => (document.querySelector('[data-tab="changes"]') as HTMLButtonElement)?.click()}
+                    onClick={() => setActiveTab('changes')}
                     className="mt-3 text-xs text-teal-400 hover:text-teal-300 transition-colors"
                   >
                     +{(pl.engineeringChanges ?? []).length - 5} more changes →
