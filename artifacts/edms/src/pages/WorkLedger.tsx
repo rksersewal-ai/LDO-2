@@ -1,9 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
+import { toast } from 'sonner';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
 import { DatePicker } from '../components/ui/DatePicker';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useWorkRecords } from '../hooks/useWorkRecords';
+import { useAuth } from '../lib/auth';
 import { WorkLedgerService, getTargetDays, checkDuplicates, getKPIStatus } from '../services/WorkLedgerService';
 import { WORK_TYPE_DEFINITIONS, SECTION_TYPES, CONCERNED_OFFICERS } from '../lib/constants';
 import type { WorkRecord, WorkCategory } from '../lib/types';
@@ -114,8 +116,13 @@ interface CreateFormData {
   workCategory: WorkCategory;
   workType: string;
   description: string;
+  remarks: string;
   plNumber: string;
   referenceNumber: string;
+  drawingNumber: string;
+  specificationNumber: string;
+  tenderNumber: string;
+  otherNumber: string;
   eOfficeNumber: string;
   eOfficeFileNo: string;
   sectionType: string;
@@ -130,8 +137,13 @@ const EMPTY_FORM: CreateFormData = {
   workCategory: 'GENERAL',
   workType: '',
   description: '',
+  remarks: '',
   plNumber: '',
   referenceNumber: '',
+  drawingNumber: '',
+  specificationNumber: '',
+  tenderNumber: '',
+  otherNumber: '',
   eOfficeNumber: '',
   eOfficeFileNo: '',
   sectionType: 'General',
@@ -156,7 +168,7 @@ function CreateWorkModal({
   existing,
 }: {
   onClose: () => void;
-  onSave: (data: Omit<WorkRecord, 'id' | 'createdAt'>) => Promise<void>;
+  onSave: (data: Omit<WorkRecord, 'id' | 'createdAt'>) => Promise<WorkRecord>;
   existing: WorkRecord[];
 }) {
   const [form, setForm] = useState<CreateFormData>(EMPTY_FORM);
@@ -191,15 +203,20 @@ function CreateWorkModal({
     setSaving(true);
     const autodays = calcDaysBetween(form.dispatchDate || form.date, form.closingDate);
     try {
-      await onSave({
+      const saved = await onSave({
         userId: 'USR-001',
         userName: 'A. Kowalski',
         date: form.date,
         workCategory: form.workCategory,
         workType: form.workType,
         description: form.description,
+        remarks: form.remarks || undefined,
         plNumber: form.plNumber || undefined,
         referenceNumber: form.referenceNumber || undefined,
+        drawingNumber: form.drawingNumber || undefined,
+        specificationNumber: form.specificationNumber || undefined,
+        tenderNumber: form.tenderNumber || undefined,
+        otherNumber: form.otherNumber || undefined,
         eOfficeNumber: form.eOfficeNumber || undefined,
         eOfficeFileNo: form.eOfficeFileNo || undefined,
         sectionType: form.sectionType,
@@ -212,6 +229,7 @@ function CreateWorkModal({
         closingDate: form.closingDate || undefined,
         daysTaken: autodays,
       } as Omit<WorkRecord, 'id' | 'createdAt'>);
+      toast.success('Work record logged', { description: `${saved.id} — ${form.workType}` });
       onClose();
     } finally {
       setSaving(false);
@@ -221,12 +239,11 @@ function CreateWorkModal({
   const consentApplicable = selectedTypeDef?.consentApplicable ?? false;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <GlassCard className="w-full max-w-2xl p-6 shadow-2xl max-h-[92vh] overflow-auto">
+    <GlassCard className="w-full p-6">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-lg font-bold text-white">New Work Record</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Record a new work item in the Work Ledger</p>
+            <h2 className="text-lg font-bold text-white flex items-center gap-2"><Plus className="w-4 h-4 text-teal-400" /> Log Work Activity</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Record a new work item in the Work Ledger with full audit trail</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors">
             <X className="w-4 h-4" />
@@ -299,9 +316,42 @@ function CreateWorkModal({
               <Input value={form.plNumber} onChange={e => setForm(f => ({ ...f, plNumber: e.target.value }))} placeholder="e.g. 38110000" className="w-full font-mono" />
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Reference / Drawing No.</label>
-              <Input value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. DWG-BOG-001" className="w-full font-mono" />
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Reference No.</label>
+              <Input value={form.referenceNumber} onChange={e => setForm(f => ({ ...f, referenceNumber: e.target.value }))} placeholder="e.g. REF-2026-001" className="w-full font-mono" />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Drawing Number</label>
+              <Input value={form.drawingNumber} onChange={e => setForm(f => ({ ...f, drawingNumber: e.target.value }))} placeholder="e.g. DWG-BOG-ASM-001" className="w-full font-mono text-xs" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Specification Number</label>
+              <Input value={form.specificationNumber} onChange={e => setForm(f => ({ ...f, specificationNumber: e.target.value }))} placeholder="e.g. SPEC-BRK-001" className="w-full font-mono text-xs" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Tender Number</label>
+              <Input value={form.tenderNumber} onChange={e => setForm(f => ({ ...f, tenderNumber: e.target.value }))} placeholder="e.g. CLW/TENDER/2026/001" className="w-full font-mono text-xs" />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">Other Reference No.</label>
+              <Input value={form.otherNumber} onChange={e => setForm(f => ({ ...f, otherNumber: e.target.value }))} placeholder="e.g. EXT-REF-2026-001" className="w-full font-mono text-xs" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-400 mb-1.5 block">Remarks / Additional Notes</label>
+            <textarea
+              value={form.remarks}
+              onChange={e => setForm(f => ({ ...f, remarks: e.target.value }))}
+              placeholder="Any additional remarks, observations, or context for this work record..."
+              rows={2}
+              className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -391,15 +441,14 @@ function CreateWorkModal({
         <div className="flex gap-3 mt-6 pt-5 border-t border-slate-700/50">
           <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving} className="flex-1">
-            {saving ? 'Saving...' : <><Plus className="w-4 h-4" /> Create Record</>}
+            {saving ? 'Saving...' : <><Plus className="w-4 h-4" /> Log Activity</>}
           </Button>
         </div>
-      </GlassCard>
-    </div>
+    </GlassCard>
   );
 }
 
-function RecordDetail({ record, onVerify, onClose }: { record: WorkRecord; onVerify: () => void; onClose: () => void }) {
+function RecordDetail({ record, onVerify, onClose, canVerify }: { record: WorkRecord; onVerify: () => void; onClose: () => void; canVerify: boolean }) {
   const navigate = useNavigate();
   const kpi = getKPIStatus(record);
 
@@ -488,7 +537,7 @@ function RecordDetail({ record, onVerify, onClose }: { record: WorkRecord; onVer
       )}
 
       {/* Actions */}
-      {!record.isLocked && record.status === 'SUBMITTED' && (
+      {!record.isLocked && (record.status === 'OPEN' || record.status === 'SUBMITTED') && canVerify && (
         <div className="flex gap-2">
           <Button size="sm" onClick={onVerify}>
             <CheckCircle className="w-3.5 h-3.5" /> Mark as Verified
@@ -502,6 +551,9 @@ function RecordDetail({ record, onVerify, onClose }: { record: WorkRecord; onVer
 export default function WorkLedger() {
   const navigate = useNavigate();
   const { data: records, loading, error, refetch, add, verify, remove } = useWorkRecords();
+  const { user, hasPermission } = useAuth();
+  const canCreate = hasPermission(['admin', 'supervisor', 'engineer']);
+  const canVerify = hasPermission(['admin', 'supervisor']);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<WorkRecord['status'] | 'ALL'>('ALL');
@@ -547,11 +599,12 @@ export default function WorkLedger() {
   const selectedRecord = records.find(r => r.id === selectedId) ?? null;
 
   const handleVerify = async (id: string) => {
-    await verify(id, 'Admin');
+    await verify(id, user?.name ?? 'Admin');
+    toast.success('Record verified and locked');
   };
 
   const handleCreate = async (data: Omit<WorkRecord, 'id' | 'createdAt'>) => {
-    await add(data);
+    return await add(data);
   };
 
   if (loading) return <LoadingState message="Loading Work Ledger..." />;
@@ -569,11 +622,22 @@ export default function WorkLedger() {
           <Button variant="secondary" onClick={() => setShowAnalytics(v => !v)}>
             <BarChart3 className="w-4 h-4" /> {showAnalytics ? 'Hide' : 'Analytics'}
           </Button>
-          <Button onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4" /> New Work Record
-          </Button>
+          {canCreate && (
+            <Button onClick={() => setShowForm(v => !v)}>
+              <Plus className="w-4 h-4" /> {showForm ? 'Cancel' : 'Log Work Activity'}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Inline Log Form */}
+      {showForm && canCreate && (
+        <CreateWorkModal
+          onClose={() => setShowForm(false)}
+          onSave={handleCreate}
+          existing={records}
+        />
+      )}
 
       {/* KPI Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -720,15 +784,7 @@ export default function WorkLedger() {
           record={selectedRecord}
           onVerify={() => handleVerify(selectedRecord.id)}
           onClose={() => setSelectedId(null)}
-        />
-      )}
-
-      {/* Create Modal */}
-      {showForm && (
-        <CreateWorkModal
-          onClose={() => setShowForm(false)}
-          onSave={handleCreate}
-          existing={records}
+          canVerify={canVerify}
         />
       )}
     </div>

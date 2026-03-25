@@ -1,113 +1,203 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GlassCard, Button } from '../components/ui/Shared';
-import { MOCK_WORK_LEDGER } from '../lib/mockExtended';
-import { FileBarChart, Download } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { WorkLedgerService, calculateDaysTaken } from '../services/WorkLedgerService';
+import { FileBarChart, Download, TrendingUp, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts';
 
-const byStatus = [
-  { status: 'Complete', count: MOCK_WORK_LEDGER.filter(w => w.status === 'Complete').length },
-  { status: 'In Progress', count: MOCK_WORK_LEDGER.filter(w => w.status === 'In Progress').length },
-  { status: 'Pending', count: MOCK_WORK_LEDGER.filter(w => w.status === 'Pending').length },
-  { status: 'Verification', count: MOCK_WORK_LEDGER.filter(w => w.status === 'Pending Verification').length },
+const CATEGORY_LABEL: Record<string, string> = {
+  GENERAL: 'General', DRAWING: 'Drawing', SPECIFICATION: 'Specification',
+  TENDER: 'Tender', SHOP: 'Shop', IC: 'IC', AMENDMENT: 'Amendment',
+  VENDOR: 'Vendor', EXTERNAL: 'External', FAILURE: 'Failure', INSPECTION: 'Inspection',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  OPEN: 'Open', SUBMITTED: 'In Progress', VERIFIED: 'Verified', CLOSED: 'Closed',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  OPEN: '#60a5fa',
+  SUBMITTED: '#fbbf24',
+  VERIFIED: '#34d399',
+  CLOSED: '#94a3b8',
+};
+
+const CATEGORY_COLORS = [
+  '#14b8a6', '#6366f1', '#f59e0b', '#ec4899', '#10b981',
+  '#8b5cf6', '#f97316', '#06b6d4', '#84cc16', '#ef4444', '#a78bfa',
 ];
 
-const byType = [
-  { type: 'Inspection', count: 1 }, { type: 'Calibration', count: 1 }, { type: 'Review', count: 1 },
-  { type: 'Reporting', count: 1 }, { type: 'Audit', count: 1 },
-];
+const TOOLTIP_STYLE = {
+  backgroundColor: '#0f172a',
+  border: '1px solid rgba(20, 184, 166, 0.2)',
+  borderRadius: '12px',
+  color: '#e2e8f0',
+  fontSize: '12px',
+};
+
+type Analytics = Awaited<ReturnType<typeof WorkLedgerService.getAnalytics>>;
 
 export default function LedgerReports() {
-  const [period, setPeriod] = useState('This Month');
-  const total = MOCK_WORK_LEDGER.length;
-  const completed = MOCK_WORK_LEDGER.filter(w => w.status === 'Complete').length;
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [avgDays, setAvgDays] = useState(0);
+
+  useEffect(() => {
+    WorkLedgerService.getAnalytics().then(setAnalytics);
+    WorkLedgerService.getAll().then(records => {
+      const completed = records.filter(r => r.daysTaken != null);
+      if (completed.length > 0) {
+        const avg = Math.round(completed.reduce((s, r) => s + (r.daysTaken ?? 0), 0) / completed.length);
+        setAvgDays(avg);
+      }
+    });
+  }, []);
+
+  if (!analytics) {
+    return (
+      <div className="flex items-center justify-center h-60">
+        <div className="w-8 h-8 border-2 border-teal-500/30 border-t-teal-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const categoryData = analytics.byCategory
+    .map(c => ({ name: CATEGORY_LABEL[c.category] ?? c.category, count: c.count }))
+    .sort((a, b) => b.count - a.count);
+
+  const statusData = analytics.byStatus.map(s => ({
+    name: STATUS_LABEL[s.status] ?? s.status,
+    value: s.count,
+    key: s.status,
+  }));
+
+  const avgDaysData = analytics.avgDaysByType
+    .slice(0, 8)
+    .map(t => ({ name: t.workType.length > 20 ? t.workType.substring(0, 20) + '…' : t.workType, avg: t.avgDays, target: t.targetDays }))
+    .sort((a, b) => b.avg - a.avg);
+
+  const stats = [
+    { label: 'Total Records', value: analytics.totalRecords, icon: <FileBarChart className="w-4 h-4 text-teal-400" />, color: 'text-white' },
+    { label: 'On-Time Rate', value: `${analytics.onTimeRate}%`, icon: <TrendingUp className="w-4 h-4 text-emerald-400" />, color: analytics.onTimeRate >= 80 ? 'text-emerald-400' : 'text-amber-400' },
+    { label: 'Overdue', value: analytics.overdueCount, icon: <AlertCircle className="w-4 h-4 text-rose-400" />, color: analytics.overdueCount > 0 ? 'text-rose-400' : 'text-slate-300' },
+    { label: 'Avg Completion', value: avgDays ? `${avgDays}d` : '—', icon: <Clock className="w-4 h-4 text-blue-400" />, color: 'text-blue-300' },
+  ];
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Work Ledger Reports</h1>
-          <p className="text-slate-400 text-sm">Summary views and operational reporting for work records.</p>
+          <p className="text-slate-400 text-sm">Analytics and operational reporting for work records.</p>
         </div>
-        <div className="flex gap-3">
-          <select
-            value={period}
-            onChange={e => setPeriod(e.target.value)}
-            className="bg-slate-950/50 border border-teal-500/20 text-slate-200 text-sm rounded-xl px-4 py-2 focus:outline-none"
-          >
-            <option>This Week</option><option>This Month</option><option>This Quarter</option><option>Custom</option>
-          </select>
-          <Button variant="secondary"><Download className="w-4 h-4" /> Export</Button>
-        </div>
+        <Button variant="secondary"><Download className="w-4 h-4" /> Export</Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Records', value: total, color: 'text-white' },
-          { label: 'Completed', value: completed, color: 'text-teal-400' },
-          { label: 'Open', value: total - completed, color: 'text-amber-400' },
-          { label: 'Completion Rate', value: `${Math.round((completed / total) * 100)}%`, color: 'text-white' },
-        ].map(s => (
-          <GlassCard key={s.label} className="p-5">
-            <div className="text-xs text-slate-400 mb-1">{s.label}</div>
-            <div className={`text-3xl font-bold ${s.color}`}>{s.value}</div>
+      {/* Summary stat strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {stats.map(s => (
+          <GlassCard key={s.label} className="px-5 py-4 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-800/60 flex items-center justify-center shrink-0">
+              {s.icon}
+            </div>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">{s.label}</p>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            </div>
           </GlassCard>
         ))}
       </div>
 
+      {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Work volume by category */}
         <GlassCard className="p-6">
-          <h2 className="text-base font-bold text-white mb-4">Records by Status</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={byStatus}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" />
-              <XAxis dataKey="status" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '12px', color: '#e2e8f0' }} />
-              <Bar dataKey="count" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <FileBarChart className="w-4 h-4 text-teal-400" /> Work Volume by Category
+          </h2>
+          {categoryData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={categoryData} margin={{ top: 4, right: 8, left: -16, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" />
+                <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Records">
+                  {categoryData.map((_, i) => (
+                    <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-slate-500 text-center py-12">No category data yet</p>
+          )}
         </GlassCard>
 
+        {/* Status distribution donut */}
         <GlassCard className="p-6">
-          <h2 className="text-base font-bold text-white mb-4">Records by Type</h2>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={byType}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" />
-              <XAxis dataKey="type" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
-              <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(20, 184, 166, 0.2)', borderRadius: '12px', color: '#e2e8f0' }} />
-              <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-teal-400" /> Records by Status
+          </h2>
+          {statusData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie
+                  data={statusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={95}
+                  paddingAngle={3}
+                  dataKey="value"
+                  nameKey="name"
+                >
+                  {statusData.map((entry, i) => (
+                    <Cell key={i} fill={STATUS_COLORS[entry.key] ?? '#64748b'} stroke="transparent" />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={TOOLTIP_STYLE} />
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-sm text-slate-500 text-center py-12">No status data yet</p>
+          )}
         </GlassCard>
       </div>
 
+      {/* Avg days vs target — horizontal bar */}
       <GlassCard className="p-6">
-        <h2 className="text-base font-bold text-white mb-4">Work Records Summary</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-700/50 text-slate-400">
-              <th className="pb-3 text-left font-semibold pl-4">ID</th>
-              <th className="pb-3 text-left font-semibold">Title</th>
-              <th className="pb-3 text-left font-semibold">Type</th>
-              <th className="pb-3 text-left font-semibold">Status</th>
-              <th className="pb-3 text-left font-semibold">Assignee</th>
-              <th className="pb-3 text-left font-semibold">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/30">
-            {MOCK_WORK_LEDGER.map(w => (
-              <tr key={w.id} className="hover:bg-slate-800/20 transition-colors">
-                <td className="py-3 pl-4 font-mono text-xs text-teal-400">{w.id}</td>
-                <td className="py-3 text-slate-200 text-xs">{w.title}</td>
-                <td className="py-3 text-slate-400 text-xs">{w.type}</td>
-                <td className="py-3 text-slate-300 text-xs">{w.status}</td>
-                <td className="py-3 text-slate-400 text-xs">{w.assignee}</td>
-                <td className="py-3 text-slate-500 text-xs">{w.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+          <Clock className="w-4 h-4 text-teal-400" /> Avg Days to Completion vs Target (by Work Type)
+        </h2>
+        {avgDaysData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={Math.max(200, avgDaysData.length * 40)}>
+            <BarChart data={avgDaysData} layout="vertical" margin={{ top: 4, right: 60, left: 10, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" horizontal={false} />
+              <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 11 }} unit="d" allowDecimals={false} />
+              <YAxis type="category" dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} width={140} />
+              <Tooltip
+                contentStyle={TOOLTIP_STYLE}
+                formatter={(v: number, name: string) => [`${v}d`, name === 'avg' ? 'Avg Taken' : 'Target']}
+              />
+              <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', color: '#94a3b8' }} />
+              <Bar dataKey="target" fill="rgba(71,85,105,0.4)" radius={[0, 4, 4, 0]} name="Target" />
+              <Bar dataKey="avg" radius={[0, 4, 4, 0]} name="Avg Taken">
+                {avgDaysData.map((entry, i) => (
+                  <Cell key={i} fill={entry.avg <= entry.target ? '#34d399' : '#f87171'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-sm text-slate-500 text-center py-12">No completed records with day data yet</p>
+        )}
       </GlassCard>
     </div>
   );
