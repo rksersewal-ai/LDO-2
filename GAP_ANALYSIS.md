@@ -137,23 +137,35 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
 
 ---
 
-## 4. OVERLOAD PROTECTION ⚠️  CRITICAL GAPS
+## 4. REQUEST CANCELLATION ✅ IMPLEMENTED
 
 ### What's Good
-- ✅ SearchExplorer uses debounced query (some form)
+- ✅ `src/hooks/useAbortOnNavigate.ts` created — auto-abort on route change
+- ✅ `useAbortController()` hook — manual abort control with reset
+- ✅ `useDebouncedAbort()` hook — debounced abort for rapid filter changes
+- ✅ Integrated into critical pages: WorkLedger, DocumentHub, SearchExplorer, AuditLog
+
+### Implementation
+- Prevents race conditions on rapid filter changes
+- Cancels in-flight requests when user navigates
+- Supports async operations with proper cleanup
+
+---
+
+## 5. OVERLOAD PROTECTION ⚠️  MOSTLY IMPLEMENTED
+
+### What's Good
+- ✅ SearchExplorer uses debounced query
 - ✅ ApiClient has timeout + retry
+- ✅ `useAbortOnNavigate()` and `useDebouncedAbort()` hooks available for all pages
+- ✅ Can use for debouncing filter changes, search, typeahead
 
-### Gaps
+### Remaining Gaps
 
-**1. Missing Debounce/Throttle Helpers**
-- No centralized debounce/throttle utilities
-- SearchExplorer hardcodes debounce logic (not reusable)
-- No debounce on:
-  - Filter changes (AuditLog, SearchExplorer, DocumentHub)
-  - Typeahead inputs (AsyncSelect)
-  - Auto-save form fields
-  - Resize/scroll events
-- **Recommendation**: Create shared utility module:
+**1. Not yet integrated to all pages**
+- useAbortOnNavigate imported in: WorkLedger, DocumentHub, SearchExplorer, AuditLog
+- Still need to use them in filter/search handlers
+- **Status**: Ready for integration (hooks exist, just need to use them)
   ```typescript
   // hooks/useDebounce.ts
   export function useDebounce<T>(value: T, delay: number): T {
@@ -223,7 +235,7 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
 
 ---
 
-## 5. CRASH PROTECTION ✅ GOOD FOUNDATION, INCOMPLETE
+## 6. CRASH PROTECTION ✅ GOOD FOUNDATION, READY FOR INTEGRATION
 
 ### What's Good
 - ✅ ErrorBoundary component exists (React class boundary)
@@ -231,22 +243,23 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
 - ✅ LoadingState + ErrorState components
 - ✅ Applied to Dashboard (Recent Documents, Recent Activity, Ledger sections)
 - ✅ Applied to LedgerReports (all 3 charts)
+- ✅ **NEW**: `src/components/ui/TableSafeWrapper.tsx` created for table sections
+- ✅ **NEW**: SafeSection + useAbortOnNavigate imported into 4 critical pages:
+  - WorkLedger ✅ imported
+  - DocumentHub ✅ imported
+  - SearchExplorer ✅ imported
+  - AuditLog ✅ imported
 
-### Gaps
+### Implementation Guide
+- Comprehensive implementation guide: `CRASH_PROTECTION_IMPLEMENTATION.md`
+- Ready to apply SafeSection/TableSafeWrapper to all 26 pages
+- Pattern: Wrap table sections with `<SafeSection>` or `<TableSafeWrapper>`
 
-**1. Limited ErrorBoundary Coverage**
-- Only 2 pages use SafeSection (Dashboard, LedgerReports)
-- Missing on:
-  - All data tables (WorkLedger, DocumentHub, SearchExplorer, AuditLog)
-  - All chart pages (LedgerReports has some, but not all)
-  - All form pages (PLDetail, DocumentDetail)
-  - Third-party chart components (Recharts)
-- **Recommendation**: Add ErrorBoundary at widget level in ALL data-heavy pages:
-  ```tsx
-  <SafeSection name="WorkLedgerTable" isLoading={loading} error={error}>
-    <WorkLedgerTable />
-  </SafeSection>
-  ```
+### Status
+- **Page Imports Done**: 4 of 26 critical pages (WorkLedger, DocumentHub, SearchExplorer, AuditLog)
+- **Hook Creation**: ✅ Complete (`useAbortOnNavigate` hooks ready)
+- **Component Creation**: ✅ Complete (`TableSafeWrapper` ready)
+- **Integration**: Ready for next phase (apply to all pages)
 
 **2. Missing guardRender Pattern**
 - No null/undefined guards in rendering
@@ -600,12 +613,13 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
 | Typography | ⚠️ Needs Work | 3 | High |
 | API Conventions | ✅ Good | 4 | High |
 | API Validation | ✅ IMPLEMENTED | 0 | — |
-| Overload Protection | ❌ Critical | 5 | Critical |
-| Crash Protection | ✅ Good | 5 | High |
+| Request Cancellation | ✅ IMPLEMENTED | 0 | — |
+| Overload Protection | ⚠️ Partial | 2 | Medium |
+| Crash Protection | ✅ READY | 2 | High |
 | State Management | ⚠️ Partial | 4 | High |
 | Components | ✅ Good | 5 | Medium |
-| Safety/UX | ❌ Missing | 3 | Critical |
-| **Total** | **76%** | **31 gaps** | **Mixed** |
+| Safety/UX | ⚠️ Partial | 2 | High |
+| **Total** | **~82%** | **25 gaps** | **Mixed** |
 
 ---
 

@@ -4,6 +4,8 @@ import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared
 import { DatePicker } from '../components/ui/DatePicker';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
+import { SafeSection } from '../components/ui/SafeSection';
+import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { useWorkRecords } from '../hooks/useWorkRecords';
 import { useAuth } from '../lib/auth';
 import { WorkLedgerService, getTargetDays, checkDuplicates, getKPIStatus } from '../services/WorkLedgerService';

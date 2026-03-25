@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, FilterPills, PageHeader } from '../components/ui/Shared';
+import { SafeSection } from '../components/ui/SafeSection';
+import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { ExportImportService } from '../services/ExportImportService';
 import {

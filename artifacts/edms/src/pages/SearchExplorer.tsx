@@ -7,6 +7,8 @@ import {
   Bookmark, BookmarkCheck, Trash2, SlidersHorizontal, X,
 } from 'lucide-react';
 import { GlassCard } from '../components/ui/Shared';
+import { SafeSection } from '../components/ui/SafeSection';
+import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { SearchService } from '../services/SearchService';
 import type { CrossEntityResults, SearchResult } from '../services/SearchService';
 import { SearchHistoryService } from '../services/SearchHistoryService';

@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { GlassCard, Badge, Button, Input, PageHeader } from '../components/ui/Shared';
+import { SafeSection } from '../components/ui/SafeSection';
+import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { MOCK_AUDIT_EXTENDED } from '../lib/mockExtended';
 import {
   FileSearch, Filter, X, AlertCircle, AlertTriangle, Info,
