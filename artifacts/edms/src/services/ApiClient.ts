@@ -46,7 +46,10 @@ class ApiClient {
   };
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+    // Use relative URL so requests go through Vite's dev server proxy.
+    // In Replit's environment the browser cannot reach localhost:PORT directly.
+    // Vite proxy forwards /api/* → http://127.0.0.1:8080 server-side.
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
     
     this.client = axios.create({
       baseURL: this.baseURL,
