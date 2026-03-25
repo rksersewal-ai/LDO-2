@@ -362,11 +362,6 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                   ))}
                 </Select>
               </F>
-              <F label="Controlling Agency">
-                <Select value={form.controllingAgency} onChange={e => setForm(f => ({ ...f, controllingAgency: e.target.value }))} className="w-full">
-                  {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
-                </Select>
-              </F>
               <F label="Status">
                 <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as PLNumber['status'] }))} className="w-full">
                   <option value="ACTIVE">Active</option>
@@ -374,15 +369,59 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                   <option value="OBSOLETE">Obsolete</option>
                 </Select>
               </F>
-              <F label="Vendor Type">
+              <F label="Vendor Type *">
                 <Select value={form.vendorType} onChange={e => setForm(f => ({ ...f, vendorType: e.target.value }))} className="w-full">
-                  <option value="">— None —</option>
+                  <option value="">— Select Type —</option>
                   <option value="VD">VD (Vendor Drawing)</option>
                   <option value="NVD">NVD (Non-Vendor Drawing)</option>
                 </Select>
               </F>
             </div>
           </section>
+
+          {/* Conditional Fields Based on Vendor Type */}
+          {form.vendorType && (
+            <section>
+              <h3 className="text-[10px] uppercase tracking-widest font-bold text-indigo-500 mb-3">
+                {form.vendorType === 'VD' ? 'Vendor Directory Requirements' : 'Non-Vendor Directory Details'}
+              </h3>
+              {form.vendorType === 'VD' ? (
+                // VD (Vendor Directory) - Show UVAM ID and Controlling Agency
+                <div className="space-y-3">
+                  <div className="bg-indigo-900/20 border border-indigo-500/30 rounded-xl p-4 mb-3">
+                    <p className="text-xs text-indigo-300">Vendor Directory items require UVAM item identification and controlling agency assignment.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <F label="UVAM Item ID *">
+                      <TextInput field="uvamId" placeholder="Enter UVAM reference" />
+                    </F>
+                    <F label="Controlling Agency *">
+                      <Select value={form.controllingAgency} onChange={e => setForm(f => ({ ...f, controllingAgency: e.target.value }))} className="w-full">
+                        <option value="">— Select Agency —</option>
+                        {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
+                      </Select>
+                    </F>
+                  </div>
+                </div>
+              ) : (
+                // NVD (Non-Vendor Directory) - Show Eligibility Criteria
+                <div className="space-y-3">
+                  <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-4 mb-3">
+                    <p className="text-xs text-purple-300">Non-Vendor Directory items require documented eligibility criteria for approval.</p>
+                  </div>
+                  <F label="Eligibility Criteria *">
+                    <textarea
+                      value={form.eligibilityCriteria}
+                      onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))}
+                      rows={3}
+                      placeholder="Document the eligibility criteria for this NVD item (e.g., design standards, performance requirements, compliance measures)..."
+                      className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 transition-all placeholder:text-slate-600 resize-none"
+                    />
+                  </F>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Safety */}
           <section>
