@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
+import { SafeSection } from '../components/ui/SafeSection';
 import { MOCK_DOCUMENTS, MOCK_AUDIT_LOG } from '../lib/mock';
 import { MOCK_APPROVALS, MOCK_OCR_JOBS, MOCK_NOTIFICATIONS } from '../lib/mockExtended';
 import { useAuth } from '../lib/auth';
@@ -165,15 +166,16 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GlassCard className="p-6 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">Recent Documents</h2>
-            <Button variant="ghost" className="text-xs text-teal-400 px-2 py-1" onClick={() => navigate('/documents')}>
-              View all <ArrowRight className="w-3 h-3" />
-            </Button>
-          </div>
-          <div className="space-y-2">
-            {MOCK_DOCUMENTS.slice(0, 5).map(doc => (
+        <SafeSection name="Recent Documents" minHeight="min-h-[200px]" className="lg:col-span-2">
+          <GlassCard className="p-6 h-full">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-white">Recent Documents</h2>
+              <Button variant="ghost" className="text-xs text-teal-400 px-2 py-1" onClick={() => navigate('/documents')}>
+                View all <ArrowRight className="w-3 h-3" />
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {MOCK_DOCUMENTS.slice(0, 5).map(doc => (
               <div
                 key={doc.id}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800/40 cursor-pointer transition-colors group"
@@ -197,9 +199,10 @@ export default function Dashboard() {
                   <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
                 </div>
               </div>
-            ))}
-          </div>
-        </GlassCard>
+              ))}
+            </div>
+          </GlassCard>
+        </SafeSection>
 
         <div className="space-y-4">
           {pendingApprovals > 0 && hasPermission(['admin', 'supervisor', 'engineer', 'reviewer']) && (
@@ -217,13 +220,14 @@ export default function Dashboard() {
             </GlassCard>
           )}
 
-          <GlassCard className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Activity className="w-4 h-4 text-teal-400" />
-              <h2 className="text-sm font-bold text-white">Recent Activity</h2>
-            </div>
-            <div className="space-y-3">
-              {MOCK_AUDIT_LOG.slice(0, 4).map(e => (
+          <SafeSection name="Recent Activity" minHeight="min-h-[200px]">
+            <GlassCard className="p-5 h-full">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="w-4 h-4 text-teal-400" />
+                <h2 className="text-sm font-bold text-white">Recent Activity</h2>
+              </div>
+              <div className="space-y-3">
+                {MOCK_AUDIT_LOG.slice(0, 4).map(e => (
                 <div key={e.id} className="flex items-start gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-teal-500 mt-2 shrink-0" />
                   <div>
@@ -231,14 +235,15 @@ export default function Dashboard() {
                     <p className="text-[11px] text-slate-500 font-mono">{e.entity} • {e.user}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-            {hasPermission(['admin']) && (
-              <button onClick={() => navigate('/audit')} className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 mt-3 transition-colors">
-                Full audit log <ChevronRight className="w-3 h-3" />
-              </button>
-            )}
-          </GlassCard>
+                ))}
+              </div>
+              {hasPermission(['admin']) && (
+                <button onClick={() => navigate('/audit')} className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 mt-3 transition-colors">
+                  Full audit log <ChevronRight className="w-3 h-3" />
+                </button>
+              )}
+            </GlassCard>
+          </SafeSection>
         </div>
       </div>
 

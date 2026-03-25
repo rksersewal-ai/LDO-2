@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GlassCard, Button } from '../components/ui/Shared';
+import { SafeSection } from '../components/ui/SafeSection';
 import { WorkLedgerService, calculateDaysTaken } from '../services/WorkLedgerService';
 import { FileBarChart, Download, TrendingUp, AlertCircle, Clock, CheckCircle } from 'lucide-react';
 import {
@@ -122,31 +123,34 @@ export default function LedgerReports() {
       {/* Charts row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Work volume by category */}
-        <GlassCard className="p-6">
-          <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
-            <FileBarChart className="w-4 h-4 text-teal-400" /> Work Volume by Category (Last 12 Months)
-          </h2>
-          {categoryData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={categoryData} margin={{ top: 4, right: 8, left: -16, bottom: 24 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" />
-                <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Records">
-                  {categoryData.map((_, i) => (
-                    <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-slate-500 text-center py-12">No category data yet</p>
-          )}
-        </GlassCard>
+        <SafeSection name="Work Volume Chart" minHeight="min-h-[300px]">
+          <GlassCard className="p-6 h-full">
+            <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              <FileBarChart className="w-4 h-4 text-teal-400" /> Work Volume by Category (Last 12 Months)
+            </h2>
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={categoryData} margin={{ top: 4, right: 8, left: -16, bottom: 24 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(71, 85, 105, 0.3)" />
+                  <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 10 }} angle={-35} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip contentStyle={TOOLTIP_STYLE} />
+                  <Bar dataKey="count" radius={[4, 4, 0, 0]} name="Records">
+                    {categoryData.map((_, i) => (
+                      <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-sm text-slate-500 text-center py-12">No category data yet</p>
+            )}
+          </GlassCard>
+        </SafeSection>
 
         {/* Status distribution donut */}
-        <GlassCard className="p-6">
+        <SafeSection name="Status Distribution Chart" minHeight="min-h-[300px]">
+          <GlassCard className="p-6 h-full">
           <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-teal-400" /> Records by Status
           </h2>
@@ -177,12 +181,14 @@ export default function LedgerReports() {
             </ResponsiveContainer>
           ) : (
             <p className="text-sm text-slate-500 text-center py-12">No status data yet</p>
-          )}
-        </GlassCard>
+            )}
+          </GlassCard>
+        </SafeSection>
       </div>
 
       {/* Avg days vs target — horizontal bar */}
-      <GlassCard className="p-6">
+      <SafeSection name="Completion Time Chart" minHeight="min-h-[300px]">
+        <GlassCard className="p-6 h-full">
         <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
           <Clock className="w-4 h-4 text-teal-400" /> Avg Days to Completion vs Target (by Work Type)
         </h2>
