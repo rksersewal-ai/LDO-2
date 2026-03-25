@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import apiClient from '../services/ApiClient';
 
 export type UserRole = 'admin' | 'supervisor' | 'engineer' | 'reviewer' | 'viewer';
 
@@ -27,25 +28,6 @@ interface AuthContextType extends AuthState {
   clearError: () => void;
   hasPermission: (requiredRole: UserRole[]) => boolean;
 }
-
-const MOCK_USERS: Record<string, { password: string; user: User }> = {
-  'a.kowalski': {
-    password: 'ldo2pass',
-    user: { id: 'USR-001', username: 'a.kowalski', name: 'A. Kowalski', designation: 'Senior Engineer', role: 'engineer', department: 'Engineering', email: 'a.kowalski@ldo-internal.net' }
-  },
-  'admin': {
-    password: 'admin123',
-    user: { id: 'USR-000', username: 'admin', name: 'System Admin', designation: 'System Administrator', role: 'admin', department: 'IT Operations', email: 'admin@ldo-internal.net' }
-  },
-  'm.chen': {
-    password: 'ldo2pass',
-    user: { id: 'USR-002', username: 'm.chen', name: 'M. Chen', designation: 'Compliance Lead', role: 'reviewer', department: 'Compliance', email: 'm.chen@ldo-internal.net' }
-  },
-  's.patel': {
-    password: 'ldo2pass',
-    user: { id: 'USR-003', username: 's.patel', name: 'S. Patel', designation: 'Senior Supervisor', role: 'supervisor', department: 'Production Engineering', email: 's.patel@ldo-internal.net' }
-  }
-};
 
 const SESSION_KEY = 'ldo2_session';
 const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
@@ -82,19 +64,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (username: string, password: string): Promise<boolean> => {
     setState(s => ({ ...s, isLoading: true, error: null }));
-    await new Promise(r => setTimeout(r, 1200));
-    const entry = MOCK_USERS[username.toLowerCase()];
-    if (entry && entry.password === password) {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(entry.user));
+    try {
+      const { token, user } = await apiClient.login(username, password);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
       sessionStorage.setItem(`${SESSION_KEY}_ts`, String(Date.now()));
-      setState({ user: entry.user, isAuthenticated: true, isLoading: false, sessionExpired: false, error: null, loginAttempts: 0 });
+      setState({ user, isAuthenticated: true, isLoading: false, sessionExpired: false, error: null, loginAttempts: 0 });
       return true;
+    } catch (err: any) {
+      const message = err?.response?.data?.detail || err?.message || 'Invalid credentials. Please verify your username and password.';
+      setState(s => ({ ...s, isLoading: false, error: message, loginAttempts: s.loginAttempts + 1 }));
+      return false;
     }
-    setState(s => ({ ...s, isLoading: false, error: 'Invalid credentials. Please verify your username and password.', loginAttempts: s.loginAttempts + 1 }));
-    return false;
   };
 
   const logout = (expired = false) => {
+    try {
+      apiClient.logout();
+    } catch {
+      // Fail silently
+    }
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(`${SESSION_KEY}_ts`);
     setState({ user: null, isAuthenticated: false, isLoading: false, sessionExpired: expired, error: null, loginAttempts: 0 });
