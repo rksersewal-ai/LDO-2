@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
+import { PreferencesService } from '../../services/PreferencesService';
 import {
   LayoutDashboard, FolderOpen, Component, Activity,
   Briefcase, CheckSquare, BarChart3, ShieldAlert,
@@ -76,9 +77,15 @@ const navGroups: NavGroup[] = [
 ];
 
 export function Sidebar() {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(() => PreferencesService.get().sidebarExpanded);
   const location = useLocation();
   const { hasPermission } = useAuth();
+
+  const toggleSidebar = () => {
+    const next = !isExpanded;
+    setIsExpanded(next);
+    PreferencesService.set({ sidebarExpanded: next });
+  };
 
   return (
     <motion.aside
@@ -94,7 +101,7 @@ export function Sidebar() {
         </div>
       )}
       
-      <div className="flex items-center p-4 gap-3 cursor-pointer border-b border-white/5 min-h-[52px] hover:bg-slate-800/30 transition-colors" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="flex items-center p-4 gap-3 cursor-pointer border-b border-white/5 min-h-[52px] hover:bg-slate-800/30 transition-colors" onClick={toggleSidebar}>
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg shadow-teal-500/20">
           <span className="text-white font-bold text-sm">L2</span>
         </div>

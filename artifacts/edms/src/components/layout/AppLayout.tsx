@@ -7,6 +7,7 @@ import { Loader2, FileText, X, ChevronLeft, ChevronRight, Plus } from 'lucide-re
 import { useAuth } from '../../lib/auth';
 import { useDocTabs } from '../../contexts/DocTabsContext';
 import { useRightPanel } from '../../contexts/RightPanelContext';
+import { PreferencesService } from '../../services/PreferencesService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 
@@ -33,6 +34,13 @@ export default function AppLayout() {
     window.addEventListener('resize', checkScroll);
     return () => window.removeEventListener('resize', checkScroll);
   }, [tabs.length]);
+
+  // Persist last visited path for session restore
+  useEffect(() => {
+    if (isAuthenticated && location.pathname !== '/login') {
+      PreferencesService.set({ lastVisitedPath: location.pathname });
+    }
+  }, [location.pathname, isAuthenticated]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (tabsContainerRef.current) {

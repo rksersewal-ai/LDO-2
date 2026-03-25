@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../lib/auth';
+import { PreferencesService } from '../services/PreferencesService';
 import { Shield, Loader2, AlertCircle, Eye, EyeOff, Lock, Clock } from 'lucide-react';
 
 export default function Login() {
@@ -14,7 +15,10 @@ export default function Login() {
     e.preventDefault();
     clearError();
     const ok = await login(username, password);
-    if (ok) navigate('/');
+    if (ok) {
+      const lastPath = PreferencesService.get().lastVisitedPath;
+      navigate(lastPath && lastPath !== '/login' ? lastPath : '/');
+    }
   };
 
   return (
