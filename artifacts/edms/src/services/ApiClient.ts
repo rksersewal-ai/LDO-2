@@ -24,9 +24,22 @@ interface ApiErrorResponse {
   errors?: Record<string, string[]>;
 }
 
+interface RetryConfig {
+  maxRetries: number;
+  initialDelayMs: number;
+  maxDelayMs: number;
+  backoffMultiplier: number;
+}
+
 class ApiClient {
   private client: AxiosInstance;
   private baseURL: string;
+  private retryConfig: RetryConfig = {
+    maxRetries: 3,
+    initialDelayMs: 1000,      // 1 second
+    maxDelayMs: 30000,         // 30 seconds
+    backoffMultiplier: 2,      // Exponential backoff
+  };
 
   constructor() {
     this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8765/api';
@@ -61,6 +74,122 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Retry Logic & Error Handling
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Determine if an error is retryable (transient)
+   * Retryable errors: timeouts, rate limiting (429), server errors (5xx)
+   * Non-retryable errors: 4xx (except 429), 401, 403
+   */
+  private isRetryableError(error: any): boolean {
+    const status = error.response?.status;
+    const code = error.code;
+
+    // Network errors (timeout, connection refused)
+    if (code === 'ECONNABORTED' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT') {
+      return true;
+    }
+
+    // Rate limiting
+    if (status === 429) {
+      return true;
+    }
+
+    // Server errors (5xx)
+    if (status && status >= 500) {
+      return true;
+    }
+
+    // HTTP 408 Request Timeout
+    if (status === 408) {
+      return true;
+    }
+
+    // Do NOT retry client errors (4xx) except 429 and 408
+    if (status && status >= 400 && status < 500) {
+      return false;
+    }
+
+    // Network error (no status code)
+    if (!status && code) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Calculate exponential backoff delay with jitter
+   * Formula: min(maxDelay, initialDelay * (backoffMultiplier ^ attempt)) + random jitter
+   */
+  private calculateBackoffDelay(attempt: number): number {
+    const baseDelay = this.retryConfig.initialDelayMs * 
+      Math.pow(this.retryConfig.backoffMultiplier, attempt);
+    
+    const capped = Math.min(baseDelay, this.retryConfig.maxDelayMs);
+    
+    // Add random jitter (±10%)
+    const jitter = capped * (0.9 + Math.random() * 0.2);
+    
+    return Math.round(jitter);
+  }
+
+  /**
+   * Delay execution for specified milliseconds
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Execute request with automatic retry on transient failures
+   * Only retries safe operations (GET by default)
+   */
+  private async executeWithRetry<T>(
+    fn: () => Promise<AxiosResponse<T>>,
+    method: string = 'GET',
+    maxRetries: number = this.retryConfig.maxRetries
+  ): Promise<AxiosResponse<T>> {
+    let lastError: any;
+    
+    // Only retry GET requests by default; other methods can force retry
+    const shouldRetry = method === 'GET' || maxRetries > this.retryConfig.maxRetries;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry on non-retryable errors
+        if (!this.isRetryableError(error)) {
+          throw error;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Calculate backoff and wait
+        const delayMs = this.calculateBackoffDelay(attempt);
+        const status = error.response?.status;
+        const code = error.code;
+
+        console.warn(
+          `[ApiClient] Request failed (${code || status}), ` +
+          `retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`
+        );
+
+        await this.sleep(delayMs);
+      }
+    }
+
+    throw lastError;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -109,15 +238,37 @@ class ApiClient {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // Configuration
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Configure retry behavior globally
+   */
+  setRetryConfig(config: Partial<RetryConfig>) {
+    this.retryConfig = { ...this.retryConfig, ...config };
+  }
+
+  /**
+   * Get current retry configuration
+   */
+  getRetryConfig(): RetryConfig {
+    return { ...this.retryConfig };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // Auth Endpoints
   // ─────────────────────────────────────────────────────────────────────────
 
   async login(username: string, password: string) {
-    const response = await this.client.post<{
-      access: string;
-      refresh: string;
-      user: any;
-    }>('/auth/login/', { username, password });
+    // Login is retried for resilience
+    const response = await this.executeWithRetry(
+      () => this.client.post<{
+        access: string;
+        refresh: string;
+        user: any;
+      }>('/auth/login/', { username, password }),
+      'POST'
+    );
     
     const { access, user } = response.data;
     localStorage.setItem('auth_token', access);
@@ -153,7 +304,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of documents
+   * Get paginated list of documents with automatic retry on transient failures
    * Returns: NormalizedListResult<Document>
    */
   async getDocuments(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -166,11 +317,15 @@ class ApiClient {
         ...(query?.filters && query.filters),
       };
 
-      const response = await this.client.get('/documents/', { params });
+      const response = await this.executeWithRetry(
+        () => this.client.get('/documents/', { params }),
+        'GET',
+        this.retryConfig.maxRetries
+      );
       return this.normalizeListResponse(response.data, params.page_size);
     } catch (error) {
-      // Fallback to mock data if API unavailable
-      console.warn('API unavailable, using mock data:', error);
+      // Fallback to mock data if API unavailable after retries
+      console.warn('API unavailable after retries, using mock data:', error);
       const { MOCK_DOCUMENTS } = await import('../lib/mock');
       return {
         items: MOCK_DOCUMENTS,
@@ -183,11 +338,14 @@ class ApiClient {
   }
 
   /**
-   * Get single document by ID
+   * Get single document by ID with automatic retry
    * Returns: Document
    */
   async getDocument(id: string) {
-    const response = await this.client.get(`/documents/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/documents/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -222,7 +380,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of work records
+   * Get paginated list of work records with automatic retry
    * Returns: NormalizedListResult<WorkRecord>
    */
   async getWorkRecords(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -234,16 +392,22 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/work-records/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/work-records/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
   /**
-   * Get single work record by ID
+   * Get single work record by ID with automatic retry
    * Returns: WorkRecord
    */
   async getWorkRecord(id: string) {
-    const response = await this.client.get(`/work-records/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/work-records/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -266,7 +430,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of PL items
+   * Get paginated list of PL items with automatic retry
    * Returns: NormalizedListResult<PLNumber>
    */
   async getPlItems(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -278,16 +442,22 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/pl-items/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/pl-items/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
   /**
-   * Get single PL item by ID
+   * Get single PL item by ID with automatic retry
    * Returns: PLNumber
    */
   async getPlItem(id: string) {
-    const response = await this.client.get(`/pl-items/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/pl-items/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -306,7 +476,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of cases
+   * Get paginated list of cases with automatic retry
    * Returns: NormalizedListResult<CaseRecord>
    */
   async getCases(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -318,16 +488,22 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/cases/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/cases/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
   /**
-   * Get single case by ID
+   * Get single case by ID with automatic retry
    * Returns: CaseRecord
    */
   async getCase(id: string) {
-    const response = await this.client.get(`/cases/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/cases/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -351,7 +527,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of OCR jobs
+   * Get paginated list of OCR jobs with automatic retry
    * Returns: NormalizedListResult<OcrJob>
    */
   async getOcrJobs(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -363,16 +539,22 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/ocr/jobs/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/ocr/jobs/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
   /**
-   * Get single OCR job by ID
+   * Get single OCR job by ID with automatic retry
    * Returns: OcrJob
    */
   async getOcrJob(id: string) {
-    const response = await this.client.get(`/ocr/jobs/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/ocr/jobs/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -391,7 +573,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated list of approvals
+   * Get paginated list of approvals with automatic retry
    * Returns: NormalizedListResult<Approval>
    */
   async getApprovals(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -403,16 +585,22 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/approvals/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/approvals/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
   /**
-   * Get single approval by ID
+   * Get single approval by ID with automatic retry
    * Returns: Approval
    */
   async getApproval(id: string) {
-    const response = await this.client.get(`/approvals/${id}/`);
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/approvals/${id}/`),
+      'GET'
+    );
     return response.data;
   }
 
@@ -431,7 +619,7 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get paginated audit log entries
+   * Get paginated audit log entries with automatic retry
    * Returns: NormalizedListResult<AuditLogEntry>
    */
   async getAuditLog(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
@@ -443,7 +631,10 @@ class ApiClient {
       ...(query?.filters && query.filters),
     };
 
-    const response = await this.client.get('/audit/log/', { params });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/audit/log/', { params }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, params.page_size);
   }
 
@@ -452,13 +643,16 @@ class ApiClient {
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Search across all entities
+   * Search across all entities with automatic retry
    * Returns: NormalizedListResult<SearchResult>
    */
   async search(query: string, scope?: string): Promise<NormalizedListResult<any>> {
-    const response = await this.client.get('/search/', {
-      params: { q: query, scope },
-    });
+    const response = await this.executeWithRetry(
+      () => this.client.get('/search/', {
+        params: { q: query, scope },
+      }),
+      'GET'
+    );
     return this.normalizeListResponse(response.data, 50);
   }
 
@@ -480,13 +674,19 @@ class ApiClient {
     return response.data;
   }
 
+  /**
+   * Get dashboard statistics with automatic retry
+   */
   async getDashboardStats() {
     try {
-      const response = await this.client.get('/dashboard/stats/');
+      const response = await this.executeWithRetry(
+        () => this.client.get('/dashboard/stats/'),
+        'GET'
+      );
       return response.data;
     } catch (error) {
-      // Fallback to mock data if API unavailable
-      console.warn('Dashboard API unavailable, using mock data:', error);
+      // Fallback to mock data if API unavailable after retries
+      console.warn('Dashboard API unavailable after retries, using mock data:', error);
       const { MOCK_DOCUMENTS, MOCK_AUDIT_LOG } = await import('../lib/mock');
       const { MOCK_APPROVALS, MOCK_OCR_JOBS } = await import('../lib/mockExtended');
       return {
