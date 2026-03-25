@@ -143,6 +143,8 @@ export interface WorkRecord {
   date: string;
   completionDate?: string;
   closedDate?: string | null;
+  dispatchDate?: string;
+  closingDate?: string;
   daysTaken?: number;
   workCategory: WorkCategory;
   workType: string;

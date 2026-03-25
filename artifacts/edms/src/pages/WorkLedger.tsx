@@ -421,20 +421,20 @@ function RecordDetail({ record, onVerify, onClose }: { record: WorkRecord; onVer
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-        {[
+        {((): { label: string; value: string; icon?: React.ReactNode }[] => [
           { label: 'Category', value: CATEGORY_LABEL[record.workCategory] ?? record.workCategory },
           { label: 'Type', value: record.workType },
           { label: 'Assignee', value: record.userName },
           { label: 'Section', value: record.userSection ?? record.sectionType ?? '—' },
           { label: 'Date Received', value: record.date },
-          { label: 'Dispatch Date', value: (record as any).dispatchDate ?? '—', icon: <Truck className="w-3 h-3 text-amber-400" /> },
-          { label: 'Closing Date', value: (record as any).closingDate ?? record.completionDate ?? 'Pending', icon: <CheckSquare className="w-3 h-3 text-emerald-400" /> },
+          { label: 'Dispatch Date', value: record.dispatchDate ?? '—', icon: <Truck className="w-3 h-3 text-amber-400" /> },
+          { label: 'Closing Date', value: record.closingDate ?? record.completionDate ?? 'Pending', icon: <CheckSquare className="w-3 h-3 text-emerald-400" /> },
           { label: 'Target Days', value: record.targetDays ? `${record.targetDays}d` : '—' },
-          { label: 'Days Taken', value: record.daysTaken != null ? `${record.daysTaken}d` : (record as any).dispatchDate && (record as any).closingDate ? `${calcDaysBetween((record as any).dispatchDate, (record as any).closingDate) ?? '—'}d` : '—' },
-        ].map(f => (
+          { label: 'Days Taken', value: record.daysTaken != null ? `${record.daysTaken}d` : record.dispatchDate && record.closingDate ? `${calcDaysBetween(record.dispatchDate, record.closingDate) ?? '—'}d` : '—' },
+        ])().map(f => (
           <div key={f.label}>
             <p className="text-[10px] text-slate-500 mb-0.5 flex items-center gap-1">
-              {(f as any).icon}{f.label}
+              {f.icon}{f.label}
             </p>
             <p className="text-sm text-slate-200 font-medium">{f.value}</p>
           </div>

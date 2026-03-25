@@ -17,6 +17,7 @@ type DocRecord = {
   linkedPL: string;
   ocrStatus: string;
   ocrConfidence: number | null;
+  ocrText?: string;
   category: string;
   lifecycle: string;
   pages: number;
@@ -604,7 +605,7 @@ export default function DocumentDetail() {
   const activeDoc = activeTab?.doc ?? null;
   const rawDoc = MOCK_DOCUMENTS.find(d => d.id === activeTabId);
   const ocrJob = MOCK_OCR_JOBS.find(j => j.document === activeTabId) ?? null;
-  const ocrText = (activeDoc as any)?.ocrText ?? '';
+  const ocrText = activeDoc?.ocrText ?? '';
   const pageCount = rawDoc?.pages ?? 1;
 
   if (tabs.length === 0) {
