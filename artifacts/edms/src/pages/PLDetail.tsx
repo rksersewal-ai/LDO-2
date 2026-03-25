@@ -318,7 +318,8 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-slate-900 border-l border-slate-700/60 shadow-2xl flex flex-col slide-in-right">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl bg-slate-900 border border-slate-700/60 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 shrink-0">
           <div>
             <h2 className="text-base font-bold text-white">Edit PL Record</h2>
@@ -541,6 +542,7 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
               : <><Save className="w-4 h-4" /> Save Changes</>
             }
           </Button>
+        </div>
         </div>
       </div>
     </>
