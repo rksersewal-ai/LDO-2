@@ -202,4 +202,20 @@
   .slide-in-right {
     animation: slide-in-right 0.2s ease-out forwards;
   }
+
+  /* Button sizing utilities for consistent control heights per guidelines */
+  .btn-size-sm {
+    @apply h-9 px-3 py-2 text-xs;
+  }
+  .btn-size-md {
+    @apply h-10 px-4 py-2.5 text-sm;
+  }
+  .btn-size-lg {
+    @apply h-12 px-5 py-3 text-sm;
+  }
+
+  /* Form control sizing utilities */
+  .form-control {
+    @apply h-10 px-3 py-2.5 text-sm;
+  }
 }

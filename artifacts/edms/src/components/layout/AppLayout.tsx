@@ -2,6 +2,7 @@ import { Outlet, Navigate, useLocation, useNavigate } from 'react-router';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { RightPanel } from './RightPanel';
+import { PageContainer } from './PageContainer';
 import { Loader2, FileText, X } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { useDocTabs } from '../../contexts/DocTabsContext';
@@ -82,7 +83,7 @@ export default function AppLayout() {
           {/* Main content + right panel */}
           <div className="flex-1 overflow-hidden flex">
             <div className="flex-1 overflow-auto p-6 pt-5 custom-scrollbar">
-              <div className="max-w-7xl mx-auto h-full">
+              <PageContainer maxWidth="xl">
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
                     key={location.pathname}
@@ -95,7 +96,7 @@ export default function AppLayout() {
                     <Outlet />
                   </motion.div>
                 </AnimatePresence>
-              </div>
+              </PageContainer>
             </div>
             
             {/* Right Utility Panel */}

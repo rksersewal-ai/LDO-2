@@ -3,6 +3,9 @@ import { AuthProvider } from './lib/auth';
 import { DocTabsProvider } from './contexts/DocTabsContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { RightPanelProvider } from './contexts/RightPanelContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { ToastContainer } from './components/ui/Toast';
+import { useToast } from './contexts/ToastContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import Login from './pages/Login';
@@ -74,15 +77,27 @@ const router = createBrowserRouter([
   },
 ]);
 
+function AppWithToasts() {
+  const { toasts, removeToast } = useToast();
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+    </>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <RightPanelProvider>
-          <DocTabsProvider>
-            <RouterProvider router={router} />
-          </DocTabsProvider>
-        </RightPanelProvider>
+        <ToastProvider>
+          <RightPanelProvider>
+            <DocTabsProvider>
+              <AppWithToasts />
+            </DocTabsProvider>
+          </RightPanelProvider>
+        </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
   );

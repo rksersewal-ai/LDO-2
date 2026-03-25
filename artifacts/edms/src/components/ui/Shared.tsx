@@ -40,6 +40,19 @@ export function Badge({
   );
 }
 
+/**
+ * Button component with standardized sizing per guidelines:
+ * - sm: 36px (9) — icon buttons, secondary actions, compact contexts
+ * - md: 40px (10) — standard buttons (default)
+ * - lg: 48px (12) — prominent actions, modals, hero buttons
+ * 
+ * Variants: primary, secondary, ghost, danger, teal-outline
+ * 
+ * @example
+ * <Button size="md" variant="primary">Save</Button>
+ * <Button size="sm" variant="secondary">Edit</Button>
+ * <Button size="lg" variant="danger" onClick={handleDelete}>Delete</Button>
+ */
 export function Button({
   children,
   variant = "primary",
