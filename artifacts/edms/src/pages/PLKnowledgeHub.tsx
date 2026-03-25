@@ -33,7 +33,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   'CAT-D': 'bg-slate-700/50 text-slate-400 border-slate-600/40',
 };
 
-type SortKey = 'plNumber' | 'name' | 'category' | 'controllingAgency' | 'status' | 'docs' | 'ecs';
+type SortKey = 'plNumber' | 'name' | 'category' | 'controllingAgency' | 'status' | 'docs' | 'ecs' | 'works';
 
 interface CreatePLFormData {
   plNumber: string;
@@ -43,8 +43,21 @@ interface CreatePLFormData {
   controllingAgency: string;
   status: string;
   safetyCritical: boolean;
+  safetyClassification: string;
+  severityOfFailure: string;
+  consequences: string;
+  functionality: string;
   designSupervisor: string;
+  concernedSupervisor: string;
   applicationArea: string;
+  eligibilityCriteria: string;
+  drawingNumbers: string;
+  specNumbers: string;
+  motherPart: string;
+  uvamId: string;
+  strNumber: string;
+  eOfficeFile: string;
+  vendorType: '' | 'VD' | 'NVD';
 }
 
 const EMPTY_FORM: CreatePLFormData = {
@@ -55,8 +68,21 @@ const EMPTY_FORM: CreatePLFormData = {
   controllingAgency: 'CLW',
   status: 'ACTIVE',
   safetyCritical: false,
+  safetyClassification: '',
+  severityOfFailure: '',
+  consequences: '',
+  functionality: '',
   designSupervisor: '',
+  concernedSupervisor: '',
   applicationArea: '',
+  eligibilityCriteria: '',
+  drawingNumbers: '',
+  specNumbers: '',
+  motherPart: '',
+  uvamId: '',
+  strNumber: '',
+  eOfficeFile: '',
+  vendorType: '',
 };
 
 const DOC_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'default' | 'danger'> = {
@@ -212,7 +238,7 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
   const validate = () => {
     const errs: Record<string, string> = {};
     if (!form.plNumber.trim()) errs.plNumber = 'PL Number is required';
-    else if (!/^\d{8}$/.test(form.plNumber.trim())) errs.plNumber = 'PL Number must be exactly 8 digits';
+    else if (!/^\d{8}$/.test(form.plNumber.trim())) errs.plNumber = 'Must be exactly 8 digits';
     if (!form.name.trim()) errs.name = 'Name is required';
     if (!form.description.trim()) errs.description = 'Description is required';
     return errs;
@@ -234,21 +260,30 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
     </div>
   );
 
+  const SectionHeading = ({ title }: { title: string }) => (
+    <p className="text-[10px] uppercase tracking-widest font-semibold text-teal-500 mb-3 pt-1 border-t border-slate-700/40">{title}</p>
+  );
+
+  const ta = `w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <GlassCard className="w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] overflow-auto">
-        <div className="flex items-center justify-between mb-6">
+    <>
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-slate-900/98 backdrop-blur-xl border-l border-white/8 shadow-2xl flex flex-col slide-in-right">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 shrink-0">
           <div>
-            <h2 className="text-lg font-bold text-white">Create New PL Record</h2>
+            <h2 className="text-base font-bold text-white">Create New PL Record</h2>
             <p className="text-slate-500 text-xs mt-0.5">Register a new 8-digit PL Number in the knowledge base</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-200 hover:bg-slate-800/60 transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-4">
+          {/* Identity */}
+          <SectionHeading title="Identity" />
+          <div className="grid grid-cols-2 gap-3">
             <Field label="PL Number (8 digits) *" error={errors.plNumber}>
               <Input
                 value={form.plNumber}
@@ -258,40 +293,6 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
                 maxLength={8}
               />
             </Field>
-            <Field label="Inspection Category *">
-              <Select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as InspectionCategory }))} className="w-full">
-                {(['CAT-A', 'CAT-B', 'CAT-C', 'CAT-D'] as InspectionCategory[]).map(c => (
-                  <option key={c} value={c}>{INSPECTION_CATEGORY_LABELS[c]}</option>
-                ))}
-              </Select>
-            </Field>
-          </div>
-
-          <Field label="Name / Component Description *" error={errors.name}>
-            <Input
-              value={form.name}
-              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Bogie Frame Assembly"
-              className={`w-full ${errors.name ? 'border-rose-500/50' : ''}`}
-            />
-          </Field>
-
-          <Field label="Technical Description *" error={errors.description}>
-            <textarea
-              value={form.description}
-              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              placeholder="Detailed technical description of the component..."
-              rows={3}
-              className={`w-full bg-slate-950/60 border text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none ${errors.description ? 'border-rose-500/50' : 'border-slate-700/50'}`}
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Controlling Agency">
-              <Select value={form.controllingAgency} onChange={e => setForm(f => ({ ...f, controllingAgency: e.target.value }))} className="w-full">
-                {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
-              </Select>
-            </Field>
             <Field label="Status">
               <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value }))} className="w-full">
                 <option value="ACTIVE">Active</option>
@@ -300,57 +301,136 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
               </Select>
             </Field>
           </div>
+          <Field label="Name / Component Description *" error={errors.name}>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Bogie Frame Assembly" className={`w-full ${errors.name ? 'border-rose-500/50' : ''}`} />
+          </Field>
+          <Field label="Technical Description *" error={errors.description}>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Detailed technical description..." rows={3} className={`${ta} ${errors.description ? 'border-rose-500/50' : ''}`} />
+          </Field>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Design Supervisor">
-              <Input
-                value={form.designSupervisor}
-                onChange={e => setForm(f => ({ ...f, designSupervisor: e.target.value }))}
-                placeholder="e.g. SSE/Design"
-                className="w-full"
-              />
+          {/* Classification */}
+          <SectionHeading title="Classification" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Inspection Category">
+              <Select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as InspectionCategory }))} className="w-full">
+                {(['CAT-A', 'CAT-B', 'CAT-C', 'CAT-D'] as InspectionCategory[]).map(c => (
+                  <option key={c} value={c}>{INSPECTION_CATEGORY_LABELS[c]}</option>
+                ))}
+              </Select>
             </Field>
-            <Field label="Application Area">
-              <Input
-                value={form.applicationArea}
-                onChange={e => setForm(f => ({ ...f, applicationArea: e.target.value }))}
-                placeholder="e.g. WAP7, WAG9HC"
-                className="w-full"
-              />
+            <Field label="Controlling Agency">
+              <Select value={form.controllingAgency} onChange={e => setForm(f => ({ ...f, controllingAgency: e.target.value }))} className="w-full">
+                {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
+              </Select>
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Vendor Type">
+              <Select value={form.vendorType} onChange={e => setForm(f => ({ ...f, vendorType: e.target.value as CreatePLFormData['vendorType'] }))} className="w-full">
+                <option value="">— Select —</option>
+                <option value="VD">VD (Vendor-Designed)</option>
+                <option value="NVD">NVD (Non-Vendor)</option>
+              </Select>
+            </Field>
+            <Field label="Mother Part No.">
+              <Input value={form.motherPart} onChange={e => setForm(f => ({ ...f, motherPart: e.target.value }))} placeholder="e.g. 38000000" className="w-full font-mono" />
             </Field>
           </div>
 
+          {/* Safety */}
+          <SectionHeading title="Safety" />
           <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <div>
               <p className="text-sm font-medium text-slate-200">Safety Vital Component</p>
-              <p className="text-xs text-slate-500">Mark as safety critical — triggers additional oversight requirements</p>
+              <p className="text-xs text-slate-500">Triggers additional oversight requirements</p>
             </div>
-            <button
-              onClick={() => setForm(f => ({ ...f, safetyCritical: !f.safetyCritical }))}
-              className={`relative w-11 h-6 rounded-full transition-all ${form.safetyCritical ? 'bg-rose-500' : 'bg-slate-700'}`}
-            >
+            <button onClick={() => setForm(f => ({ ...f, safetyCritical: !f.safetyCritical }))} className={`relative w-11 h-6 rounded-full transition-all ${form.safetyCritical ? 'bg-rose-500' : 'bg-slate-700'}`}>
               <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.safetyCritical ? 'left-5' : 'left-0.5'}`} />
             </button>
           </div>
-
-          {form.safetyCritical && (
+          {form.safetyCritical && <>
             <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
-              <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-rose-300">
-                This component will be flagged as <strong>Safety Vital</strong>. All associated documents and work records will require additional supervisor review.
-              </p>
+              <AlertTriangle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-rose-300">Flagged as <strong>Safety Vital</strong> — requires additional supervisor review on all linked records.</p>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Safety Classification">
+                <Select value={form.safetyClassification} onChange={e => setForm(f => ({ ...f, safetyClassification: e.target.value }))} className="w-full">
+                  <option value="">— Select —</option>
+                  <option value="SIL-1">SIL-1</option>
+                  <option value="SIL-2">SIL-2</option>
+                  <option value="SIL-3">SIL-3</option>
+                  <option value="SIL-4">SIL-4</option>
+                  <option value="Non-SIL">Non-SIL</option>
+                </Select>
+              </Field>
+              <Field label="Severity of Failure">
+                <Select value={form.severityOfFailure} onChange={e => setForm(f => ({ ...f, severityOfFailure: e.target.value }))} className="w-full">
+                  <option value="">— Select —</option>
+                  <option value="Catastrophic">Catastrophic</option>
+                  <option value="Critical">Critical</option>
+                  <option value="Marginal">Marginal</option>
+                  <option value="Negligible">Negligible</option>
+                </Select>
+              </Field>
+            </div>
+            <Field label="Consequences of Failure">
+              <textarea value={form.consequences} onChange={e => setForm(f => ({ ...f, consequences: e.target.value }))} rows={2} placeholder="Describe failure consequences..." className={ta} />
+            </Field>
+            <Field label="Functionality">
+              <textarea value={form.functionality} onChange={e => setForm(f => ({ ...f, functionality: e.target.value }))} rows={2} placeholder="Describe component functionality..." className={ta} />
+            </Field>
+          </>}
+
+          {/* Engineering References */}
+          <SectionHeading title="Engineering References" />
+          <Field label="Drawing Numbers (comma-separated)">
+            <Input value={form.drawingNumbers} onChange={e => setForm(f => ({ ...f, drawingNumbers: e.target.value }))} placeholder="e.g. DWG-BOG-001, DWG-BOG-002" className="w-full font-mono text-xs" />
+          </Field>
+          <Field label="Spec Numbers (comma-separated)">
+            <Input value={form.specNumbers} onChange={e => setForm(f => ({ ...f, specNumbers: e.target.value }))} placeholder="e.g. SPC-ELE-001, SPC-MEC-005" className="w-full font-mono text-xs" />
+          </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="UVAM ID">
+              <Input value={form.uvamId} onChange={e => setForm(f => ({ ...f, uvamId: e.target.value }))} placeholder="e.g. UVAM-2026-001" className="w-full font-mono text-xs" />
+            </Field>
+            <Field label="STR Number">
+              <Input value={form.strNumber} onChange={e => setForm(f => ({ ...f, strNumber: e.target.value }))} placeholder="e.g. STR-2026-0045" className="w-full font-mono text-xs" />
+            </Field>
+          </div>
+
+          {/* Application */}
+          <SectionHeading title="Application" />
+          <Field label="Application Area (platforms)">
+            <Input value={form.applicationArea} onChange={e => setForm(f => ({ ...f, applicationArea: e.target.value }))} placeholder="e.g. WAP7, WAG9HC, LHB Coach" className="w-full" />
+          </Field>
+          <Field label="Eligibility Criteria">
+            <textarea value={form.eligibilityCriteria} onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))} rows={2} placeholder="Conditions under which this component is eligible for use..." className={ta} />
+          </Field>
+
+          {/* Personnel & Admin */}
+          <SectionHeading title="Personnel & Admin" />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Design Supervisor">
+              <Input value={form.designSupervisor} onChange={e => setForm(f => ({ ...f, designSupervisor: e.target.value }))} placeholder="e.g. SSE/Design" className="w-full" />
+            </Field>
+            <Field label="Concerned Supervisor">
+              <Input value={form.concernedSupervisor} onChange={e => setForm(f => ({ ...f, concernedSupervisor: e.target.value }))} placeholder="e.g. SSE/Mech" className="w-full" />
+            </Field>
+          </div>
+          <Field label="e-Office File No.">
+            <Input value={form.eOfficeFile} onChange={e => setForm(f => ({ ...f, eOfficeFile: e.target.value }))} placeholder="e.g. CLW-DWG-2026-001" className="w-full font-mono text-xs" />
+          </Field>
         </div>
 
-        <div className="flex gap-3 mt-6 pt-5 border-t border-slate-700/50">
+        <div className="flex gap-3 px-6 py-4 border-t border-white/8 shrink-0">
           <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving} className="flex-1">
             {saving ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Saving...</> : <><Plus className="w-4 h-4" /> Create PL Record</>}
           </Button>
         </div>
-      </GlassCard>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -403,6 +483,7 @@ export default function PLKnowledgeHub() {
         else if (sortKey === 'status') { av = a.status; bv = b.status; }
         else if (sortKey === 'docs') { av = a.linkedDocumentIds.length; bv = b.linkedDocumentIds.length; }
         else if (sortKey === 'ecs') { av = (a.engineeringChanges ?? []).length; bv = (b.engineeringChanges ?? []).length; }
+        else if (sortKey === 'works') { av = (a.linkedWorkIds ?? []).length; bv = (b.linkedWorkIds ?? []).length; }
         if (av < bv) return sortDir === 'asc' ? -1 : 1;
         if (av > bv) return sortDir === 'asc' ? 1 : -1;
         return 0;
@@ -426,6 +507,7 @@ export default function PLKnowledgeHub() {
   };
 
   const handleCreate = async (data: CreatePLFormData) => {
+    const toArr = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean);
     await add({
       plNumber: data.plNumber,
       name: data.name,
@@ -434,11 +516,22 @@ export default function PLKnowledgeHub() {
       controllingAgency: data.controllingAgency,
       status: data.status as 'ACTIVE' | 'UNDER_REVIEW' | 'OBSOLETE',
       safetyCritical: data.safetyCritical,
-      designSupervisor: data.designSupervisor,
-      applicationArea: data.applicationArea,
+      safetyClassification: data.safetyClassification as any || undefined,
+      severityOfFailure: data.severityOfFailure || undefined,
+      consequences: data.consequences || undefined,
+      functionality: data.functionality || undefined,
+      designSupervisor: data.designSupervisor || undefined,
+      concernedSupervisor: data.concernedSupervisor || undefined,
+      applicationArea: data.applicationArea || undefined,
+      eligibilityCriteria: data.eligibilityCriteria || undefined,
+      drawingNumbers: toArr(data.drawingNumbers),
+      specNumbers: toArr(data.specNumbers),
+      motherPart: data.motherPart || undefined,
+      uvamId: data.uvamId || undefined,
+      strNumber: data.strNumber || undefined,
+      eOfficeFile: data.eOfficeFile || undefined,
+      vendorType: (data.vendorType as 'VD' | 'NVD') || undefined,
       usedIn: [],
-      drawingNumbers: [],
-      specNumbers: [],
       engineeringChanges: [],
       linkedDocumentIds: [],
       linkedWorkIds: [],
@@ -569,6 +662,7 @@ export default function PLKnowledgeHub() {
                 <ThCol col="controllingAgency" label="Agency" className="w-24" />
                 <ThCol col="status" label="Status" className="w-28" />
                 <ThCol col="docs" label="Docs" className="w-14 text-center" />
+                <ThCol col="works" label="Works" className="w-14 text-center" />
                 <ThCol col="ecs" label="ECs" className="w-14 text-center" />
                 <th className="pb-3 w-20" />
               </tr>
@@ -614,6 +708,11 @@ export default function PLKnowledgeHub() {
                   <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all text-center">
                     <span className={`text-xs font-semibold ${pl.linkedDocumentIds.length > 0 ? 'text-teal-400' : 'text-slate-600'}`}>
                       {pl.linkedDocumentIds.length}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all text-center">
+                    <span className={`text-xs font-semibold ${(pl.linkedWorkIds?.length ?? 0) > 0 ? 'text-blue-400' : 'text-slate-600'}`}>
+                      {pl.linkedWorkIds?.length ?? 0}
                     </span>
                   </td>
                   <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all text-center">
