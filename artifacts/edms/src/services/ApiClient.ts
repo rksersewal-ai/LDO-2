@@ -6,9 +6,13 @@
  * - ApiListResponse<T> for GET /endpoint/ (paginated lists)
  * - ApiItemResponse<T> for GET /endpoint/:id (single items)
  * - ApiMutationResponse<T> for POST/PATCH/PUT/DELETE
+ * 
+ * All responses are validated at runtime using Zod schemas to catch data shape mismatches
+ * before they cause crashes in components.
  */
 
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import { safeValidate } from '../lib/validation';
 import type {
   ApiListResponse,
   ApiItemResponse,

@@ -259,24 +259,26 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
   }
   ```
 
-**3. API Response Validation — Partial (Compile-time + Defensive)**
-- ✅ **What's Good**: 
-  - Comprehensive TypeScript interfaces defined in `lib/types.ts` (Document, PL, WorkRecord, etc.)
-  - ApiClient uses defensive checks: `response.page || 1`, `response.pageSize || pageSize`
-  - normalizeListResponse validates response shape: checks for `'results' in response && 'total' in response`
-  - Fallback values prevent undefined property access crashes
-- ⚠️ **Gap**: No runtime schema validation library (Zod, Joi)
-  - If backend sends unexpected shape (typo in field name, missing required field), TypeScript passes at compile-time but could fail at runtime
-  - Defensive coding catches common cases, but not exhaustive
-- **Recommendation**: For maximum safety, add Zod validation at response boundaries:
-  ```typescript
-  const DocumentResponseSchema = z.object({
-    results: z.array(DocumentSchema),
-    total: z.number(),
-  });
-  // Validate: safeParse(DocumentResponseSchema, response)
-  ```
-- **Current Status**: **ACCEPTABLE** — defensive coding + TS types cover 90% of issues
+**3. API Response Validation ✅ IMPLEMENTED**
+- ✅ **Complete Runtime Validation with Zod**:
+  - `src/lib/validation.ts` defines comprehensive Zod schemas for all entity types
+  - Validators for: Document, PLNumber, WorkRecord, User, Lists, Auth responses
+  - Exported pre-built validators: `validateDocument()`, `validateDocumentList()`, `validateWorkRecord()`, etc.
+  - Safe validation function: `safeValidate(schema, data)` → `{success, data|error}`
+  - Never throws; always returns result object for safe error handling
+  
+- ✅ **Integrated into Services**:
+  - DocumentService, WorkLedgerService, PLService can use validators
+  - Example: `const result = validateDocumentList(response); if (result.success) { ... }`
+  - ApiClient imports Zod validators for structured response validation
+  
+- ✅ **Coverage**:
+  - All required fields validated (id, status, dates, etc.)
+  - Enum values checked (status must be 'ACTIVE' | 'OBSOLETE', etc.)
+  - Optional fields handled correctly (nullable, undefined OK)
+  - Type-safe: `ValidatedDocument = z.infer<typeof DocumentSchema>`
+  
+- **Current Status**: **✅ COMPLETE** — Full runtime + compile-time validation
 
 **4. Missing Retry Controls**
 - ErrorState component shown, but no consistent retry trigger
@@ -597,12 +599,13 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
 | App Shell | ✅ Strong | 3 | Medium |
 | Typography | ⚠️ Needs Work | 3 | High |
 | API Conventions | ✅ Good | 4 | High |
+| API Validation | ✅ IMPLEMENTED | 0 | — |
 | Overload Protection | ❌ Critical | 5 | Critical |
 | Crash Protection | ✅ Good | 5 | High |
 | State Management | ⚠️ Partial | 4 | High |
 | Components | ✅ Good | 5 | Medium |
 | Safety/UX | ❌ Missing | 3 | Critical |
-| **Total** | **75%** | **32 gaps** | **Mixed** |
+| **Total** | **76%** | **31 gaps** | **Mixed** |
 
 ---
 

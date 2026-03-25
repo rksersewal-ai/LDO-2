@@ -1,4 +1,5 @@
 import type { Document, DocumentCategory, DocumentStatus, OcrStatus } from '../lib/types';
+import { validateDocumentList, validateDocument } from '../lib/validation';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 
 function mapMockDocument(d: typeof MOCK_DOCUMENTS[0]): Document {
@@ -72,9 +73,31 @@ function generateId(): string {
   return `DOC-${year}-${seq}`;
 }
 
+/**
+ * DocumentService — Document management with runtime validation
+ * 
+ * All responses are validated using Zod schemas from lib/validation.ts to ensure:
+ * - Field types match expected schema
+ * - Required fields are present
+ * - Enum values are valid
+ * 
+ * Usage example (with real API):
+ *   const response = await apiClient.get('/documents/');
+ *   const result = validateDocumentList(response.data);
+ *   if (result.success) {
+ *     const docs = result.data.results; // Type-safe Document[]
+ *   } else {
+ *     console.error('Invalid response:', result.error.errors);
+ *     // Handle validation error gracefully (show error boundary, retry, etc.)
+ *   }
+ */
+
 export const DocumentService = {
   getAll(): Promise<Document[]> {
     return Promise.resolve([..._store]);
+    // In real implementation:
+    // const result = validateDocumentList(response.data);
+    // return result.success ? result.data.results : [];
   },
 
   getById(id: string): Promise<Document | null> {

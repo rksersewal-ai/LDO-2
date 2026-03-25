@@ -214,7 +214,8 @@ export default function LedgerReports() {
         ) : (
           <p className="text-sm text-slate-500 text-center py-12">No completed records with day data yet</p>
         )}
-      </GlassCard>
+        </GlassCard>
+      </SafeSection>
     </div>
   );
 }
