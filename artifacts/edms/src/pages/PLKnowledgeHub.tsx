@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { toast } from 'sonner';
 import {
   Search, DatabaseBackup, Shield, Hash,
   Plus, X, AlertTriangle, CheckCircle, Clock,
@@ -58,6 +59,7 @@ interface CreatePLFormData {
   strNumber: string;
   eOfficeFile: string;
   vendorType: '' | 'VD' | 'NVD';
+  usedIn: string;
 }
 
 const EMPTY_FORM: CreatePLFormData = {
@@ -83,6 +85,7 @@ const EMPTY_FORM: CreatePLFormData = {
   strNumber: '',
   eOfficeFile: '',
   vendorType: '',
+  usedIn: '',
 };
 
 const DOC_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'default' | 'danger'> = {
@@ -403,6 +406,9 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
           <Field label="Application Area (platforms)">
             <Input value={form.applicationArea} onChange={e => setForm(f => ({ ...f, applicationArea: e.target.value }))} placeholder="e.g. WAP7, WAG9HC, LHB Coach" className="w-full" />
           </Field>
+          <Field label="Used In (products, comma-separated)">
+            <Input value={form.usedIn} onChange={e => setForm(f => ({ ...f, usedIn: e.target.value }))} placeholder="e.g. WAP7 Brake System, LHB Coach Control Panel" className="w-full" />
+          </Field>
           <Field label="Eligibility Criteria">
             <textarea value={form.eligibilityCriteria} onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))} rows={2} placeholder="Conditions under which this component is eligible for use..." className={ta} />
           </Field>
@@ -530,12 +536,13 @@ export default function PLKnowledgeHub() {
       strNumber: data.strNumber || undefined,
       eOfficeFile: data.eOfficeFile || undefined,
       vendorType: (data.vendorType as 'VD' | 'NVD') || undefined,
-      usedIn: [],
+      usedIn: toArr(data.usedIn),
       engineeringChanges: [],
       linkedDocumentIds: [],
       linkedWorkIds: [],
       linkedCaseIds: [],
     });
+    toast.success(`PL record "${data.name}" created`, { description: `PL-${data.plNumber}` });
   };
 
   if (loading) return <LoadingState message="Loading PL Knowledge Hub..." />;
