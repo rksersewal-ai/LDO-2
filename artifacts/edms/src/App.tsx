@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from 'react-router';
 import { AuthProvider } from './lib/auth';
+import { DocTabsProvider } from './contexts/DocTabsContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 import AppLayout from './components/layout/AppLayout';
 import Login from './pages/Login';
@@ -211,7 +212,9 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <AuthProvider>
-      <RouterProvider router={router} />
+      <DocTabsProvider>
+        <RouterProvider router={router} />
+      </DocTabsProvider>
     </AuthProvider>
   );
 }

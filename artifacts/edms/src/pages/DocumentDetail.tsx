@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { PL_DATABASE } from '../lib/bomData';
+import { useDocTabs } from '../contexts/DocTabsContext';
 
 type DocRecord = {
   id: string;
@@ -65,12 +66,6 @@ const ocrVariant = (s: string) => {
   if (s === 'Failed' || s === 'FAILED') return 'danger' as const;
   return 'default' as const;
 };
-
-interface TabDoc {
-  id: string;
-  name: string;
-  doc: DocRecord | null;
-}
 
 const PATTERNS = [
   { type: 'pl', regex: /\b\d{8}\b/g, prefix: '/pl/', label: 'PL' },
@@ -665,10 +660,8 @@ function Toast({ msg, onDismiss }: { msg: string; onDismiss: () => void }) {
 export default function DocumentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { openTab, tabs: openTabs } = useDocTabs();
 
-  const [tabs, setTabs] = useState<TabDoc[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string>('');
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -699,41 +692,27 @@ export default function DocumentDetail() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
+  // Additively register the current doc in the session-level tab list
   useEffect(() => {
     if (!id) return;
-    const rawDoc = MOCK_DOCUMENTS.find(d => d.id === id);
-    if (!rawDoc) return;
-    const newTab: TabDoc = { id, name: rawDoc.name, doc: rawDoc as DocRecord };
-    setTabs([newTab]);
-    setActiveTabId(id);
+    openTab(id);
     setZoom(1); setRotation(0); setCurrentPage(1);
-  }, [id]);
+  }, [id, openTab]);
 
-  const addTabFromSearch = (docId: string) => {
-    if (tabs.find(t => t.id === docId)) { setActiveTabId(docId); return; }
-    const rawDoc = MOCK_DOCUMENTS.find(d => d.id === docId);
-    if (!rawDoc) return;
-    setTabs(prev => [...prev, { id: docId, name: rawDoc.name, doc: rawDoc as DocRecord }]);
-    setActiveTabId(docId);
+  // Open another doc in the context tab list and navigate to it
+  const openLinkedDoc = (docId: string) => {
+    openTab(docId);
+    navigate(`/documents/${docId}`);
   };
 
-  const closeTab = (tabId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (tabs.length === 1) { navigate('/documents'); return; }
-    const idx = tabs.findIndex(t => t.id === tabId);
-    const remaining = tabs.filter(t => t.id !== tabId);
-    setTabs(remaining);
-    if (activeTabId === tabId) setActiveTabId(remaining[Math.max(0, idx - 1)].id);
-  };
-
-  const activeTab = tabs.find(t => t.id === activeTabId);
-  const baseDoc = activeTab?.doc ?? null;
+  // Active doc always determined by URL param — no local activeTabId
+  const activeTabId = id ?? '';
+  const baseDoc = MOCK_DOCUMENTS.find(d => d.id === activeTabId) as DocRecord | undefined ?? null;
   const docOverride = docOverrides.get(activeTabId) ?? {};
   const activeDoc: DocRecord | null = baseDoc ? { ...baseDoc, ...docOverride } : null;
-  const rawDoc = MOCK_DOCUMENTS.find(d => d.id === activeTabId);
   const ocrJob = MOCK_OCR_JOBS.find(j => j.document === activeTabId) ?? null;
   const ocrText = activeDoc?.ocrText ?? '';
-  const pageCount = rawDoc?.pages ?? 1;
+  const pageCount = (baseDoc as DocRecord | null)?.pages ?? 1;
   const ocrStatusOverride = ocrOverrides.get(activeTabId);
 
   const handleDownload = () => showToast(`Downloading "${activeDoc?.name ?? activeTabId}"…`);
@@ -769,13 +748,13 @@ export default function DocumentDetail() {
 
   const handleNavigate = (path: string) => {
     if (path.startsWith('/documents/')) {
-      addTabFromSearch(path.replace('/documents/', ''));
+      openLinkedDoc(path.replace('/documents/', ''));
     } else {
       navigate(path);
     }
   };
 
-  if (tabs.length === 0) {
+  if (!activeDoc) {
     return (
       <div className="flex items-center justify-center h-64">
         <GlassCard className="p-12 text-center">
@@ -798,36 +777,21 @@ export default function DocumentDetail() {
         <ApprovalDialog doc={activeDoc} onClose={() => setShowApproval(false)} onConfirm={handleRouteForApproval} />
       )}
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 px-1 pb-1 border-b border-white/5 shrink-0 overflow-x-auto">
+      {/* Action bar (tab strip moved to AppLayout) */}
+      <div className="flex items-center gap-1 px-1 pb-2 shrink-0 overflow-x-auto border-b border-white/5">
         <button onClick={() => navigate('/documents')}
-          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-slate-500 hover:text-teal-400 transition-colors text-xs rounded-lg hover:bg-slate-800/40 mr-1">
-          <ArrowLeft className="w-3.5 h-3.5" />
+          className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 text-slate-500 hover:text-teal-400 transition-colors text-xs rounded-lg hover:bg-slate-800/40 mr-2">
+          <ArrowLeft className="w-3.5 h-3.5" /> Hub
         </button>
-        {tabs.map(tab => (
-          <div key={tab.id} onClick={() => setActiveTabId(tab.id)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-t-xl cursor-pointer text-xs font-medium whitespace-nowrap transition-all group border-b-2 ${
-              activeTabId === tab.id
-                ? 'bg-slate-800/60 text-teal-300 border-teal-500'
-                : 'bg-slate-900/40 text-slate-500 hover:text-slate-300 border-transparent hover:bg-slate-800/30'
-            }`}
-          >
-            <FileText className="w-3.5 h-3.5 shrink-0" />
-            <span className="max-w-[160px] truncate">{tab.name}</span>
-            <button onClick={(e) => closeTab(tab.id, e)}
-              className="ml-1 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600">
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
         <button
-          onClick={() => { const all = MOCK_DOCUMENTS.filter(d => !tabs.find(t => t.id === d.id)); if (all.length > 0) addTabFromSearch(all[0].id); }}
-          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-slate-600 hover:text-teal-400 transition-colors text-xs rounded-lg hover:bg-slate-800/40 border border-dashed border-slate-700/40 hover:border-teal-500/30 ml-1">
-          <Plus className="w-3.5 h-3.5" /> Open
+          onClick={() => {
+            const next = MOCK_DOCUMENTS.find(d => !openTabs.find(t => t.id === d.id));
+            if (next) openLinkedDoc((next as { id: string }).id);
+          }}
+          className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-slate-600 hover:text-teal-400 transition-colors text-xs rounded-lg hover:bg-slate-800/40 border border-dashed border-slate-700/40 hover:border-teal-500/30 mr-2">
+          <Plus className="w-3.5 h-3.5" /> Open Another
         </button>
-
-        {/* Action bar — right side of tab strip */}
-        <div className="ml-auto flex items-center gap-1 shrink-0 pl-4 border-l border-white/5">
+        <div className="ml-auto flex items-center gap-1 shrink-0">
           <button onClick={handleDownload}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/60 text-slate-300 text-xs border border-slate-700/40 hover:border-teal-500/30 transition-all">
             <Download className="w-3.5 h-3.5 text-teal-400" /> Download
