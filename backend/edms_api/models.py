@@ -74,10 +74,20 @@ class Document(models.Model):
         """Create a new version of this document"""
         self.revision += 1
         self.file = file
+        self.size = getattr(file, 'size', self.size)
         self.author = user
         self.updated_at = timezone.now()
         self.save()
-        return self
+        version, _ = DocumentVersion.objects.update_or_create(
+            document=self,
+            revision=self.revision,
+            defaults={
+                'file': self.file,
+                'size': self.size,
+                'author': user,
+            }
+        )
+        return version
 
 class DocumentVersion(models.Model):
     """Track document revision history"""

@@ -23,7 +23,7 @@ from .views import (
     # Approvals
     ApprovalViewSet,
     # Search & Audit
-    SearchView, AuditLogViewSet,
+    SearchView, SearchHistoryView, AuditLogViewSet,
     # Health
     HealthStatusView, DashboardStatsView,
 )
@@ -53,7 +53,7 @@ urlpatterns = [
     
     # Search
     path('api/search/', SearchView.as_view(), name='search'),
-    path('api/search/history/', SearchView.history, name='search_history'),
+    path('api/search/history/', SearchHistoryView.as_view(), name='search_history'),
     
     # OCR Results
     path('api/ocr/results/<str:document_id>/', OcrResultView.as_view(), name='ocr_result'),

@@ -1,14 +1,6 @@
 import { X, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-
-export interface RightPanelContent {
-  title: string;
-  icon?: React.ReactNode;
-  sections: Array<{
-    heading: string;
-    content: React.ReactNode;
-  }>;
-}
+import type { RightPanelContent } from '../../contexts/RightPanelContext';
 
 interface RightPanelProps {
   content: RightPanelContent | null;

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 # Server socket
-bind = "0.0.0.0:8765"
+bind = "0.0.0.0:8420"
 backlog = 2048
 timeout = 30
 keepalive = 5
@@ -57,7 +57,7 @@ def on_starting(server):
 
 def when_ready(server):
     """Hook called when the Gunicorn server is ready to accept connections."""
-    print("✓ EDMS Backend is ready on 0.0.0.0:8765")
+    print("✓ EDMS Backend is ready on 0.0.0.0:8420")
 
 def on_exit(server):
     """Hook called when the Gunicorn server exits."""

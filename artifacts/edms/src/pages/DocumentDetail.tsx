@@ -724,7 +724,8 @@ export default function DocumentDetail() {
   // also seed ocrQuery from the URL ?q= param when changing docs
   useEffect(() => {
     if (!id) return;
-    openTab(id);
+    const currentDocName = MOCK_DOCUMENTS.find(d => d.id === id)?.name;
+    openTab(id, currentDocName);
     setZoom(1); setRotation(0); setCurrentPage(1);
     const q = searchParams.get('q') ?? '';
     setOcrQuery(q);
@@ -734,7 +735,8 @@ export default function DocumentDetail() {
 
   // Open another doc in the context tab list and navigate to it
   const openLinkedDoc = (docId: string) => {
-    openTab(docId);
+    const linkedDocName = MOCK_DOCUMENTS.find(d => d.id === docId)?.name;
+    openTab(docId, linkedDocName);
     navigate(`/documents/${docId}`);
   };
 

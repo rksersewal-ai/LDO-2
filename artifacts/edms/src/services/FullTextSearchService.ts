@@ -19,7 +19,7 @@ export class FullTextSearchService {
 
     // Search documents by OCR content
     MOCK_DOCUMENTS.forEach(doc => {
-      const ocrText = (doc.ocrText || '').toLowerCase();
+      const ocrText = ((doc as { ocrText?: string }).ocrText || '').toLowerCase();
       const nameMatch = doc.name.toLowerCase().includes(q) ? 3 : 0;
       const ocrMatch = ocrText.includes(q) ? 1 : 0;
       const score = nameMatch + ocrMatch;

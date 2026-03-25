@@ -87,9 +87,7 @@ SIMPLE_JWT = {
 # ─────────────────────────────────────────────────────────────────────────────
 
 CORS_ALLOWED_ORIGINS = [
-    'http://localhost:5173',      # Dev frontend
-    'http://localhost:4173',      # Prod frontend (local)
-    'http://127.0.0.1:5173',
+    'http://localhost:4173',      # Standard Vite frontend
     'http://127.0.0.1:4173',
     'https://edms.example.com',   # Production domain (update)
 ]
@@ -102,9 +100,7 @@ CORS_EXPOSE_HEADERS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:5173',
     'http://localhost:4173',
-    'http://127.0.0.1:5173',
     'http://127.0.0.1:4173',
     'https://edms.example.com',
 ]

@@ -50,6 +50,7 @@ export function useThrottle<T>(value: T, intervalMs: number = 200): T {
     if (now >= lastUpdatedRef.current + intervalMs) {
       lastUpdatedRef.current = now;
       setThrottledValue(value);
+      return undefined;
     } else {
       const timer = setTimeout(() => {
         lastUpdatedRef.current = Date.now();
@@ -76,7 +77,7 @@ export function useDebouncedCallback<T extends (...args: any[]) => void>(
   delayMs: number = 300,
   deps: React.DependencyList = []
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -109,7 +110,7 @@ export function useThrottledCallback<T extends (...args: any[]) => void>(
   deps: React.DependencyList = []
 ): T {
   const lastCalledRef = useRef(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
@@ -205,7 +206,7 @@ export function useBatcher<T>(
 ) {
   const [pending, setPending] = useState(0);
   const batchRef = useRef<T[]>([]);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flush = useCallback(async () => {
     if (batchRef.current.length === 0) return;

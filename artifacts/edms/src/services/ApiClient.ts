@@ -12,7 +12,6 @@
  */
 
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
-import { safeValidate } from '../lib/validation';
 import type {
   ApiListResponse,
   ApiItemResponse,
@@ -20,6 +19,8 @@ import type {
   ApiDeleteResponse,
   NormalizedListResult,
   ListQueryParams,
+  SearchBucketsResponse,
+  SearchScope,
 } from '../lib/types';
 
 interface ApiErrorResponse {
@@ -35,8 +36,18 @@ interface RetryConfig {
   backoffMultiplier: number;
 }
 
-class ApiClient {
-  private client: AxiosInstance;
+interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+const ACCESS_TOKEN_KEY = 'auth_token';
+const REFRESH_TOKEN_KEY = 'auth_refresh_token';
+const USER_KEY = 'user';
+const SESSION_KEY = 'ldo2_session';
+const SESSION_TIMESTAMP_KEY = `${SESSION_KEY}_ts`;
+
+export class ApiClient {
+  public readonly client: AxiosInstance;
   private baseURL: string;
   private retryConfig: RetryConfig = {
     maxRetries: 3,
@@ -46,9 +57,6 @@ class ApiClient {
   };
 
   constructor() {
-    // Use relative URL so requests go through Vite's dev server proxy.
-    // In Replit's environment the browser cannot reach localhost:PORT directly.
-    // Vite proxy forwards /api/* → http://127.0.0.1:8080 server-side.
     this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
     
     this.client = axios.create({
@@ -61,7 +69,7 @@ class ApiClient {
 
     // Add JWT token to requests
     this.client.interceptors.request.use((config) => {
-      const token = localStorage.getItem('auth_token');
+      const token = this.getStoredAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -74,13 +82,37 @@ class ApiClient {
       (error: AxiosError<ApiErrorResponse>) => {
         if (error.response?.status === 401) {
           // Token expired or invalid
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
+          this.clearStoredAuth();
           window.location.href = '/login';
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  private clearStoredAuth() {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_TIMESTAMP_KEY);
+  }
+
+  private getStoredAccessToken(): string | null {
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
+  }
+
+  private getStoredRefreshToken(): string | null {
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  }
+
+  private setStoredAuth(access: string, refresh?: string | null) {
+    localStorage.setItem(ACCESS_TOKEN_KEY, access);
+    if (refresh) {
+      localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
+    } else {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -170,22 +202,27 @@ class ApiClient {
       try {
         return await fn();
       } catch (error) {
-        lastError = error;
+        const normalizedError = error as any;
+        lastError = normalizedError;
+
+        if (!shouldRetry) {
+          throw normalizedError;
+        }
 
         // Don't retry on non-retryable errors
-        if (!this.isRetryableError(error)) {
-          throw error;
+        if (!this.isRetryableError(normalizedError)) {
+          throw normalizedError;
         }
 
         // Don't retry on last attempt
         if (attempt === maxRetries) {
-          throw error;
+          throw normalizedError;
         }
 
         // Calculate backoff and wait
         const delayMs = this.calculateBackoffDelay(attempt);
-        const status = error.response?.status;
-        const code = error.code;
+        const status = normalizedError.response?.status;
+        const code = normalizedError.code;
 
         console.warn(
           `[ApiClient] Request failed (${code || status}), ` +
@@ -212,7 +249,7 @@ class ApiClient {
     pageSize: number = 15
   ): NormalizedListResult<T> {
     // Check if response is already in standard format
-    if ('results' in response && 'total' in response) {
+    if (response && typeof response === 'object' && 'results' in response && 'total' in response) {
       const page = response.page || 1;
       return {
         items: response.results,
@@ -220,6 +257,32 @@ class ApiClient {
         page,
         pageSize: response.pageSize || pageSize,
         hasMore: page * (response.pageSize || pageSize) < response.total,
+      };
+    }
+
+    // Django REST Framework PageNumberPagination
+    if (response && typeof response === 'object' && 'results' in response && 'count' in response) {
+      const resolvedPageSize = response.pageSize || pageSize;
+      const next = response.next as string | null | undefined;
+      const previous = response.previous as string | null | undefined;
+      let page = response.page || 1;
+
+      if (previous && !response.page) {
+        const previousUrl = new URL(previous, window.location.origin);
+        const previousPage = Number(previousUrl.searchParams.get('page') || '1');
+        page = previousPage + 1;
+      } else if (next && !response.page) {
+        const nextUrl = new URL(next, window.location.origin);
+        const nextPage = Number(nextUrl.searchParams.get('page') || '2');
+        page = Math.max(1, nextPage - 1);
+      }
+
+      return {
+        items: response.results,
+        total: response.count,
+        page,
+        pageSize: resolvedPageSize,
+        hasMore: Boolean(next) || page * resolvedPageSize < response.count,
       };
     }
 
@@ -234,6 +297,16 @@ class ApiClient {
       };
     }
 
+    if (response && typeof response === 'object' && 'items' in response && 'total' in response) {
+      return {
+        items: response.items,
+        total: response.total,
+        page: response.page || 1,
+        pageSize: response.pageSize || pageSize,
+        hasMore: response.hasMore || false,
+      };
+    }
+
     // Default empty
     return {
       items: [],
@@ -241,6 +314,19 @@ class ApiClient {
       page: 1,
       pageSize,
       hasMore: false,
+    };
+  }
+
+  private normalizeSearchResponse(response: any): SearchBucketsResponse {
+    return {
+      documents: Array.isArray(response?.documents) ? response.documents : [],
+      work_records: Array.isArray(response?.work_records) ? response.work_records : [],
+      pl_items: Array.isArray(response?.pl_items) ? response.pl_items : [],
+      cases: Array.isArray(response?.cases) ? response.cases : [],
+      total:
+        typeof response?.total === 'number'
+          ? response.total
+          : 0,
     };
   }
 
@@ -271,38 +357,44 @@ class ApiClient {
     const response = await this.executeWithRetry(
       () => this.client.post<{
         access: string;
-        refresh: string;
+        refresh?: string;
+        token?: string;
         user: any;
       }>('/auth/login/', { username, password }),
       'POST'
     );
     
-    const { access, user } = response.data;
-    localStorage.setItem('auth_token', access);
-    localStorage.setItem('user', JSON.stringify(user));
+    const access = response.data.access || response.data.token;
+    if (!access) {
+      throw new Error('Login response did not include an access token');
+    }
+
+    const { refresh, user } = response.data;
+    this.setStoredAuth(access, refresh);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
     
     return { token: access, user };
   }
 
   async logout() {
+    const refresh = this.getStoredRefreshToken();
     try {
-      await this.client.post('/auth/logout/');
+      await this.client.post('/auth/logout/', refresh ? { refresh } : undefined);
     } finally {
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user');
+      this.clearStoredAuth();
     }
   }
 
   async refreshToken() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error('No token found');
+    const refresh = this.getStoredRefreshToken();
+    if (!refresh) throw new Error('No refresh token found');
     
-    const response = await this.client.post<{ access: string }>('/auth/token/refresh/', {
-      refresh: token,
+    const response = await this.client.post<{ access: string; refresh?: string }>('/auth/token/refresh/', {
+      refresh,
     });
     
-    const { access } = response.data;
-    localStorage.setItem('auth_token', access);
+    const { access, refresh: rotatedRefresh } = response.data;
+    this.setStoredAuth(access, rotatedRefresh || refresh);
     return access;
   }
 
@@ -314,7 +406,10 @@ class ApiClient {
    * Get paginated list of documents with automatic retry on transient failures
    * Returns: NormalizedListResult<Document>
    */
-  async getDocuments(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getDocuments(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     try {
       const params = {
         page: query?.page || 1,
@@ -325,22 +420,25 @@ class ApiClient {
       };
 
       const response = await this.executeWithRetry(
-        () => this.client.get('/documents/', { params }),
+        () => this.client.get('/documents/', { params, signal: options.signal }),
         'GET',
         this.retryConfig.maxRetries
       );
       return this.normalizeListResponse(response.data, params.page_size);
     } catch (error) {
-      // Fallback to mock data if API unavailable after retries
-      console.warn('API unavailable after retries, using mock data:', error);
-      const { MOCK_DOCUMENTS } = await import('../lib/mock');
-      return {
-        items: MOCK_DOCUMENTS,
-        total: MOCK_DOCUMENTS.length,
-        page: 1,
-        pageSize: 15,
-        hasMore: false,
-      };
+      if (import.meta.env.VITE_ENABLE_DEV_MOCK_API === 'true') {
+        console.warn('API unavailable after retries, using mock data:', error);
+        const { MOCK_DOCUMENTS } = await import('../lib/mock');
+        return {
+          items: MOCK_DOCUMENTS,
+          total: MOCK_DOCUMENTS.length,
+          page: 1,
+          pageSize: 15,
+          hasMore: false,
+        };
+      }
+
+      throw error;
     }
   }
 
@@ -348,9 +446,9 @@ class ApiClient {
    * Get single document by ID with automatic retry
    * Returns: Document
    */
-  async getDocument(id: string) {
+  async getDocument(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/documents/${id}/`),
+      () => this.client.get(`/documents/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -390,7 +488,10 @@ class ApiClient {
    * Get paginated list of work records with automatic retry
    * Returns: NormalizedListResult<WorkRecord>
    */
-  async getWorkRecords(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getWorkRecords(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -400,7 +501,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/work-records/', { params }),
+      () => this.client.get('/work-records/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -410,9 +511,9 @@ class ApiClient {
    * Get single work record by ID with automatic retry
    * Returns: WorkRecord
    */
-  async getWorkRecord(id: string) {
+  async getWorkRecord(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/work-records/${id}/`),
+      () => this.client.get(`/work-records/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -440,7 +541,10 @@ class ApiClient {
    * Get paginated list of PL items with automatic retry
    * Returns: NormalizedListResult<PLNumber>
    */
-  async getPlItems(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getPlItems(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -450,7 +554,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/pl-items/', { params }),
+      () => this.client.get('/pl-items/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -460,9 +564,9 @@ class ApiClient {
    * Get single PL item by ID with automatic retry
    * Returns: PLNumber
    */
-  async getPlItem(id: string) {
+  async getPlItem(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/pl-items/${id}/`),
+      () => this.client.get(`/pl-items/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -486,7 +590,10 @@ class ApiClient {
    * Get paginated list of cases with automatic retry
    * Returns: NormalizedListResult<CaseRecord>
    */
-  async getCases(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getCases(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -496,7 +603,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/cases/', { params }),
+      () => this.client.get('/cases/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -506,9 +613,9 @@ class ApiClient {
    * Get single case by ID with automatic retry
    * Returns: CaseRecord
    */
-  async getCase(id: string) {
+  async getCase(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/cases/${id}/`),
+      () => this.client.get(`/cases/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -537,7 +644,10 @@ class ApiClient {
    * Get paginated list of OCR jobs with automatic retry
    * Returns: NormalizedListResult<OcrJob>
    */
-  async getOcrJobs(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getOcrJobs(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -547,7 +657,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/ocr/jobs/', { params }),
+      () => this.client.get('/ocr/jobs/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -557,9 +667,9 @@ class ApiClient {
    * Get single OCR job by ID with automatic retry
    * Returns: OcrJob
    */
-  async getOcrJob(id: string) {
+  async getOcrJob(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/ocr/jobs/${id}/`),
+      () => this.client.get(`/ocr/jobs/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -583,7 +693,10 @@ class ApiClient {
    * Get paginated list of approvals with automatic retry
    * Returns: NormalizedListResult<Approval>
    */
-  async getApprovals(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getApprovals(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -593,7 +706,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/approvals/', { params }),
+      () => this.client.get('/approvals/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -603,9 +716,9 @@ class ApiClient {
    * Get single approval by ID with automatic retry
    * Returns: Approval
    */
-  async getApproval(id: string) {
+  async getApproval(id: string, options: RequestOptions = {}) {
     const response = await this.executeWithRetry(
-      () => this.client.get(`/approvals/${id}/`),
+      () => this.client.get(`/approvals/${id}/`, { signal: options.signal }),
       'GET'
     );
     return response.data;
@@ -629,7 +742,10 @@ class ApiClient {
    * Get paginated audit log entries with automatic retry
    * Returns: NormalizedListResult<AuditLogEntry>
    */
-  async getAuditLog(query?: ListQueryParams): Promise<NormalizedListResult<any>> {
+  async getAuditLog(
+    query?: ListQueryParams,
+    options: RequestOptions = {}
+  ): Promise<NormalizedListResult<any>> {
     const params = {
       page: query?.page || 1,
       page_size: query?.pageSize || 15,
@@ -639,7 +755,7 @@ class ApiClient {
     };
 
     const response = await this.executeWithRetry(
-      () => this.client.get('/audit/log/', { params }),
+      () => this.client.get('/audit/log/', { params, signal: options.signal }),
       'GET'
     );
     return this.normalizeListResponse(response.data, params.page_size);
@@ -653,14 +769,19 @@ class ApiClient {
    * Search across all entities with automatic retry
    * Returns: NormalizedListResult<SearchResult>
    */
-  async search(query: string, scope?: string): Promise<NormalizedListResult<any>> {
+  async search(
+    query: string,
+    scope?: SearchScope,
+    options: RequestOptions = {}
+  ): Promise<SearchBucketsResponse> {
     const response = await this.executeWithRetry(
       () => this.client.get('/search/', {
         params: { q: query, scope },
+        signal: options.signal,
       }),
       'GET'
     );
-    return this.normalizeListResponse(response.data, 50);
+    return this.normalizeSearchResponse(response.data);
   }
 
   /**
@@ -692,28 +813,31 @@ class ApiClient {
       );
       return response.data;
     } catch (error) {
-      // Fallback to mock data if API unavailable after retries
-      console.warn('Dashboard API unavailable after retries, using mock data:', error);
-      const { MOCK_DOCUMENTS, MOCK_AUDIT_LOG } = await import('../lib/mock');
-      const { MOCK_APPROVALS, MOCK_OCR_JOBS } = await import('../lib/mockExtended');
-      return {
-        documents: {
-          total: MOCK_DOCUMENTS.length,
-          approved: MOCK_DOCUMENTS.filter(d => d.status === 'Approved').length,
-          in_review: MOCK_DOCUMENTS.filter(d => d.status === 'In Review').length,
-          draft: MOCK_DOCUMENTS.filter(d => d.status === 'Draft').length,
-        },
-        approvals: {
-          pending: MOCK_APPROVALS.filter(a => a.status === 'Pending').length,
-          approved: MOCK_APPROVALS.filter(a => a.status === 'Approved').length,
-          rejected: MOCK_APPROVALS.filter(a => a.status === 'Rejected').length,
-        },
-        ocr_jobs: {
-          completed: MOCK_OCR_JOBS.filter(j => j.status === 'Completed').length,
-          processing: MOCK_OCR_JOBS.filter(j => j.status === 'Processing').length,
-          failed: MOCK_OCR_JOBS.filter(j => j.status === 'Failed').length,
-        }
-      };
+      if (import.meta.env.VITE_ENABLE_DEV_MOCK_API === 'true') {
+        console.warn('Dashboard API unavailable after retries, using mock data:', error);
+        const { MOCK_DOCUMENTS } = await import('../lib/mock');
+        const { MOCK_APPROVALS, MOCK_OCR_JOBS } = await import('../lib/mockExtended');
+        return {
+          documents: {
+            total: MOCK_DOCUMENTS.length,
+            approved: MOCK_DOCUMENTS.filter(d => d.status === 'Approved').length,
+            in_review: MOCK_DOCUMENTS.filter(d => d.status === 'In Review').length,
+            draft: MOCK_DOCUMENTS.filter(d => d.status === 'Draft').length,
+          },
+          approvals: {
+            pending: MOCK_APPROVALS.filter(a => a.status === 'Pending').length,
+            approved: MOCK_APPROVALS.filter(a => a.status === 'Approved').length,
+            rejected: MOCK_APPROVALS.filter(a => a.status === 'Rejected').length,
+          },
+          ocr_jobs: {
+            completed: MOCK_OCR_JOBS.filter(j => j.status === 'Completed').length,
+            processing: MOCK_OCR_JOBS.filter(j => j.status === 'Processing').length,
+            failed: MOCK_OCR_JOBS.filter(j => j.status === 'Failed').length,
+          }
+        };
+      }
+
+      throw error;
     }
   }
 
@@ -721,7 +845,7 @@ class ApiClient {
   // Error Handling Utility
   // ─────────────────────────────────────────────────────────────────────────
 
-  static getErrorMessage(error: AxiosError<ApiErrorResponse>): string {
+  static getErrorMessage(error: AxiosError<any>): string {
     if (error.response?.data?.detail) {
       return error.response.data.detail;
     }
@@ -734,7 +858,7 @@ class ApiClient {
     return 'An error occurred';
   }
 
-  static getFieldErrors(error: AxiosError<ApiErrorResponse>): Record<string, string> {
+  static getFieldErrors(error: AxiosError<any>): Record<string, string> {
     const errors: Record<string, string> = {};
     if (error.response?.data?.errors) {
       Object.entries(error.response.data.errors).forEach(([field, messages]) => {
@@ -742,6 +866,14 @@ class ApiClient {
       });
     }
     return errors;
+  }
+
+  getErrorMessage(error: AxiosError<any>): string {
+    return ApiClient.getErrorMessage(error);
+  }
+
+  getFieldErrors(error: AxiosError<any>): Record<string, string> {
+    return ApiClient.getFieldErrors(error);
   }
 }
 

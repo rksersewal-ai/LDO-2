@@ -108,13 +108,13 @@ export default function Settings() {
                     {setting.type === 'select' && (
                       <select
                         className="bg-slate-950/50 border border-teal-500/20 text-slate-200 text-sm rounded-xl px-3 py-1.5 focus:outline-none"
-                        defaultValue={setting.value}
+                        defaultValue={String(setting.value)}
                       >
                         {(setting as any).options.map((opt: string) => <option key={opt}>{opt}</option>)}
                       </select>
                     )}
                     {setting.type === 'input' && (
-                      <Input className="w-28 text-right" defaultValue={setting.value} />
+                      <Input className="w-28 text-right" defaultValue={String(setting.value)} />
                     )}
                   </div>
                 </div>

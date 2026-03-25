@@ -1,23 +1,14 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-const rawPort = process.env.PORT ?? '4173';
-const port = Number(rawPort);
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
-}
-
-const basePath = process.env.BASE_PATH ?? '/';
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Mock API Plugin
-// Handles /api/* requests directly inside the Vite dev server.
-// This is required in Replit's proxied environment where cross-port requests
-// (browser → localhost:PORT) are not reachable from the browser.
+// Optional Mock API Plugin
+// Only enabled when VITE_ENABLE_DEV_MOCK_API=true.
+// The real EDMS runtime should use the backend API proxy instead.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MOCK_USERS: Record<string, { password: string; user: object }> = {
@@ -129,7 +120,8 @@ function mockApiPlugin(): Plugin {
             }
 
             return jsonResponse(res, 200, {
-              token: `mock_jwt_${username}_${Date.now()}`,
+              access: `mock_access_${username}_${Date.now()}`,
+              refresh: `mock_refresh_${username}_${Date.now()}`,
               user: record.user,
             });
           }
@@ -139,11 +131,36 @@ function mockApiPlugin(): Plugin {
             return jsonResponse(res, 200, { message: "Logged out successfully" });
           }
 
+          // POST /api/auth/token/refresh/
+          if (url === "/api/auth/token/refresh/" && req.method === "POST") {
+            const body = await readBody(req);
+            let payload: { refresh?: string } = {};
+            try {
+              payload = JSON.parse(body);
+            } catch {
+              return jsonResponse(res, 400, { detail: "Invalid JSON" });
+            }
+
+            const refresh = payload.refresh ?? "";
+            const usernameMatch = refresh.match(/^mock_refresh_(.+?)_\d+$/);
+            const username = usernameMatch?.[1] ?? "";
+            const record = MOCK_USERS[username];
+
+            if (!record) {
+              return jsonResponse(res, 401, { detail: "Invalid refresh token" });
+            }
+
+            return jsonResponse(res, 200, {
+              access: `mock_access_${username}_${Date.now()}`,
+              refresh,
+            });
+          }
+
           // GET /api/auth/me/  (session refresh)
           if (url === "/api/auth/me/" && req.method === "GET") {
             const authHeader = req.headers["authorization"] ?? "";
             const token = authHeader.replace("Bearer ", "");
-            const usernameMatch = token.match(/^mock_jwt_(.+?)_\d+$/);
+            const usernameMatch = token.match(/^mock_access_(.+?)_\d+$/);
             const username = usernameMatch?.[1] ?? "";
             const record = MOCK_USERS[username];
 
@@ -164,51 +181,75 @@ function mockApiPlugin(): Plugin {
   };
 }
 
-export default defineConfig({
-  base: basePath,
-  plugins: [
-    mockApiPlugin(),
-    react(),
-    tailwindcss(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, ".."),
-            }),
-          ),
-          await import("@replit/vite-plugin-dev-banner").then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "src"),
-      "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+export default defineConfig(async ({ mode }) => {
+  const env = loadEnv(mode, import.meta.dirname, "");
+  const rawPort = env.PORT ?? env.VITE_PORT ?? "4173";
+  const port = Number(rawPort);
+  if (Number.isNaN(port) || port <= 0) {
+    throw new Error(`Invalid PORT value: "${rawPort}"`);
+  }
+
+  const basePath = env.BASE_PATH ?? "/";
+  const apiProxyTarget = env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8420";
+  const enableMockApi = env.VITE_ENABLE_DEV_MOCK_API === "true";
+
+  return {
+    base: basePath,
+    plugins: [
+      ...(enableMockApi ? [mockApiPlugin()] : []),
+      react(),
+      tailwindcss(),
+      runtimeErrorOverlay(),
+      ...(process.env.NODE_ENV !== "production" &&
+      process.env.REPL_ID !== undefined
+        ? [
+            await import("@replit/vite-plugin-cartographer").then((m) =>
+              m.cartographer({
+                root: path.resolve(import.meta.dirname, ".."),
+              }),
+            ),
+            await import("@replit/vite-plugin-dev-banner").then((m) =>
+              m.devBanner(),
+            ),
+          ]
+        : []),
+    ],
+    resolve: {
+      alias: {
+        "@": path.resolve(import.meta.dirname, "src"),
+        "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
+      },
+      dedupe: ["react", "react-dom"],
     },
-    dedupe: ["react", "react-dom"],
-  },
-  root: path.resolve(import.meta.dirname),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
-  server: {
-    port,
-    host: "0.0.0.0",
-    allowedHosts: true,
-    fs: {
-      strict: true,
-      deny: ["**/.*"],
+    root: path.resolve(import.meta.dirname),
+    build: {
+      outDir: path.resolve(import.meta.dirname, "dist/public"),
+      emptyOutDir: true,
     },
-  },
-  preview: {
-    port,
-    host: "0.0.0.0",
-    allowedHosts: true,
-  },
+    server: {
+      port,
+      strictPort: true,
+      host: "0.0.0.0",
+      allowedHosts: true,
+      proxy: enableMockApi
+        ? undefined
+        : {
+            "/api": {
+              target: apiProxyTarget,
+              changeOrigin: true,
+              secure: false,
+            },
+          },
+      fs: {
+        strict: true,
+        deny: ["**/.*"],
+      },
+    },
+    preview: {
+      port,
+      strictPort: true,
+      host: "0.0.0.0",
+      allowedHosts: true,
+    },
+  };
 });

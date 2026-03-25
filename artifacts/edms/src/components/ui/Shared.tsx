@@ -19,10 +19,12 @@ export function GlassCardTeal({ children, className = "", ...props }: React.HTML
 export function Badge({
   children,
   variant = "default",
+  size = "md",
   className = ""
 }: {
   children: React.ReactNode;
   variant?: "default" | "success" | "warning" | "danger" | "processing" | "info";
+  size?: "sm" | "md";
   className?: string;
 }) {
   const variants: Record<string, string> = {
@@ -33,8 +35,12 @@ export function Badge({
     processing: "bg-blue-900/40 text-blue-300 border border-blue-500/30 animate-pulse",
     info: "bg-indigo-900/40 text-indigo-300 border border-indigo-500/30",
   };
+  const sizes: Record<string, string> = {
+    sm: "px-2 py-0.5 text-[10px]",
+    md: "px-2.5 py-0.5 text-xs",
+  };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium tracking-wide ${variants[variant]} ${className}`}>
+    <span className={`inline-flex items-center rounded-full font-medium tracking-wide ${sizes[size]} ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -144,13 +150,48 @@ export function PageHeader({
   primaryAction,
   secondaryActions,
   breadcrumb,
+  actions,
+  children,
 }: {
   title: string;
   subtitle?: string;
   primaryAction?: PageHeaderAction;
   secondaryActions?: PageHeaderAction[];
   breadcrumb?: React.ReactNode;
+  actions?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
+  const derivedActions = (primaryAction || secondaryActions) ? (
+    <div className="flex items-center gap-2 flex-shrink-0">
+      {secondaryActions?.map((action, i) => (
+        <Button
+          key={i}
+          variant={action.variant || 'secondary'}
+          size="md"
+          onClick={action.onClick}
+          className="flex items-center gap-2"
+        >
+          {action.icon && <span className="w-4 h-4">{action.icon}</span>}
+          {action.label}
+        </Button>
+      ))}
+
+      {primaryAction && (
+        <Button
+          variant={primaryAction.variant || 'primary'}
+          size="md"
+          onClick={primaryAction.onClick}
+          className="flex items-center gap-2"
+        >
+          {primaryAction.icon && <span className="w-4 h-4">{primaryAction.icon}</span>}
+          {primaryAction.label}
+        </Button>
+      )}
+    </div>
+  ) : null;
+
+  const actionContent = actions ?? children ?? derivedActions;
+
   return (
     <div className="flex flex-col gap-4 mb-6">
       {breadcrumb && <div className="text-sm text-slate-400">{breadcrumb}</div>}
@@ -162,34 +203,7 @@ export function PageHeader({
         </div>
 
         {/* Actions */}
-        {(primaryAction || secondaryActions) && (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {secondaryActions?.map((action, i) => (
-              <Button
-                key={i}
-                variant={action.variant || 'secondary'}
-                size="md"
-                onClick={action.onClick}
-                className="flex items-center gap-2"
-              >
-                {action.icon && <span className="w-4 h-4">{action.icon}</span>}
-                {action.label}
-              </Button>
-            ))}
-            
-            {primaryAction && (
-              <Button
-                variant={primaryAction.variant || 'primary'}
-                size="md"
-                onClick={primaryAction.onClick}
-                className="flex items-center gap-2"
-              >
-                {primaryAction.icon && <span className="w-4 h-4">{primaryAction.icon}</span>}
-                {primaryAction.label}
-              </Button>
-            )}
-          </div>
-        )}
+        {actionContent && <div className="flex items-center gap-2 flex-shrink-0">{actionContent}</div>}
       </div>
     </div>
   );

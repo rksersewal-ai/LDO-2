@@ -59,7 +59,7 @@ export function TableSafeWrapper({
             variant="server"
             message={`Failed to load ${name}`}
             onRetry={onRetry}
-            details={error?.message}
+            detail={error?.message}
           />
         ) : itemCount === 0 ? (
           <div className="h-full flex items-center justify-center">

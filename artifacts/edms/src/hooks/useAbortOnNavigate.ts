@@ -68,13 +68,25 @@ export function useAbortController() {
     };
   }, []);
 
+  const abort = useCallback(() => {
+    if (!controllerRef.current.signal.aborted) {
+      controllerRef.current.abort();
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    if (!controllerRef.current.signal.aborted) {
+      controllerRef.current.abort();
+    }
+    
+    controllerRef.current = new AbortController();
+    return controllerRef.current.signal;
+  }, []);
+
   return {
     signal: controllerRef.current.signal,
-    abort: () => controllerRef.current.abort(),
-    reset: () => {
-      controllerRef.current = new AbortController();
-      return controllerRef.current.signal;
-    },
+    abort,
+    reset,
   };
 }
 
@@ -91,7 +103,7 @@ export function useAbortController() {
  */
 export function useDebouncedAbort(delayMs: number = 300) {
   const controllerRef = useRef<AbortController>(new AbortController());
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {

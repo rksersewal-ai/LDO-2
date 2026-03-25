@@ -10,11 +10,14 @@ class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
         fields = [
-            'id', 'name', 'type', 'status', 'revision', 'size',
-            'ocr_status', 'ocr_confidence', 'linked_pl', 'category',
-            'author', 'date', 'created_at', 'updated_at'
+            'id', 'name', 'description', 'type', 'status', 'revision', 'size',
+            'file', 'file_hash', 'ocr_status', 'ocr_confidence', 'extracted_text',
+            'linked_pl', 'category', 'tags', 'author', 'date', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'file_hash']
+        extra_kwargs = {
+            'file': {'required': False, 'allow_null': True},
+        }
 
 class WorkRecordSerializer(serializers.ModelSerializer):
     class Meta:
@@ -42,9 +45,9 @@ class CaseSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'severity', 'status',
             'pl_reference', 'opened_at', 'closed_at', 'assigned_to',
-            'resolution', 'created_at'
+            'resolution', 'resolved_by', 'resolved_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'opened_at', 'closed_at', 'resolved_at']
 
 class OcrJobSerializer(serializers.ModelSerializer):
     class Meta:

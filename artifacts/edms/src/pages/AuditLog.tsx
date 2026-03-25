@@ -9,6 +9,10 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+type AuditEvent = (typeof MOCK_AUDIT_EXTENDED)[number] & {
+  details?: string;
+};
+
 const severityVariant = (s: string) => {
   if (s === 'Critical') return 'danger' as const;
   if (s === 'Warning') return 'warning' as const;
@@ -29,7 +33,7 @@ export default function AuditLog() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedEvent, setSelectedEvent] = useState<typeof MOCK_AUDIT_EXTENDED[0] | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [page, setPage] = useState(1);
 
   const modules = useMemo(() => ['All', ...Array.from(new Set(MOCK_AUDIT_EXTENDED.map(e => e.module))).sort()], []);
@@ -71,7 +75,7 @@ export default function AuditLog() {
 
   const exportCSV = () => {
     const headers = ['Event ID', 'Severity', 'Action', 'Module', 'Entity', 'User', 'IP Address', 'Timestamp', 'Details'];
-    const rows = filtered.map(e => [e.id, e.severity, e.action, e.module, e.entity, e.user, e.ip, e.time, e.details ?? '']);
+    const rows = filtered.map(e => [e.id, e.severity, e.action, e.module, e.entity, e.user, e.ip, e.time, (e as AuditEvent).details ?? '']);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const csv = XLSX.utils.sheet_to_csv(ws);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -87,7 +91,7 @@ export default function AuditLog() {
 
   const exportExcel = () => {
     const headers = ['Event ID', 'Severity', 'Action', 'Module', 'Entity', 'User', 'IP Address', 'Timestamp', 'Details'];
-    const rows = filtered.map(e => [e.id, e.severity, e.action, e.module, e.entity, e.user, e.ip, e.time, e.details ?? '']);
+    const rows = filtered.map(e => [e.id, e.severity, e.action, e.module, e.entity, e.user, e.ip, e.time, (e as AuditEvent).details ?? '']);
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     ws['!cols'] = headers.map((_, i) => ({ wch: i === 2 ? 35 : i === 8 ? 50 : 18 }));

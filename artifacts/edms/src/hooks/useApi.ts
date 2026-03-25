@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import { AxiosError } from 'axios';
 import apiClient from '../services/ApiClient';
-import type { NormalizedListResult, ListQueryParams } from '../lib/types';
+import type { NormalizedListResult, ListQueryParams, SearchScope } from '../lib/types';
 
 interface UseApiState<T> {
   data: T | null;
@@ -204,7 +204,7 @@ export function useWorkRecords() {
 /**
  * API hook for search functionality
  */
-export function useSearch(query: string, scope?: string) {
+export function useSearch(query: string, scope?: SearchScope) {
   const [state, setState] = useState<UseApiState<any>>({
     data: null,
     loading: false,

@@ -238,6 +238,17 @@ export interface SearchResult {
   status?: string;
   matchField?: string;
   snippet?: string;
+  date?: string;
+}
+
+export type SearchScope = 'ALL' | 'DOCUMENTS' | 'PL' | 'WORK' | 'CASES';
+
+export interface SearchBucketsResponse {
+  documents: any[];
+  work_records: any[];
+  pl_items: any[];
+  cases: any[];
+  total: number;
 }
 
 export interface KPIStatus {

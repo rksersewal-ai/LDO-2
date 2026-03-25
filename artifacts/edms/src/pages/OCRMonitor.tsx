@@ -3,6 +3,19 @@ import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { ServerCog, RefreshCw, FileText, X, CheckCircle, Clock, XCircle, SkipForward, AlertCircle } from 'lucide-react';
 
+interface OcrJobRecord {
+  id: string;
+  document: string;
+  filename: string;
+  status: string;
+  confidence: number | null;
+  pages: number;
+  startTime: string | null;
+  endTime: string | null;
+  extractedRefs: number;
+  failureReason?: string;
+}
+
 const statusIcon = (s: string) => {
   if (s === 'Completed') return <CheckCircle className="w-4 h-4 text-teal-500" />;
   if (s === 'Processing') return <Clock className="w-4 h-4 text-blue-400 animate-pulse" />;
@@ -18,8 +31,8 @@ const statusVariant = (s: string) => {
 
 export default function OCRMonitor() {
   const [filter, setFilter] = useState<string>('All');
-  const [selectedJob, setSelectedJob] = useState<typeof MOCK_OCR_JOBS[0] | null>(null);
-  const [jobs, setJobs] = useState(MOCK_OCR_JOBS);
+  const [selectedJob, setSelectedJob] = useState<OcrJobRecord | null>(null);
+  const [jobs, setJobs] = useState<OcrJobRecord[]>([...MOCK_OCR_JOBS]);
 
   const filtered = filter === 'All' ? jobs : jobs.filter(j => j.status === filter);
   const completed = jobs.filter(j => j.status === 'Completed').length;

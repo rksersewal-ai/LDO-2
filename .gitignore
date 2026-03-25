@@ -40,6 +40,11 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+__pycache__/
+*.py[cod]
+
+# Local runtime env
+/artifacts/edms/.env
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md

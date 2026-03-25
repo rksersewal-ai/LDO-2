@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { MOCK_DOCUMENTS } from '../lib/mock';
 
 export interface TabDoc {
   id: string;
@@ -8,7 +7,7 @@ export interface TabDoc {
 
 interface DocTabsContextValue {
   tabs: TabDoc[];
-  openTab: (docId: string) => void;
+  openTab: (docId: string, docName?: string) => void;
   closeTab: (tabId: string) => void;
   clearTabs: () => void;
 }
@@ -23,12 +22,20 @@ const DocTabsContext = createContext<DocTabsContextValue>({
 export function DocTabsProvider({ children }: { children: React.ReactNode }) {
   const [tabs, setTabs] = useState<TabDoc[]>([]);
 
-  const openTab = useCallback((docId: string) => {
+  const openTab = useCallback((docId: string, docName?: string) => {
     setTabs(prev => {
-      if (prev.find(t => t.id === docId)) return prev;
-      const doc = MOCK_DOCUMENTS.find(d => d.id === docId);
-      if (!doc) return prev;
-      return [...prev, { id: docId, name: (doc as { name: string }).name }];
+      const nextName = docName?.trim() || docId;
+      const existing = prev.find(t => t.id === docId);
+
+      if (existing) {
+        if (existing.name === nextName) {
+          return prev;
+        }
+
+        return prev.map(tab => tab.id === docId ? { ...tab, name: nextName } : tab);
+      }
+
+      return [...prev, { id: docId, name: nextName }];
     });
   }, []);
 

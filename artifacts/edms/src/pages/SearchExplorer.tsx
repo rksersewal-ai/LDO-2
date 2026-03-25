@@ -7,8 +7,8 @@ import {
   Bookmark, BookmarkCheck, Trash2, SlidersHorizontal, X,
 } from 'lucide-react';
 import { GlassCard } from '../components/ui/Shared';
-import { SafeSection } from '../components/ui/SafeSection';
-import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
+import { useAbortController } from '../hooks/useAbortOnNavigate';
+import { useDebounce } from '../hooks/useOverloadProtection';
 import { SearchService } from '../services/SearchService';
 import type { CrossEntityResults, SearchResult } from '../services/SearchService';
 import { SearchHistoryService } from '../services/SearchHistoryService';
@@ -192,13 +192,15 @@ function ResultGroup({ title, icon, results, query, onNavigate }: ResultGroupPro
 export default function SearchExplorer() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { reset: resetSearchAbort, abort: abortSearch } = useAbortController();
 
   const initialQuery = searchParams.get('q') ?? '';
   const [query, setQuery] = useState(initialQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+  const debouncedQuery = useDebounce(query, 250);
   const [scope, setScope] = useState<Scope>('ALL');
   const [results, setResults] = useState<CrossEntityResults | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]'); } catch { return []; }
   });
@@ -256,23 +258,37 @@ export default function SearchExplorer() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(query), 250);
-    return () => clearTimeout(t);
-  }, [query]);
-
-  useEffect(() => {
     if (!debouncedQuery.trim()) {
       setResults(null);
       setLoading(false);
+      setError(null);
       return;
     }
+
     setLoading(true);
+    setError(null);
+    const signal = resetSearchAbort();
     const s = scope === 'ALL' ? 'ALL' : scope;
-    SearchService.searchAll(debouncedQuery, s).then(r => {
-      setResults(r);
-      setLoading(false);
-    });
-  }, [debouncedQuery, scope]);
+    SearchService.searchAll(debouncedQuery, s, signal)
+      .then(r => {
+        setResults(r);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (
+          (err instanceof DOMException && err.name === 'AbortError') ||
+          (typeof err === 'object' && err !== null && 'code' in err && err.code === 'ERR_CANCELED')
+        ) {
+          return;
+        }
+
+        setResults(null);
+        setLoading(false);
+        setError(err instanceof Error ? err.message : 'Search request failed');
+      });
+
+    return () => abortSearch();
+  }, [abortSearch, debouncedQuery, resetSearchAbort, scope]);
 
   useEffect(() => {
     const q = debouncedQuery.trim() ? debouncedQuery : '';
@@ -601,8 +617,20 @@ export default function SearchExplorer() {
       {/* Loading */}
       {loading && <LoadingState message="Searching all records..." size="sm" />}
 
+      {!loading && error && (
+        <GlassCard className="p-6 border border-rose-500/20 bg-rose-950/10">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-rose-300">Search unavailable</p>
+              <p className="text-sm text-slate-400 mt-1">{error}</p>
+            </div>
+          </div>
+        </GlassCard>
+      )}
+
       {/* Results */}
-      {!loading && hasResults && filteredResults && (
+      {!loading && !error && hasResults && filteredResults && (
         <div className="space-y-6">
           {/* Summary */}
           <div className="flex items-center gap-2 px-1">
@@ -674,7 +702,7 @@ export default function SearchExplorer() {
       )}
 
       {/* No results */}
-      {!loading && hasQuery && results && results.total === 0 && (
+      {!loading && !error && hasQuery && results && results.total === 0 && (
         <GlassCard className="p-10 text-center">
           <Search className="w-12 h-12 mx-auto mb-4 text-slate-600" />
           <p className="text-slate-200 font-semibold text-lg mb-1">No results found</p>

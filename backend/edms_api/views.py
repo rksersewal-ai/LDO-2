@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from .models import Document, WorkRecord, PlItem, Case, OcrJob, Approval, AuditLog
@@ -41,6 +41,8 @@ class LoginView(APIView):
             )
         
         refresh = RefreshToken.for_user(user)
+        group_names = list(user.groups.values_list('name', flat=True))
+        resolved_role = group_names[0].lower() if group_names else 'viewer'
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
@@ -48,8 +50,9 @@ class LoginView(APIView):
                 'id': str(user.id),
                 'username': user.username,
                 'name': user.get_full_name() or user.username,
+                'designation': getattr(user, 'designation', ''),
                 'email': user.email,
-                'role': getattr(user, 'role', 'viewer'),
+                'role': getattr(user, 'role', resolved_role),
                 'department': getattr(user, 'department', ''),
             }
         })
@@ -64,6 +67,8 @@ class LogoutView(APIView):
     def post(self, request):
         try:
             refresh_token = request.data.get('refresh')
+            if not refresh_token:
+                return Response({'detail': 'Logged out successfully'})
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response({'detail': 'Logged out successfully'})
@@ -87,7 +92,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
     queryset = Document.objects.all()
     serializer_class = DocumentSerializer
     permission_classes = [IsAuthenticated]
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (JSONParser, MultiPartParser, FormParser)
     
     def get_queryset(self):
         queryset = Document.objects.all()
@@ -110,6 +115,12 @@ class DocumentViewSet(viewsets.ModelViewSet):
             )
         
         return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        document = serializer.save(author=self.request.user)
+        if document.file:
+            document.size = getattr(document.file, 'size', document.size)
+            document.save(update_fields=['size'])
     
     @action(detail=True, methods=['post'], parser_classes=(MultiPartParser, FormParser))
     def versions(self, request, pk=None):
@@ -158,7 +169,7 @@ class WorkRecordViewSet(viewsets.ModelViewSet):
         
         user_id = self.request.query_params.get('user_id')
         if user_id:
-            queryset = queryset.filter(assigned_to=user_id)
+            queryset = queryset.filter(user_name_id=user_id)
         
         return queryset.order_by('-created_at')
 
@@ -229,17 +240,23 @@ class OcrJobViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        ocr_job = OcrJob.objects.create(
+        ocr_job, created = OcrJob.objects.update_or_create(
             document=document,
-            status='Queued',
-            created_by=request.user
+            defaults={
+                'status': 'Queued',
+                'created_by': request.user,
+                'error_message': '',
+            }
         )
         
         # Trigger async OCR task here (e.g., Celery)
         # from .tasks import extract_text_from_document
         # extract_text_from_document.delay(str(document.id))
         
-        return Response(OcrJobSerializer(ocr_job).data, status=status.HTTP_201_CREATED)
+        return Response(
+            OcrJobSerializer(ocr_job).data,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK
+        )
 
 class OcrResultView(APIView):
     """
@@ -251,7 +268,7 @@ class OcrResultView(APIView):
     def get(self, request, document_id):
         try:
             document = Document.objects.get(id=document_id)
-            ocr_result = document.ocr_result
+            ocr_result = OcrJob.objects.filter(document=document).first()
             
             return Response({
                 'document_id': document_id,
@@ -355,18 +372,19 @@ class SearchView(APIView):
         results['total'] = sum(len(v) for k, v in results.items() if k != 'total')
         
         return Response(results)
-    
-    @staticmethod
-    def history(request):
-        """GET /api/search/history/ - Get user's search history"""
-        if not request.user.is_authenticated:
-            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
-        
+
+class SearchHistoryView(APIView):
+    """
+    GET /api/search/history/
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
         history = AuditLog.objects.filter(
             user=request.user,
             action='SEARCH'
         ).values('entity').distinct()[:20]
-        
+
         return Response({'searches': list(history)})
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
