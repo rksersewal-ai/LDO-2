@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { GlassCard, Badge, Button } from '../components/ui/Shared';
-import { MOCK_PL_RECORDS } from '../lib/mock';
-import { getPLRecord, PL_DATABASE } from '../lib/bomData';
+import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
+import { MOCK_DOCUMENTS, MOCK_PL_RECORDS } from '../lib/mock';
+import { getPLRecord } from '../lib/bomData';
+import { usePLItem } from '../hooks/usePLItems';
+import { PLService } from '../services/PLService';
+import type { PLNumber, EngineeringChange, SafetyClassification, InspectionCategory } from '../lib/types';
+import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
+import { LoadingState } from '../components/ui/LoadingState';
 import {
-  ArrowLeft, FileText, AlertCircle, History, FileSearch, DatabaseBackup,
+  ArrowLeft, FileText, AlertCircle, FileSearch, DatabaseBackup,
   Box, Layers, Cpu, Shield, Package, Hash, Weight, Building2,
-  User, Calendar, Activity, FileImage, ArrowUpDown, Repeat,
-  ChevronRight, Download, Printer, Link as LinkIcon, Tag,
-  AlertTriangle, ExternalLink, CheckCircle, Clock
+  User, Calendar, Activity,
+  ChevronRight, Download, Printer, ArrowRight,
+  AlertTriangle, ExternalLink, X, Plus,
+  Edit3, GitBranch, Briefcase, Save,
 } from 'lucide-react';
 
 function NodeIcon({ type, className = "w-5 h-5" }: { type: string; className?: string }) {
@@ -27,19 +33,861 @@ function tagColor(tag: string) {
 }
 
 function statusBadgeVariant(status: string): "default" | "success" | "warning" | "danger" | "processing" {
-  if (['Approved', 'Released', 'Active', 'Production', 'Implemented'].includes(status)) return 'success';
-  if (['In Review', 'Preliminary', 'In Development', 'Prototyping', 'Pending'].includes(status)) return 'warning';
-  if (['Obsolete', 'Superseded', 'End of Life', 'Cancelled'].includes(status)) return 'danger';
+  if (['Approved', 'Released', 'Active', 'Production', 'Implemented', 'ACTIVE', 'RELEASED'].includes(status)) return 'success';
+  if (['In Review', 'Preliminary', 'In Development', 'Prototyping', 'Pending', 'UNDER_REVIEW', 'IN_REVIEW', 'OPEN'].includes(status)) return 'warning';
+  if (['Obsolete', 'Superseded', 'End of Life', 'Cancelled', 'OBSOLETE'].includes(status)) return 'danger';
   return 'default';
 }
+
+const CATEGORY_COLORS: Record<string, string> = {
+  'CAT-A': 'bg-rose-500/10 text-rose-300 border-rose-500/30',
+  'CAT-B': 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+  'CAT-C': 'bg-blue-500/10 text-blue-300 border-blue-500/30',
+  'CAT-D': 'bg-slate-700/50 text-slate-400 border-slate-600/40',
+};
+
+const EC_STATUS_VARIANT: Record<string, string> = {
+  OPEN: 'bg-blue-500/10 text-blue-300 border-blue-500/30',
+  IN_REVIEW: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+  IMPLEMENTED: 'bg-teal-500/10 text-teal-300 border-teal-500/30',
+  RELEASED: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+};
+
+const EC_STATUS_DOT: Record<string, string> = {
+  OPEN: 'bg-blue-400',
+  IN_REVIEW: 'bg-amber-400',
+  IMPLEMENTED: 'bg-teal-400',
+  RELEASED: 'bg-emerald-400',
+};
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-slate-400 mb-1.5">{label}</label>
+      {children}
+      {error && <p className="text-[10px] text-rose-400 mt-1">{error}</p>}
+    </div>
+  );
+}
+
+function InfoRow({ label, value, mono }: { label: string; value?: string | null; mono?: boolean }) {
+  if (!value) return null;
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">{label}</span>
+      <span className={`text-sm text-slate-200 ${mono ? 'font-mono text-teal-300' : ''}`}>{value}</span>
+    </div>
+  );
+}
+
+// ─── Edit PL Slide-Over ────────────────────────────────────────────────────────
+
+interface EditPLSlideOverProps {
+  pl: PLNumber;
+  onClose: () => void;
+  onSave: (patch: Partial<PLNumber>) => Promise<void>;
+}
+
+function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
+  const [form, setForm] = useState({
+    name: pl.name,
+    description: pl.description,
+    category: pl.category,
+    controllingAgency: pl.controllingAgency,
+    status: pl.status,
+    safetyCritical: pl.safetyCritical,
+    safetyClassification: pl.safetyClassification ?? '',
+    severityOfFailure: pl.severityOfFailure ?? '',
+    consequences: pl.consequences ?? '',
+    functionality: pl.functionality ?? '',
+    applicationArea: pl.applicationArea ?? '',
+    usedIn: (pl.usedIn ?? []).join(', '),
+    drawingNumbers: (pl.drawingNumbers ?? []).join(', '),
+    specNumbers: (pl.specNumbers ?? []).join(', '),
+    motherPart: pl.motherPart ?? '',
+    uvamId: pl.uvamId ?? '',
+    strNumber: pl.strNumber ?? '',
+    eligibilityCriteria: pl.eligibilityCriteria ?? '',
+    designSupervisor: pl.designSupervisor ?? '',
+    concernedSupervisor: pl.concernedSupervisor ?? '',
+    eOfficeFile: pl.eOfficeFile ?? '',
+    vendorType: pl.vendorType ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const splitList = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        name: form.name,
+        description: form.description,
+        category: form.category as InspectionCategory,
+        controllingAgency: form.controllingAgency,
+        status: form.status as PLNumber['status'],
+        safetyCritical: form.safetyCritical,
+        safetyClassification: form.safetyClassification as SafetyClassification || undefined,
+        severityOfFailure: form.severityOfFailure || undefined,
+        consequences: form.consequences || undefined,
+        functionality: form.functionality || undefined,
+        applicationArea: form.applicationArea || undefined,
+        usedIn: splitList(form.usedIn),
+        drawingNumbers: splitList(form.drawingNumbers),
+        specNumbers: splitList(form.specNumbers),
+        motherPart: form.motherPart || undefined,
+        uvamId: form.uvamId || undefined,
+        strNumber: form.strNumber || undefined,
+        eligibilityCriteria: form.eligibilityCriteria || undefined,
+        designSupervisor: form.designSupervisor || undefined,
+        concernedSupervisor: form.concernedSupervisor || undefined,
+        eOfficeFile: form.eOfficeFile || undefined,
+        vendorType: form.vendorType as 'VD' | 'NVD' | undefined || undefined,
+      });
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const F = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+      <label className="block text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">{label}</label>
+      {children}
+    </div>
+  );
+
+  const TextInput = ({ field, placeholder }: { field: keyof typeof form; placeholder?: string }) => (
+    <Input
+      value={form[field] as string}
+      onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+      placeholder={placeholder}
+      className="w-full"
+    />
+  );
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-lg bg-slate-900 border-l border-slate-700/60 shadow-2xl flex flex-col slide-in-right">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50 shrink-0">
+          <div>
+            <h2 className="text-base font-bold text-white">Edit PL Record</h2>
+            <p className="text-xs text-slate-500 font-mono mt-0.5">{pl.plNumber} — {pl.name}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-5 space-y-5">
+          {/* Identity */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-teal-500 mb-3">Identity</h3>
+            <div className="space-y-3">
+              <F label="PL Number (read-only)">
+                <div className="bg-slate-800/40 border border-slate-700/30 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-400">{pl.plNumber}</div>
+              </F>
+              <F label="Name *">
+                <TextInput field="name" placeholder="Component name" />
+              </F>
+              <F label="Technical Description *">
+                <textarea
+                  value={form.description}
+                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none"
+                />
+              </F>
+            </div>
+          </section>
+
+          {/* Classification */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-teal-500 mb-3">Classification</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <F label="Inspection Category">
+                <Select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value as InspectionCategory }))} className="w-full">
+                  {(['CAT-A', 'CAT-B', 'CAT-C', 'CAT-D'] as InspectionCategory[]).map(c => (
+                    <option key={c} value={c}>{c} — {INSPECTION_CATEGORY_LABELS[c]}</option>
+                  ))}
+                </Select>
+              </F>
+              <F label="Controlling Agency">
+                <Select value={form.controllingAgency} onChange={e => setForm(f => ({ ...f, controllingAgency: e.target.value }))} className="w-full">
+                  {AGENCIES.map(a => <option key={a} value={a}>{a}</option>)}
+                </Select>
+              </F>
+              <F label="Status">
+                <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as PLNumber['status'] }))} className="w-full">
+                  <option value="ACTIVE">Active</option>
+                  <option value="UNDER_REVIEW">Under Review</option>
+                  <option value="OBSOLETE">Obsolete</option>
+                </Select>
+              </F>
+              <F label="Vendor Type">
+                <Select value={form.vendorType} onChange={e => setForm(f => ({ ...f, vendorType: e.target.value }))} className="w-full">
+                  <option value="">— None —</option>
+                  <option value="VD">VD (Vendor Drawing)</option>
+                  <option value="NVD">NVD (Non-Vendor Drawing)</option>
+                </Select>
+              </F>
+            </div>
+          </section>
+
+          {/* Safety */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-rose-400 mb-3">Safety</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
+                <div>
+                  <p className="text-sm font-medium text-slate-200">Safety Vital Component</p>
+                  <p className="text-xs text-slate-500">Triggers additional oversight requirements</p>
+                </div>
+                <button
+                  onClick={() => setForm(f => ({ ...f, safetyCritical: !f.safetyCritical }))}
+                  className={`relative w-11 h-6 rounded-full transition-all ${form.safetyCritical ? 'bg-rose-500' : 'bg-slate-700'}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.safetyCritical ? 'left-5' : 'left-0.5'}`} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Safety Classification">
+                  <Select value={form.safetyClassification} onChange={e => setForm(f => ({ ...f, safetyClassification: e.target.value }))} className="w-full">
+                    <option value="">— None —</option>
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="CRITICAL">Critical</option>
+                  </Select>
+                </F>
+                <F label="Severity of Failure">
+                  <TextInput field="severityOfFailure" placeholder="e.g. Catastrophic" />
+                </F>
+              </div>
+              <F label="Consequences of Failure">
+                <textarea
+                  value={form.consequences}
+                  onChange={e => setForm(f => ({ ...f, consequences: e.target.value }))}
+                  rows={2}
+                  placeholder="Describe consequences..."
+                  className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none"
+                />
+              </F>
+              <F label="Functionality">
+                <TextInput field="functionality" placeholder="Primary function description" />
+              </F>
+            </div>
+          </section>
+
+          {/* Engineering References */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-teal-500 mb-3">Engineering References</h3>
+            <div className="space-y-3">
+              <F label="Drawing Numbers (comma-separated)">
+                <TextInput field="drawingNumbers" placeholder="e.g. DWG-001, DWG-002" />
+              </F>
+              <F label="Spec Numbers (comma-separated)">
+                <TextInput field="specNumbers" placeholder="e.g. SPEC-101, SPEC-102" />
+              </F>
+              <F label="Mother Part">
+                <TextInput field="motherPart" placeholder="Parent assembly PL number" />
+              </F>
+              <div className="grid grid-cols-2 gap-3">
+                <F label="UVAM ID">
+                  <TextInput field="uvamId" placeholder="UVAM reference" />
+                </F>
+                <F label="STR Number">
+                  <TextInput field="strNumber" placeholder="STR reference" />
+                </F>
+              </div>
+            </div>
+          </section>
+
+          {/* Application */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-teal-500 mb-3">Application</h3>
+            <div className="space-y-3">
+              <F label="Application Area">
+                <TextInput field="applicationArea" placeholder="e.g. WAP7, WAG9HC" />
+              </F>
+              <F label="Used In (comma-separated PL numbers)">
+                <TextInput field="usedIn" placeholder="e.g. 38100000, 46100000" />
+              </F>
+              <F label="Eligibility Criteria">
+                <textarea
+                  value={form.eligibilityCriteria}
+                  onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))}
+                  rows={2}
+                  placeholder="Eligibility requirements..."
+                  className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none"
+                />
+              </F>
+            </div>
+          </section>
+
+          {/* Personnel */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-widest font-bold text-teal-500 mb-3">Personnel & Admin</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <F label="Design Supervisor">
+                  <TextInput field="designSupervisor" placeholder="e.g. SSE/Design" />
+                </F>
+                <F label="Concerned Supervisor">
+                  <TextInput field="concernedSupervisor" placeholder="e.g. JE/QA" />
+                </F>
+              </div>
+              <F label="E-Office File Reference">
+                <TextInput field="eOfficeFile" placeholder="e.g. F.No. 100/D-1/2026" />
+              </F>
+            </div>
+          </section>
+        </div>
+
+        <div className="px-6 py-4 border-t border-slate-700/50 flex gap-3 shrink-0">
+          <Button variant="secondary" onClick={onClose} className="flex-1">Cancel</Button>
+          <Button onClick={handleSave} disabled={saving} className="flex-1">
+            {saving
+              ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
+              : <><Save className="w-4 h-4" /> Save Changes</>
+            }
+          </Button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Add Engineering Change Form ───────────────────────────────────────────────
+
+interface AddECFormProps {
+  onAdd: (ec: Omit<EngineeringChange, 'id'>) => void;
+  onCancel: () => void;
+}
+
+function AddECForm({ onAdd, onCancel }: AddECFormProps) {
+  const [form, setForm] = useState({
+    ecNumber: '',
+    description: '',
+    status: 'OPEN' as EngineeringChange['status'],
+    date: new Date().toISOString().slice(0, 10),
+    author: '',
+  });
+
+  const handleAdd = () => {
+    if (!form.ecNumber.trim() || !form.description.trim()) return;
+    onAdd({
+      ecNumber: form.ecNumber.trim(),
+      description: form.description.trim(),
+      status: form.status,
+      date: form.date,
+      author: form.author.trim() || undefined,
+    });
+  };
+
+  return (
+    <div className="p-4 rounded-xl bg-teal-500/5 border border-teal-500/20 space-y-3 mb-4">
+      <p className="text-xs font-semibold text-teal-400 uppercase tracking-widest">New Engineering Change</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1">EC Number *</label>
+          <Input value={form.ecNumber} onChange={e => setForm(f => ({ ...f, ecNumber: e.target.value }))} placeholder="EC-2026-XXXX" className="w-full font-mono" />
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1">Status</label>
+          <Select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as EngineeringChange['status'] }))} className="w-full">
+            <option value="OPEN">Open</option>
+            <option value="IN_REVIEW">In Review</option>
+            <option value="IMPLEMENTED">Implemented</option>
+            <option value="RELEASED">Released</option>
+          </Select>
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1">Date</label>
+          <Input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="w-full" />
+        </div>
+        <div>
+          <label className="block text-[10px] font-medium text-slate-500 mb-1">Author</label>
+          <Input value={form.author} onChange={e => setForm(f => ({ ...f, author: e.target.value }))} placeholder="e.g. A. Sharma" className="w-full" />
+        </div>
+      </div>
+      <div>
+        <label className="block text-[10px] font-medium text-slate-500 mb-1">Description *</label>
+        <textarea
+          value={form.description}
+          onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          rows={2}
+          placeholder="Describe the engineering change..."
+          className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 resize-none"
+        />
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button variant="secondary" size="sm" onClick={onCancel}>Cancel</Button>
+        <Button size="sm" onClick={handleAdd} disabled={!form.ecNumber.trim() || !form.description.trim()}>
+          <Plus className="w-3.5 h-3.5" /> Add EC
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ─── PLNumber Detail View ──────────────────────────────────────────────────────
+
+type PLNumberTab = 'overview' | 'documents' | 'changes' | 'crossrefs';
+
+function PLNumberDetailView({
+  pl,
+  onUpdate,
+}: {
+  pl: PLNumber;
+  onUpdate: (patch: Partial<PLNumber>) => Promise<void>;
+}) {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<PLNumberTab>('overview');
+  const [editOpen, setEditOpen] = useState(false);
+  const [showAddEC, setShowAddEC] = useState(false);
+
+  const linkedDocs = useMemo(() =>
+    MOCK_DOCUMENTS.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
+    [pl.linkedDocumentIds]
+  );
+
+  const engineeringChanges = pl.engineeringChanges ?? [];
+
+  const handleAddEC = async (ec: Omit<EngineeringChange, 'id'>) => {
+    const newEC: EngineeringChange = {
+      ...ec,
+      id: `EC-${Date.now()}`,
+    };
+    await onUpdate({ engineeringChanges: [...engineeringChanges, newEC] });
+    setShowAddEC(false);
+  };
+
+  const tabs: { id: PLNumberTab; label: string; count?: number }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'documents', label: 'Documents', count: linkedDocs.length },
+    { id: 'changes', label: 'Engineering Changes', count: engineeringChanges.length },
+    { id: 'crossrefs', label: 'Cross-References' },
+  ];
+
+  return (
+    <div className="space-y-6 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div>
+        <button onClick={() => navigate('/pl')} className="flex items-center gap-2 text-slate-500 hover:text-teal-300 text-sm mb-4 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to PL Knowledge Hub
+        </button>
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-1 flex-wrap">
+              {pl.safetyCritical ? (
+                <Shield className="w-6 h-6 text-rose-400" />
+              ) : (
+                <DatabaseBackup className="w-6 h-6 text-slate-400" />
+              )}
+              <h1 className="text-2xl font-bold text-white">{pl.name}</h1>
+              <Badge variant={statusBadgeVariant(pl.status)}>
+                {pl.status === 'ACTIVE' ? 'Active' : pl.status === 'UNDER_REVIEW' ? 'Under Review' : 'Obsolete'}
+              </Badge>
+              {pl.safetyCritical && (
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-rose-900/50 border border-rose-500/30 rounded-full text-xs text-rose-300">
+                  <Shield className="w-3 h-3" /> Safety Vital
+                </span>
+              )}
+              <span className={`px-2 py-0.5 rounded border text-xs font-semibold ${CATEGORY_COLORS[pl.category] ?? 'bg-slate-700/50 text-slate-400'}`}>
+                {pl.category}
+              </span>
+            </div>
+            <p className="text-slate-400 text-sm font-mono pl-9 flex items-center gap-2">
+              <Hash className="w-3.5 h-3.5" />{pl.plNumber}
+              {pl.controllingAgency && <><span className="text-slate-600">·</span><Building2 className="w-3.5 h-3.5 text-slate-500" />{pl.controllingAgency}</>}
+            </p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
+              <Edit3 className="w-4 h-4" /> Edit PL
+            </Button>
+            <Button variant="secondary" size="sm"><Download className="w-4 h-4" /> Export</Button>
+            <Button size="sm"><AlertCircle className="w-4 h-4" /> Create Case</Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-700/50 overflow-x-auto">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-shrink-0 px-4 py-2.5 text-xs font-medium border-b-2 transition-all -mb-px flex items-center gap-1.5 ${
+              activeTab === tab.id ? 'border-teal-500 text-teal-300' : 'border-transparent text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            {tab.label}
+            {tab.count !== undefined && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${activeTab === tab.id ? 'bg-teal-500/20 text-teal-300' : 'bg-slate-800 text-slate-500'}`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Overview Tab */}
+      {activeTab === 'overview' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <GlassCard className="p-6">
+              <h2 className="text-sm font-bold text-white mb-3">Technical Description</h2>
+              <p className="text-sm text-slate-300 leading-relaxed">{pl.description || '—'}</p>
+            </GlassCard>
+
+            <GlassCard className="p-6">
+              <h2 className="text-sm font-bold text-white mb-4">Properties</h2>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <InfoRow label="PL Number" value={pl.plNumber} mono />
+                <InfoRow label="Category" value={pl.category} />
+                <InfoRow label="Agency" value={pl.controllingAgency} />
+                <InfoRow label="Application Area" value={pl.applicationArea} />
+                <InfoRow label="Mother Part" value={pl.motherPart} />
+                <InfoRow label="Vendor Type" value={pl.vendorType} />
+                <InfoRow label="UVAM ID" value={pl.uvamId} />
+                <InfoRow label="STR Number" value={pl.strNumber} />
+                <InfoRow label="Design Supervisor" value={pl.designSupervisor} />
+                <InfoRow label="Concerned Supervisor" value={pl.concernedSupervisor} />
+                <InfoRow label="E-Office File" value={pl.eOfficeFile} />
+                <InfoRow label="Last Updated" value={pl.updatedAt?.slice(0, 10)} />
+              </div>
+            </GlassCard>
+
+            {(pl.drawingNumbers?.length > 0 || pl.specNumbers?.length > 0) && (
+              <GlassCard className="p-6">
+                <h2 className="text-sm font-bold text-white mb-4">Engineering References</h2>
+                {pl.drawingNumbers?.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-2">Drawing Numbers</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pl.drawingNumbers.map(d => (
+                        <span key={d} className="px-2.5 py-1 bg-slate-800/60 border border-slate-700/40 rounded-lg text-xs font-mono text-slate-300">{d}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {pl.specNumbers?.length > 0 && (
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-2">Spec Numbers</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {pl.specNumbers.map(s => (
+                        <span key={s} className="px-2.5 py-1 bg-slate-800/60 border border-slate-700/40 rounded-lg text-xs font-mono text-slate-300">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </GlassCard>
+            )}
+
+            {(pl.consequences || pl.severityOfFailure || pl.eligibilityCriteria) && (
+              <GlassCard className="p-6">
+                <h2 className="text-sm font-bold text-white mb-4">Safety & Eligibility Details</h2>
+                <div className="space-y-3">
+                  <InfoRow label="Safety Classification" value={pl.safetyClassification} />
+                  <InfoRow label="Severity of Failure" value={pl.severityOfFailure} />
+                  {pl.consequences && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">Consequences of Failure</p>
+                      <p className="text-sm text-slate-300">{pl.consequences}</p>
+                    </div>
+                  )}
+                  {pl.functionality && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">Functionality</p>
+                      <p className="text-sm text-slate-300">{pl.functionality}</p>
+                    </div>
+                  )}
+                  {pl.eligibilityCriteria && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">Eligibility Criteria</p>
+                      <p className="text-sm text-slate-300">{pl.eligibilityCriteria}</p>
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <GlassCard className="p-5">
+              <h3 className="text-sm font-bold text-white mb-3">Quick Stats</h3>
+              <div className="space-y-2">
+                {[
+                  { label: 'Linked Documents', value: (pl.linkedDocumentIds ?? []).length },
+                  { label: 'Drawing Numbers', value: (pl.drawingNumbers ?? []).length },
+                  { label: 'Spec Numbers', value: (pl.specNumbers ?? []).length },
+                  { label: 'Engineering Changes', value: (pl.engineeringChanges ?? []).length },
+                  { label: 'Used In (Assemblies)', value: (pl.usedIn ?? []).length },
+                  { label: 'Linked Work Records', value: (pl.linkedWorkIds ?? []).length },
+                  { label: 'Linked Cases', value: (pl.linkedCaseIds ?? []).length },
+                ].map(s => (
+                  <div key={s.label} className="flex justify-between text-sm">
+                    <span className="text-slate-500">{s.label}</span>
+                    <span className="text-teal-400 font-semibold">{s.value}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+
+            {(pl.usedIn ?? []).length > 0 && (
+              <GlassCard className="p-5">
+                <h3 className="text-sm font-bold text-white mb-3">Used In</h3>
+                <div className="space-y-1.5">
+                  {(pl.usedIn ?? []).map(p => (
+                    <div key={p} className="flex items-center gap-2 text-sm">
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+                      <span className="font-mono text-teal-400 text-xs cursor-pointer hover:underline" onClick={() => navigate(`/pl/${p}`)}>{p}</span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Documents Tab */}
+      {activeTab === 'documents' && (
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white">Linked Documents</h2>
+            <span className="text-xs text-slate-500">{linkedDocs.length} document{linkedDocs.length !== 1 ? 's' : ''}</span>
+          </div>
+          {linkedDocs.length > 0 ? (
+            <div className="space-y-2">
+              {linkedDocs.map(doc => (
+                <div
+                  key={doc.id}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-teal-500/30 cursor-pointer transition-all group"
+                  onClick={() => navigate(`/documents/${doc.id}`)}
+                >
+                  <FileText className="w-9 h-9 p-2 rounded-lg bg-teal-500/10 text-teal-400 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-200 group-hover:text-teal-200 transition-colors">{doc.name}</p>
+                    <div className="flex gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                      <span className="font-mono text-teal-400">{doc.id}</span>
+                      <span>{doc.type}</span>
+                      <span>Rev {doc.revision}</span>
+                      <span>{doc.size}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                    {doc.ocrStatus === 'Completed' || doc.ocrStatus === 'COMPLETED' ? (
+                      <span className="flex items-center gap-1 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-[10px] text-indigo-300 font-medium">
+                        <FileSearch className="w-2.5 h-2.5" /> OCR {doc.ocrConfidence}%
+                      </span>
+                    ) : null}
+                    <Badge variant={statusBadgeVariant(doc.status)}>{doc.status}</Badge>
+                    <ExternalLink className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10">
+              <FileText className="w-10 h-10 mx-auto mb-3 text-slate-600 opacity-50" />
+              <p className="text-slate-400 text-sm">No documents linked to this PL record.</p>
+              <p className="text-slate-600 text-xs mt-1">Use the Link Documents button in the PL Hub to associate documents.</p>
+            </div>
+          )}
+        </GlassCard>
+      )}
+
+      {/* Engineering Changes Tab */}
+      {activeTab === 'changes' && (
+        <GlassCard className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-bold text-white">Engineering Changes</h2>
+            <Button size="sm" onClick={() => setShowAddEC(v => !v)}>
+              {showAddEC ? <><X className="w-3.5 h-3.5" /> Cancel</> : <><Plus className="w-3.5 h-3.5" /> Add EC</>}
+            </Button>
+          </div>
+
+          {showAddEC && (
+            <AddECForm
+              onAdd={handleAddEC}
+              onCancel={() => setShowAddEC(false)}
+            />
+          )}
+
+          {engineeringChanges.length > 0 ? (
+            <div className="space-y-0">
+              {[...engineeringChanges].reverse().map((ec, i) => (
+                <div key={ec.id} className="flex gap-4">
+                  <div className="flex flex-col items-center pt-1">
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${EC_STATUS_DOT[ec.status] ?? 'bg-slate-500'}`} />
+                    {i < engineeringChanges.length - 1 && (
+                      <div className="w-px flex-1 bg-slate-700/50 mt-1 mb-0" style={{ minHeight: '28px' }} />
+                    )}
+                  </div>
+                  <div className="flex-1 pb-5">
+                    <div className="flex items-start justify-between gap-2 flex-wrap mb-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs text-teal-400 font-semibold">{ec.ecNumber}</span>
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-medium ${EC_STATUS_VARIANT[ec.status] ?? 'bg-slate-800 text-slate-400 border-slate-700'}`}>
+                          {ec.status.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-slate-600 shrink-0">{ec.date}</span>
+                    </div>
+                    <p className="text-sm text-slate-200 leading-snug">{ec.description}</p>
+                    {ec.author && (
+                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                        <User className="w-3 h-3" />{ec.author}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            !showAddEC && (
+              <div className="text-center py-10">
+                <GitBranch className="w-10 h-10 mx-auto mb-3 text-slate-600 opacity-50" />
+                <p className="text-slate-400 text-sm">No engineering changes recorded.</p>
+                <p className="text-slate-600 text-xs mt-1">Add the first engineering change using the button above.</p>
+              </div>
+            )
+          )}
+        </GlassCard>
+      )}
+
+      {/* Cross-References Tab */}
+      {activeTab === 'crossrefs' && (
+        <div className="space-y-4">
+          {/* Linked Documents summary */}
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="w-4 h-4 text-teal-400" />
+              <h2 className="text-sm font-bold text-white">Documents</h2>
+              <span className="px-1.5 py-0.5 bg-teal-500/10 text-teal-300 border border-teal-500/20 rounded-full text-[10px] font-semibold">{linkedDocs.length}</span>
+            </div>
+            {linkedDocs.length > 0 ? (
+              <div className="space-y-1.5">
+                {linkedDocs.map(doc => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40 hover:border-teal-500/30 cursor-pointer transition-all"
+                    onClick={() => navigate(`/documents/${doc.id}`)}
+                  >
+                    <FileText className="w-4 h-4 text-teal-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm text-slate-200 truncate">{doc.name}</span>
+                      <span className="font-mono text-[10px] text-slate-500 ml-2">{doc.id}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {(doc.ocrStatus === 'Completed' || doc.ocrStatus === 'COMPLETED') && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-[9px] text-indigo-300">
+                          <FileSearch className="w-2.5 h-2.5" /> OCR
+                        </span>
+                      )}
+                      <Badge variant={statusBadgeVariant(doc.status)} className="text-[9px]">{doc.status}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm">No documents linked.</p>
+            )}
+          </GlassCard>
+
+          {/* Linked Work Records */}
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Briefcase className="w-4 h-4 text-blue-400" />
+              <h2 className="text-sm font-bold text-white">Work Records</h2>
+              <span className="px-1.5 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-full text-[10px] font-semibold">{(pl.linkedWorkIds ?? []).length}</span>
+            </div>
+            {(pl.linkedWorkIds ?? []).length > 0 ? (
+              <div className="space-y-1.5">
+                {(pl.linkedWorkIds ?? []).map(id => (
+                  <div key={id} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40 cursor-pointer hover:border-blue-500/30 transition-all" onClick={() => navigate(`/ledger`)}>
+                    <Briefcase className="w-4 h-4 text-blue-400 shrink-0" />
+                    <span className="font-mono text-xs text-blue-300">{id}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm">No work records linked to this PL.</p>
+            )}
+          </GlassCard>
+
+          {/* Linked Cases */}
+          <GlassCard className="p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="w-4 h-4 text-amber-400" />
+              <h2 className="text-sm font-bold text-white">Cases</h2>
+              <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded-full text-[10px] font-semibold">{(pl.linkedCaseIds ?? []).length}</span>
+            </div>
+            {(pl.linkedCaseIds ?? []).length > 0 ? (
+              <div className="space-y-1.5">
+                {(pl.linkedCaseIds ?? []).map(id => (
+                  <div key={id} className="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30 border border-slate-700/40 cursor-pointer hover:border-amber-500/30 transition-all" onClick={() => navigate(`/cases`)}>
+                    <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="font-mono text-xs text-amber-300">{id}</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-600 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm">No cases linked to this PL.</p>
+            )}
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Edit Slide-Over */}
+      {editOpen && (
+        <EditPLSlideOver
+          pl={pl}
+          onClose={() => setEditOpen(false)}
+          onSave={onUpdate}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Main Export ───────────────────────────────────────────────────────────────
 
 export default function PLDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'drawings' | 'whereUsed' | 'changes' | 'effectivity'>('overview');
+
+  const { data: plItem, loading: plItemLoading, refetch } = usePLItem(id);
 
   const plRecord = id ? getPLRecord(id) : undefined;
   const legacyPL = !plRecord ? MOCK_PL_RECORDS.find(r => r.id === `PL-${id}` || r.id === id) : undefined;
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'drawings' | 'whereUsed' | 'changes' | 'effectivity'>('overview');
+
+  const handleUpdatePL = async (patch: Partial<PLNumber>) => {
+    if (!plItem) return;
+    await PLService.update(plItem.id, patch);
+    refetch();
+  };
+
+  if (plItemLoading && !plRecord && !legacyPL) {
+    return <LoadingState message="Loading PL record..." />;
+  }
+
+  if (plItem) {
+    return (
+      <PLNumberDetailView
+        pl={plItem}
+        onUpdate={handleUpdatePL}
+      />
+    );
+  }
 
   if (plRecord) {
     const tabs = [
@@ -300,7 +1148,6 @@ export default function PLDetail() {
     );
   }
 
-  // Legacy PL
   if (legacyPL) {
     return (
       <div className="space-y-6 max-w-[1200px] mx-auto">

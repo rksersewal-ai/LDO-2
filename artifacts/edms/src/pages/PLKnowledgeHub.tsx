@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import {
-  Search, Filter, DatabaseBackup, ArrowRight, Layers, Box, Cpu, Shield, Hash,
-  Plus, X, ChevronDown, AlertTriangle, CheckCircle, Clock, SlidersHorizontal,
-  Building2, Link as LinkIcon, Unlink, ExternalLink, FileText, FilePlus,
+  Search, DatabaseBackup, Shield, Hash,
+  Plus, X, AlertTriangle, CheckCircle, Clock, SlidersHorizontal,
+  Building2, Link as LinkIcon, ExternalLink, FileText, FilePlus,
+  ChevronUp, ChevronDown, ChevronsUpDown, ArrowRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
@@ -12,11 +13,6 @@ import { ErrorState } from '../components/ui/ErrorState';
 import type { PLNumber, InspectionCategory } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
 import { MOCK_DOCUMENTS } from '../lib/mock';
-
-function NodeIcon({ safetyCritical, className = "w-5 h-5" }: { safetyCritical: boolean; className?: string }) {
-  if (safetyCritical) return <Shield className={`${className} text-rose-400`} />;
-  return <DatabaseBackup className={`${className} text-slate-400`} />;
-}
 
 const STATUS_LABEL: Record<string, string> = {
   ACTIVE: 'Active',
@@ -36,6 +32,8 @@ const CATEGORY_COLORS: Record<string, string> = {
   'CAT-C': 'bg-blue-500/10 text-blue-300 border-blue-500/30',
   'CAT-D': 'bg-slate-700/50 text-slate-400 border-slate-600/40',
 };
+
+type SortKey = 'plNumber' | 'name' | 'category' | 'controllingAgency' | 'status' | 'docs' | 'ecs';
 
 interface CreatePLFormData {
   plNumber: string;
@@ -67,6 +65,13 @@ const DOC_STATUS_VARIANT: Record<string, 'success' | 'warning' | 'default' | 'da
   Draft: 'default',
   Obsolete: 'danger',
 };
+
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey | null; sortDir: 'asc' | 'desc' }) {
+  if (sortKey !== col) return <ChevronsUpDown className="w-3 h-3 text-slate-600 ml-0.5 shrink-0" />;
+  return sortDir === 'asc'
+    ? <ChevronUp className="w-3 h-3 text-teal-400 ml-0.5 shrink-0" />
+    : <ChevronDown className="w-3 h-3 text-teal-400 ml-0.5 shrink-0" />;
+}
 
 function LinkDocumentsModal({
   pl,
@@ -315,7 +320,6 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
             </Field>
           </div>
 
-          {/* Safety Critical toggle */}
           <div className="flex items-center justify-between p-3 rounded-xl bg-slate-800/40 border border-slate-700/30">
             <div>
               <p className="text-sm font-medium text-slate-200">Safety Vital Component</p>
@@ -361,9 +365,20 @@ export default function PLKnowledgeHub() {
   const [showFilters, setShowFilters] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [linkingPL, setLinkingPL] = useState<PLNumber | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const filtered = useMemo(() => {
-    return plItems.filter(p => {
+    let items = plItems.filter(p => {
       const q = search.toLowerCase();
       const matchSearch = !q ||
         p.plNumber.includes(q) ||
@@ -377,7 +392,26 @@ export default function PLKnowledgeHub() {
         (safetyFilter === 'NON_SAFETY' && !p.safetyCritical);
       return matchSearch && matchStatus && matchCat && matchSafety;
     });
-  }, [plItems, search, statusFilter, categoryFilter, safetyFilter]);
+
+    if (sortKey) {
+      items = [...items].sort((a, b) => {
+        let av: string | number = '';
+        let bv: string | number = '';
+        if (sortKey === 'plNumber') { av = a.plNumber; bv = b.plNumber; }
+        else if (sortKey === 'name') { av = a.name.toLowerCase(); bv = b.name.toLowerCase(); }
+        else if (sortKey === 'category') { av = a.category; bv = b.category; }
+        else if (sortKey === 'controllingAgency') { av = a.controllingAgency; bv = b.controllingAgency; }
+        else if (sortKey === 'status') { av = a.status; bv = b.status; }
+        else if (sortKey === 'docs') { av = a.linkedDocumentIds.length; bv = b.linkedDocumentIds.length; }
+        else if (sortKey === 'ecs') { av = (a.engineeringChanges ?? []).length; bv = (b.engineeringChanges ?? []).length; }
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return items;
+  }, [plItems, search, statusFilter, categoryFilter, safetyFilter, sortKey, sortDir]);
 
   const stats = useMemo(() => ({
     total: plItems.length,
@@ -416,9 +450,20 @@ export default function PLKnowledgeHub() {
   if (loading) return <LoadingState message="Loading PL Knowledge Hub..." />;
   if (error) return <ErrorState variant="server" message="Failed to load PL records" onRetry={refetch} />;
 
+  const ThCol = ({ col, label, className = '' }: { col: SortKey; label: string; className?: string }) => (
+    <th
+      className={`pb-3 text-left font-semibold text-slate-400 text-xs cursor-pointer select-none group ${className}`}
+      onClick={() => handleSort(col)}
+    >
+      <span className="inline-flex items-center gap-0.5 hover:text-slate-200 transition-colors">
+        {label}
+        <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+      </span>
+    </th>
+  );
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-1">PL Knowledge Hub</h1>
@@ -429,7 +474,6 @@ export default function PLKnowledgeHub() {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: 'Total PL Items', value: stats.total, icon: <DatabaseBackup className="w-4 h-4 text-teal-400" /> },
@@ -448,7 +492,6 @@ export default function PLKnowledgeHub() {
       </div>
 
       <GlassCard className="p-6">
-        {/* Search + Filters */}
         <div className="flex flex-wrap gap-2 mb-4">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -468,7 +511,6 @@ export default function PLKnowledgeHub() {
           </button>
         </div>
 
-        {/* Filter Panel */}
         {showFilters && (
           <div className="mb-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/40 space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -520,63 +562,92 @@ export default function PLKnowledgeHub() {
           {search && <span className="text-slate-500"> matching "<span className="text-slate-300">{search}</span>"</span>}
         </div>
 
-        {/* PL Records List */}
-        <div className="space-y-2">
-          {filtered.map(pl => (
-            <div
-              key={pl.id}
-              className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-teal-500/30 cursor-pointer transition-all group"
-              onClick={() => navigate(`/pl/${pl.plNumber}`)}
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${pl.safetyCritical ? 'bg-rose-500/10 border border-rose-500/20' : 'bg-slate-700/30 border border-slate-600/30'}`}>
-                <NodeIcon safetyCritical={pl.safetyCritical} />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                  <span className="text-sm font-semibold text-slate-200 group-hover:text-teal-200 transition-colors">{pl.name}</span>
-                  {pl.safetyCritical && (
-                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-rose-900/40 border border-rose-500/30 rounded-full text-[10px] text-rose-300">
-                      <Shield className="w-2.5 h-2.5" /> Safety Vital
-                    </span>
-                  )}
-                  <Badge variant={STATUS_VARIANT[pl.status] ?? 'default'}>
-                    {STATUS_LABEL[pl.status] ?? pl.status}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
-                  <span className="font-mono text-teal-400 flex items-center gap-1"><Hash className="w-3 h-3" />{pl.plNumber}</span>
-                  <span className={`px-1.5 py-0.5 rounded border text-[10px] font-medium ${CATEGORY_COLORS[pl.category] ?? 'bg-slate-700/50 text-slate-400 border-slate-600'}`}>
-                    {pl.category}
-                  </span>
-                  {pl.controllingAgency && <span className="flex items-center gap-1"><Building2 className="w-3 h-3" />{pl.controllingAgency}</span>}
-                  {pl.drawingNumbers.length > 0 && <span>{pl.drawingNumbers.length} drawing{pl.drawingNumbers.length !== 1 ? 's' : ''}</span>}
-                  {pl.linkedDocumentIds.length > 0 && <span>{pl.linkedDocumentIds.length} doc{pl.linkedDocumentIds.length !== 1 ? 's' : ''}</span>}
-                </div>
-                {pl.description && (
-                  <p className="text-xs text-slate-600 mt-0.5 truncate max-w-lg">{pl.description}</p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {pl.engineeringChanges && pl.engineeringChanges.length > 0 && (
-                  <span className="text-[10px] text-slate-600 font-mono">{pl.engineeringChanges.length} EC{pl.engineeringChanges.length !== 1 ? 's' : ''}</span>
-                )}
-                <button
-                  onClick={e => { e.stopPropagation(); setLinkingPL(pl); }}
-                  title="Link / Unlink Documents"
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg border transition-all ${
-                    pl.linkedDocumentIds.length > 0
-                      ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20'
-                      : 'bg-slate-800/50 border-slate-700/40 text-slate-600 hover:text-slate-300 hover:border-slate-600'
-                  }`}
+        {/* Sortable Table */}
+        <div className="overflow-x-auto -mx-1 px-1">
+          <table className="w-full min-w-[720px] border-separate border-spacing-y-1">
+            <thead>
+              <tr>
+                <ThCol col="plNumber" label="PL Number" className="pl-3 w-36" />
+                <ThCol col="name" label="Name" />
+                <ThCol col="category" label="CAT" className="w-20" />
+                <th className="pb-3 text-left font-semibold text-slate-400 text-xs w-10">
+                  <Shield className="w-3.5 h-3.5" />
+                </th>
+                <ThCol col="controllingAgency" label="Agency" className="w-24" />
+                <ThCol col="status" label="Status" className="w-28" />
+                <ThCol col="docs" label="Docs" className="w-14 text-center" />
+                <ThCol col="ecs" label="ECs" className="w-14 text-center" />
+                <th className="pb-3 w-20" />
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(pl => (
+                <tr
+                  key={pl.id}
+                  className="group cursor-pointer"
+                  onClick={() => navigate(`/pl/${pl.plNumber}`)}
                 >
-                  <LinkIcon className="w-3.5 h-3.5" />
-                </button>
-                <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
-              </div>
-            </div>
-          ))}
+                  <td className="py-2.5 pl-3 pr-2 rounded-l-xl bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-l border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    <span className="font-mono text-xs text-teal-400 flex items-center gap-1">
+                      <Hash className="w-3 h-3 shrink-0" />{pl.plNumber}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all max-w-[220px]">
+                    <p className="text-sm font-medium text-slate-200 group-hover:text-teal-200 transition-colors truncate">{pl.name}</p>
+                    {pl.description && <p className="text-[10px] text-slate-600 truncate">{pl.description}</p>}
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${CATEGORY_COLORS[pl.category] ?? 'bg-slate-700/50 text-slate-400 border-slate-600'}`}>
+                      {pl.category}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    {pl.safetyCritical && (
+                      <span title="Safety Vital">
+                        <Shield className="w-3.5 h-3.5 text-rose-400" />
+                      </span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    <span className="text-xs text-slate-400 flex items-center gap-1">
+                      <Building2 className="w-3 h-3 text-slate-600 shrink-0" />{pl.controllingAgency || '—'}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    <Badge variant={STATUS_VARIANT[pl.status] ?? 'default'}>
+                      {STATUS_LABEL[pl.status] ?? pl.status}
+                    </Badge>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all text-center">
+                    <span className={`text-xs font-semibold ${pl.linkedDocumentIds.length > 0 ? 'text-teal-400' : 'text-slate-600'}`}>
+                      {pl.linkedDocumentIds.length}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-slate-700/30 group-hover:border-teal-500/20 transition-all text-center">
+                    <span className={`text-xs font-semibold ${(pl.engineeringChanges?.length ?? 0) > 0 ? 'text-amber-400' : 'text-slate-600'}`}>
+                      {pl.engineeringChanges?.length ?? 0}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pl-2 pr-3 rounded-r-xl bg-slate-800/30 group-hover:bg-slate-800/50 border-y border-r border-slate-700/30 group-hover:border-teal-500/20 transition-all">
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <button
+                        onClick={e => { e.stopPropagation(); setLinkingPL(pl); }}
+                        title="Link / Unlink Documents"
+                        className={`w-6 h-6 flex items-center justify-center rounded-lg border transition-all ${
+                          pl.linkedDocumentIds.length > 0
+                            ? 'bg-teal-500/10 border-teal-500/30 text-teal-400 hover:bg-teal-500/20'
+                            : 'bg-slate-800/50 border-slate-700/40 text-slate-600 hover:text-slate-300 hover:border-slate-600'
+                        }`}
+                      >
+                        <LinkIcon className="w-3 h-3" />
+                      </button>
+                      <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           {filtered.length === 0 && (
             <div className="text-center py-14">
