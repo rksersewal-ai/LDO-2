@@ -194,6 +194,7 @@ function CreateWorkModal({
     const errs: Record<string, string> = {};
     if (!form.workType) errs.workType = 'Work Type is required';
     if (!form.description.trim()) errs.description = 'Description is required';
+    if (!form.eOfficeNumber.trim()) errs.eOfficeNumber = 'e-Office Case No. is required';
     return errs;
   };
 
@@ -356,8 +357,9 @@ function CreateWorkModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-slate-400 mb-1.5 block">e-Office Case No.</label>
-              <Input value={form.eOfficeNumber} onChange={e => setForm(f => ({ ...f, eOfficeNumber: e.target.value }))} placeholder="e.g. CLW/DESIGN/2026/0001" className="w-full font-mono text-xs" />
+              <label className="text-xs font-medium text-slate-400 mb-1.5 block">e-Office Case No. <span className="text-rose-400">*</span></label>
+              <Input value={form.eOfficeNumber} onChange={e => setForm(f => ({ ...f, eOfficeNumber: e.target.value }))} placeholder="e.g. CLW/DESIGN/2026/0001" className={`w-full font-mono text-xs ${errors.eOfficeNumber ? 'border-rose-500/50' : ''}`} />
+              {errors.eOfficeNumber && <p className="text-[10px] text-rose-400 mt-1">{errors.eOfficeNumber}</p>}
             </div>
             <div>
               <label className="text-xs font-medium text-slate-400 mb-1.5 block">e-Office File No.</label>
@@ -558,6 +560,8 @@ export default function WorkLedger() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<WorkRecord['status'] | 'ALL'>('ALL');
   const [categoryFilter, setCategoryFilter] = useState<WorkCategory | 'ALL'>('ALL');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -571,12 +575,18 @@ export default function WorkLedger() {
         (w.userName ?? '').toLowerCase().includes(q) ||
         (w.plNumber ?? '').toLowerCase().includes(q) ||
         (w.workType ?? '').toLowerCase().includes(q) ||
-        (w.eOfficeNumber ?? '').toLowerCase().includes(q);
+        (w.eOfficeNumber ?? '').toLowerCase().includes(q) ||
+        (w.drawingNumber ?? '').toLowerCase().includes(q) ||
+        (w.specificationNumber ?? '').toLowerCase().includes(q) ||
+        (w.tenderNumber ?? '').toLowerCase().includes(q) ||
+        (w.referenceNumber ?? '').toLowerCase().includes(q);
       const matchStatus = statusFilter === 'ALL' || w.status === statusFilter;
       const matchCategory = categoryFilter === 'ALL' || w.workCategory === categoryFilter;
-      return matchSearch && matchStatus && matchCategory;
+      const matchDateFrom = !dateFrom || w.date >= dateFrom;
+      const matchDateTo = !dateTo || w.date <= dateTo;
+      return matchSearch && matchStatus && matchCategory && matchDateFrom && matchDateTo;
     });
-  }, [records, search, statusFilter, categoryFilter]);
+  }, [records, search, statusFilter, categoryFilter, dateFrom, dateTo]);
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().split('T')[0];
@@ -673,7 +683,7 @@ export default function WorkLedger() {
           <div className="relative flex-1 min-w-[220px]">
             <FileSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <Input
-              placeholder="Search by ID, description, type, PL number..."
+              placeholder="Search ID, description, type, PL, eOffice, drawing, spec, tender..."
               className="pl-9 w-full"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -689,6 +699,30 @@ export default function WorkLedger() {
                 {s === 'ALL' ? 'All' : STATUS_LABEL[s as WorkRecord['status']]}
               </button>
             ))}
+          </div>
+        </div>
+        {/* Date range filter */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wide">Date:</span>
+          <div className="flex items-center gap-1.5">
+            <Input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              className="py-1.5 px-2.5 text-xs w-36"
+              title="From date"
+            />
+            <span className="text-slate-600 text-xs">—</span>
+            <Input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              className="py-1.5 px-2.5 text-xs w-36"
+              title="To date"
+            />
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-[10px] text-slate-500 hover:text-teal-400 transition-colors px-1.5">✕ Clear</button>
+            )}
           </div>
         </div>
 
@@ -722,9 +756,11 @@ export default function WorkLedger() {
                 <th className="pb-3 pl-3 font-semibold text-[11px] uppercase tracking-wide">Work ID</th>
                 <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Description</th>
                 <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Category / Type</th>
+                <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">PL / eOffice</th>
                 <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Status</th>
                 <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">KPI</th>
-                <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Assignee</th>
+                <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Days / Target</th>
+                <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Officer</th>
                 <th className="pb-3 font-semibold text-[11px] uppercase tracking-wide">Date</th>
                 <th className="pb-3" />
               </tr>
@@ -742,13 +778,17 @@ export default function WorkLedger() {
                       <span className="font-mono text-teal-400 text-xs">{w.id}</span>
                     </div>
                   </td>
-                  <td className="py-3 max-w-[260px]">
+                  <td className="py-3 max-w-[240px]">
                     <p className="text-slate-200 font-medium text-sm truncate">{w.description}</p>
-                    {w.eOfficeNumber && <p className="text-[10px] text-slate-600 font-mono">{w.eOfficeNumber}</p>}
                   </td>
                   <td className="py-3">
                     <p className="text-xs text-slate-400">{CATEGORY_LABEL[w.workCategory]}</p>
                     <p className="text-[10px] text-slate-600">{w.workType}</p>
+                  </td>
+                  <td className="py-3">
+                    {w.plNumber && <p className="font-mono text-[11px] text-teal-500/80 leading-tight">{w.plNumber}</p>}
+                    {w.eOfficeNumber && <p className="font-mono text-[10px] text-slate-500 leading-tight">{w.eOfficeNumber}</p>}
+                    {!w.plNumber && !w.eOfficeNumber && <span className="text-slate-700 text-xs">—</span>}
                   </td>
                   <td className="py-3">
                     <Badge variant={STATUS_VARIANT[w.status]}>{STATUS_LABEL[w.status]}</Badge>
@@ -756,7 +796,19 @@ export default function WorkLedger() {
                   <td className="py-3">
                     <KPIChip record={w} />
                   </td>
-                  <td className="py-3 text-slate-400 text-xs">{w.userName}</td>
+                  <td className="py-3 text-xs font-mono">
+                    {w.daysTaken != null ? (
+                      <span className={w.targetDays && w.daysTaken > w.targetDays ? 'text-rose-400' : 'text-emerald-400'}>
+                        {w.daysTaken}d
+                      </span>
+                    ) : <span className="text-slate-700">—</span>}
+                    {w.targetDays != null && (
+                      <span className="text-slate-600"> / {w.targetDays}d</span>
+                    )}
+                  </td>
+                  <td className="py-3 text-slate-400 text-xs truncate max-w-[100px]">
+                    {w.concernedOfficer || w.userName || '—'}
+                  </td>
                   <td className="py-3 text-slate-500 text-xs">{w.date}</td>
                   <td className="py-3 pr-3">
                     <ChevronRight className={`w-4 h-4 transition-all ${selectedId === w.id ? 'rotate-90 text-teal-400' : 'text-slate-600 group-hover:text-teal-400'}`} />
