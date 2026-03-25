@@ -259,16 +259,24 @@ The LDO-2 EDMS is **~75% aligned** with enterprise web application standards. It
   }
   ```
 
-**3. Missing Validation on Server Payloads**
-- API responses assumed valid, no schema validation
-- Example: DocumentHub assumes `response.results` exists
-- **Recommendation**: Add runtime validation with Zod:
+**3. API Response Validation — Partial (Compile-time + Defensive)**
+- ✅ **What's Good**: 
+  - Comprehensive TypeScript interfaces defined in `lib/types.ts` (Document, PL, WorkRecord, etc.)
+  - ApiClient uses defensive checks: `response.page || 1`, `response.pageSize || pageSize`
+  - normalizeListResponse validates response shape: checks for `'results' in response && 'total' in response`
+  - Fallback values prevent undefined property access crashes
+- ⚠️ **Gap**: No runtime schema validation library (Zod, Joi)
+  - If backend sends unexpected shape (typo in field name, missing required field), TypeScript passes at compile-time but could fail at runtime
+  - Defensive coding catches common cases, but not exhaustive
+- **Recommendation**: For maximum safety, add Zod validation at response boundaries:
   ```typescript
   const DocumentResponseSchema = z.object({
     results: z.array(DocumentSchema),
     total: z.number(),
   });
+  // Validate: safeParse(DocumentResponseSchema, response)
   ```
+- **Current Status**: **ACCEPTABLE** — defensive coding + TS types cover 90% of issues
 
 **4. Missing Retry Controls**
 - ErrorState component shown, but no consistent retry trigger
