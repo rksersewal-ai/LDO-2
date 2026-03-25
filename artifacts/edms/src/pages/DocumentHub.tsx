@@ -379,7 +379,7 @@ export default function DocumentHub() {
                     <tr
                       key={doc.id}
                       className={`hover:bg-slate-800/40 cursor-pointer transition-colors group ${isSelected ? 'bg-teal-500/5' : ''}`}
-                      onClick={() => navigate(`/documents/${doc.id}`)}
+                      onClick={() => navigate(`/documents/${doc.id}${search ? `?q=${encodeURIComponent(search)}` : ''}`)}
                     >
                       <td className="py-3 pl-3" onClick={e => toggleSelect(doc.id, e)}>
                         <button className="flex items-center justify-center text-slate-500 hover:text-teal-400 transition-colors">
@@ -462,7 +462,7 @@ export default function DocumentHub() {
                       ? 'bg-teal-500/8 border-teal-500/35 hover:border-teal-400/50'
                       : 'bg-slate-900/40 border-white/5 hover:border-teal-500/30 hover:shadow-teal-950/30'
                   }`}
-                  onClick={() => navigate(`/documents/${doc.id}`)}
+                  onClick={() => navigate(`/documents/${doc.id}${search ? `?q=${encodeURIComponent(search)}` : ''}`)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">

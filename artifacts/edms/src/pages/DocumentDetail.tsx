@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
@@ -660,12 +660,13 @@ function Toast({ msg, onDismiss }: { msg: string; onDismiss: () => void }) {
 export default function DocumentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { openTab, tabs: openTabs } = useDocTabs();
 
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [ocrQuery, setOcrQuery] = useState('');
+  const [ocrQuery, setOcrQuery] = useState(() => searchParams.get('q') ?? '');
   const [rightSection, setRightSection] = useState('meta');
   const [leftSection, setLeftSection] = useState<'pages' | 'ocr'>('pages');
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -692,12 +693,17 @@ export default function DocumentDetail() {
     setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // Additively register the current doc in the session-level tab list
+  // Additively register the current doc in the session-level tab list;
+  // also seed ocrQuery from the URL ?q= param when changing docs
   useEffect(() => {
     if (!id) return;
     openTab(id);
     setZoom(1); setRotation(0); setCurrentPage(1);
-  }, [id, openTab]);
+    const q = searchParams.get('q') ?? '';
+    setOcrQuery(q);
+    // If a search term is passed, default the left panel to OCR view
+    if (q) setLeftSection('ocr');
+  }, [id, openTab, searchParams]);
 
   // Open another doc in the context tab list and navigate to it
   const openLinkedDoc = (docId: string) => {
