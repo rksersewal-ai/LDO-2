@@ -9,11 +9,11 @@ import {
 import { useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
 import { usePLItems } from '../hooks/usePLItems';
+import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
 import type { PLNumber, InspectionCategory, SafetyClassification } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
-import { MOCK_DOCUMENTS } from '../lib/mock';
 
 const STATUS_LABEL: Record<string, string> = {
   ACTIVE: 'Active',
@@ -52,6 +52,7 @@ interface CreatePLFormData {
   concernedSupervisor: string;
   applicationArea: string;
   eligibilityCriteria: string;
+  procurementConditions: string;
   drawingNumbers: string;
   specNumbers: string;
   motherPart: string;
@@ -78,6 +79,7 @@ const EMPTY_FORM: CreatePLFormData = {
   concernedSupervisor: '',
   applicationArea: '',
   eligibilityCriteria: '',
+  procurementConditions: '',
   drawingNumbers: '',
   specNumbers: '',
   motherPart: '',
@@ -106,10 +108,14 @@ function LinkDocumentsModal({
   pl,
   onClose,
   onUpdate,
+  documents,
+  documentsLoading,
 }: {
   pl: PLNumber;
   onClose: () => void;
   onUpdate: (linkedIds: string[]) => void;
+  documents: PlLinkableDocument[];
+  documentsLoading: boolean;
 }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -117,10 +123,10 @@ function LinkDocumentsModal({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return MOCK_DOCUMENTS.filter(d =>
+    return documents.filter(d =>
       !q || d.id.toLowerCase().includes(q) || d.name.toLowerCase().includes(q) || d.category.toLowerCase().includes(q)
     );
-  }, [search]);
+  }, [documents, search]);
 
   const toggle = (id: string) => {
     setLinked(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -149,7 +155,7 @@ function LinkDocumentsModal({
         {linked.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1.5">
             {linked.map(id => {
-              const doc = MOCK_DOCUMENTS.find(d => d.id === id);
+              const doc = documents.find(d => d.id === id);
               return doc ? (
                 <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-500/10 border border-teal-500/30 rounded-full text-xs text-teal-300">
                   <FileText className="w-3 h-3" />
@@ -174,6 +180,9 @@ function LinkDocumentsModal({
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-1.5 min-h-0 pr-0.5 custom-scrollbar">
+          {documentsLoading && (
+            <div className="text-center py-6 text-slate-500 text-sm">Loading documents...</div>
+          )}
           {filtered.map(doc => {
             const isLinked = linked.includes(doc.id);
             return (
@@ -244,6 +253,7 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
     else if (!/^\d{8}$/.test(form.plNumber.trim())) errs.plNumber = 'Must be exactly 8 digits';
     if (!form.name.trim()) errs.name = 'Name is required';
     if (!form.description.trim()) errs.description = 'Description is required';
+    if (form.vendorType === 'VD' && !form.uvamId.trim()) errs.uvamId = 'UVAM Item ID is required for vendor directory items';
     return errs;
   };
 
@@ -393,7 +403,7 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
             <Input value={form.specNumbers} onChange={e => setForm(f => ({ ...f, specNumbers: e.target.value }))} placeholder="e.g. SPC-ELE-001, SPC-MEC-005" className="w-full font-mono text-xs" />
           </Field>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="UVAM ID">
+            <Field label="UVAM ID" error={errors.uvamId}>
               <Input value={form.uvamId} onChange={e => setForm(f => ({ ...f, uvamId: e.target.value }))} placeholder="e.g. UVAM-2026-001" className="w-full font-mono text-xs" />
             </Field>
             <Field label="STR Number">
@@ -411,6 +421,9 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
           </Field>
           <Field label="Eligibility Criteria">
             <textarea value={form.eligibilityCriteria} onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))} rows={2} placeholder="Conditions under which this component is eligible for use..." className={ta} />
+          </Field>
+          <Field label="Procurement Conditions">
+            <textarea value={form.procurementConditions} onChange={e => setForm(f => ({ ...f, procurementConditions: e.target.value }))} rows={2} placeholder="Optional procurement conditions, restrictions, or sourcing notes..." className={ta} />
           </Field>
 
           {/* Personnel & Admin */}
@@ -442,6 +455,7 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
 export default function PLKnowledgeHub() {
   const navigate = useNavigate();
   const { data: plItems, loading, error, refetch, add, update } = usePLItems();
+  const { documents, loading: documentsLoading } = usePlLinkableDocuments();
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -529,6 +543,7 @@ export default function PLKnowledgeHub() {
       concernedSupervisor: data.concernedSupervisor || undefined,
       applicationArea: data.applicationArea || undefined,
       eligibilityCriteria: data.eligibilityCriteria || undefined,
+      procurementConditions: data.procurementConditions || undefined,
       drawingNumbers: toArr(data.drawingNumbers),
       specNumbers: toArr(data.specNumbers),
       motherPart: data.motherPart || undefined,
@@ -781,6 +796,8 @@ export default function PLKnowledgeHub() {
           onUpdate={(linkedIds) => {
             handleLinkUpdate(linkingPL.id, linkedIds);
           }}
+          documents={documents}
+          documentsLoading={documentsLoading}
         />
       )}
     </div>

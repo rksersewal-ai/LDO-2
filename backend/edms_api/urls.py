@@ -15,7 +15,7 @@ from .views import (
     # Work Records
     WorkRecordViewSet,
     # PL Items
-    PlItemViewSet,
+    PlBomLineViewSet, PlItemViewSet,
     # Cases
     CaseViewSet,
     # OCR
@@ -33,6 +33,7 @@ router = DefaultRouter()
 router.register(r'documents', DocumentViewSet, basename='document')
 router.register(r'work-records', WorkRecordViewSet, basename='work-record')
 router.register(r'pl-items', PlItemViewSet, basename='pl-item')
+router.register(r'pl-bom-lines', PlBomLineViewSet, basename='pl-bom-line')
 router.register(r'cases', CaseViewSet, basename='case')
 router.register(r'ocr/jobs', OcrJobViewSet, basename='ocr-job')
 router.register(r'approvals', ApprovalViewSet, basename='approval')

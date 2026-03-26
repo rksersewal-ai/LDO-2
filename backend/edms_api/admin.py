@@ -5,8 +5,16 @@ Register models for admin interface
 
 from django.contrib import admin
 from .models import (
-    Document, DocumentVersion, WorkRecord, PlItem, Case,
-    OcrJob, Approval, AuditLog
+    Approval,
+    AuditLog,
+    Case,
+    Document,
+    DocumentVersion,
+    OcrJob,
+    PlBomLine,
+    PlDocumentLink,
+    PlItem,
+    WorkRecord,
 )
 
 @admin.register(Document)
@@ -48,10 +56,24 @@ class WorkRecordAdmin(admin.ModelAdmin):
 
 @admin.register(PlItem)
 class PlItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'status', 'part_number', 'category')
-    list_filter = ('status', 'category')
-    search_fields = ('id', 'name', 'part_number')
+    list_display = ('id', 'name', 'status', 'vendor_type', 'uvam_item_id', 'category')
+    list_filter = ('status', 'category', 'vendor_type')
+    search_fields = ('id', 'name', 'part_number', 'uvam_item_id')
     readonly_fields = ('created_at', 'last_updated')
+
+@admin.register(PlDocumentLink)
+class PlDocumentLinkAdmin(admin.ModelAdmin):
+    list_display = ('pl_item', 'document', 'link_role', 'linked_at')
+    list_filter = ('link_role', 'linked_at')
+    search_fields = ('pl_item__id', 'document__id', 'document__name')
+    readonly_fields = ('linked_at', 'updated_at')
+
+@admin.register(PlBomLine)
+class PlBomLineAdmin(admin.ModelAdmin):
+    list_display = ('parent', 'child', 'find_number', 'quantity', 'unit_of_measure')
+    list_filter = ('unit_of_measure',)
+    search_fields = ('parent__id', 'child__id', 'find_number')
+    readonly_fields = ('created_at', 'updated_at')
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):

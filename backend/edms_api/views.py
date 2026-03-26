@@ -12,10 +12,29 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from .models import Document, WorkRecord, PlItem, Case, OcrJob, Approval, AuditLog
+from django.conf import settings
+from .throttles import HealthRateThrottle, LoginRateThrottle
+from .models import (
+    Approval,
+    AuditLog,
+    Case,
+    Document,
+    OcrJob,
+    PlBomLine,
+    PlDocumentLink,
+    PlItem,
+    WorkRecord,
+)
 from .serializers import (
-    DocumentSerializer, WorkRecordSerializer, PlItemSerializer,
-    CaseSerializer, OcrJobSerializer, ApprovalSerializer, AuditLogSerializer
+    ApprovalSerializer,
+    AuditLogSerializer,
+    CaseSerializer,
+    DocumentSerializer,
+    OcrJobSerializer,
+    PlBomLineSerializer,
+    PlDocumentLinkSerializer,
+    PlItemSerializer,
+    WorkRecordSerializer,
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +47,7 @@ class LoginView(APIView):
     Authenticate user and return JWT tokens
     """
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
     
     def post(self, request):
         username = request.data.get('username')
@@ -42,7 +62,15 @@ class LoginView(APIView):
         
         refresh = RefreshToken.for_user(user)
         group_names = list(user.groups.values_list('name', flat=True))
-        resolved_role = group_names[0].lower() if group_names else 'viewer'
+        explicit_role = getattr(user, 'role', None)
+        if explicit_role:
+            resolved_role = explicit_role
+        elif group_names:
+            resolved_role = group_names[0].lower()
+        elif user.is_superuser or user.is_staff:
+            resolved_role = 'admin'
+        else:
+            resolved_role = 'viewer'
         return Response({
             'access': str(refresh.access_token),
             'refresh': str(refresh),
@@ -111,7 +139,9 @@ class DocumentViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 Q(name__icontains=search) |
                 Q(id__icontains=search) |
-                Q(linked_pl__icontains=search)
+                Q(linked_pl__icontains=search) |
+                Q(category__icontains=search) |
+                Q(type__icontains=search)
             )
         
         return queryset.order_by('-created_at')
@@ -183,6 +213,127 @@ class PlItemViewSet(viewsets.ModelViewSet):
     """
     queryset = PlItem.objects.all()
     serializer_class = PlItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = PlItem.objects.all().prefetch_related('document_links__document', 'bom_parents')
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(id__icontains=search) |
+                Q(name__icontains=search) |
+                Q(description__icontains=search) |
+                Q(uvam_item_id__icontains=search) |
+                Q(eligibility_criteria__icontains=search) |
+                Q(procurement_conditions__icontains=search) |
+                Q(design_supervisor__icontains=search) |
+                Q(concerned_supervisor__icontains=search)
+            )
+        return queryset.order_by('id')
+
+    @action(detail=True, methods=['get'])
+    def documents(self, request, pk=None):
+        pl_item = self.get_object()
+        links = pl_item.document_links.select_related('document').all()
+        return Response(PlDocumentLinkSerializer(links, many=True).data)
+
+    @action(detail=True, methods=['post'], url_path='documents/set')
+    def set_documents(self, request, pk=None):
+        pl_item = self.get_object()
+        document_ids = request.data.get('document_ids', [])
+
+        if not isinstance(document_ids, list):
+            return Response({'error': 'document_ids must be a list'}, status=status.HTTP_400_BAD_REQUEST)
+
+        valid_documents = {
+            document.id: document
+            for document in Document.objects.filter(id__in=document_ids)
+        }
+        missing_ids = [doc_id for doc_id in document_ids if doc_id not in valid_documents]
+        if missing_ids:
+            return Response(
+                {'error': 'Some documents were not found', 'missing_document_ids': missing_ids},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        current_ids = set(pl_item.document_links.values_list('document_id', flat=True))
+        target_ids = set(document_ids)
+
+        for doc_id in current_ids - target_ids:
+            PlDocumentLink.objects.filter(pl_item=pl_item, document_id=doc_id).delete()
+            if not PlDocumentLink.objects.filter(document_id=doc_id).exists():
+                Document.objects.filter(id=doc_id).update(linked_pl=None)
+
+        for doc_id in target_ids - current_ids:
+            document = valid_documents[doc_id]
+            PlDocumentLink.objects.create(
+                pl_item=pl_item,
+                document=document,
+                link_role='TECHNICAL_EVALUATION' if (document.category or '').upper() == 'TECHNICAL_EVALUATION' else 'GENERAL',
+            )
+            document.linked_pl = pl_item.id
+            document.save(update_fields=['linked_pl'])
+
+        serializer = self.get_serializer(self.get_object())
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'], url_path='bom-tree')
+    def bom_tree(self, request, pk=None):
+        pl_item = self.get_object()
+        requested_depth = request.query_params.get('max_depth')
+        try:
+            max_depth = min(max(int(requested_depth or 50), 1), 50)
+        except ValueError:
+            return Response({'error': 'max_depth must be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+
+        def build_tree(parent: PlItem, depth: int, visited: set[str]):
+            if depth > max_depth or parent.id in visited:
+                return []
+            next_visited = set(visited)
+            next_visited.add(parent.id)
+            lines = PlBomLine.objects.filter(parent=parent).select_related('child').order_by('line_order', 'find_number', 'id')
+            nodes = []
+            for line in lines:
+                nodes.append({
+                    'id': str(line.id),
+                    'parent': line.parent_id,
+                    'child': line.child_id,
+                    'child_name': line.child.name,
+                    'quantity': str(line.quantity),
+                    'unit_of_measure': line.unit_of_measure,
+                    'find_number': line.find_number,
+                    'line_order': line.line_order,
+                    'reference_designator': line.reference_designator,
+                    'remarks': line.remarks,
+                    'children': build_tree(line.child, depth + 1, next_visited),
+                })
+            return nodes
+
+        return Response({
+            'pl_item': pl_item.id,
+            'max_depth': max_depth,
+            'children': build_tree(pl_item, 1, set()),
+        })
+
+    @action(detail=True, methods=['get'], url_path='where-used')
+    def where_used(self, request, pk=None):
+        pl_item = self.get_object()
+        parents = PlBomLine.objects.filter(child=pl_item).select_related('parent').order_by('parent__id', 'line_order')
+        return Response([
+            {
+                'parent_pl': line.parent_id,
+                'parent_name': line.parent.name,
+                'quantity': str(line.quantity),
+                'find_number': line.find_number,
+                'unit_of_measure': line.unit_of_measure,
+            }
+            for line in parents
+        ])
+
+
+class PlBomLineViewSet(viewsets.ModelViewSet):
+    queryset = PlBomLine.objects.select_related('parent', 'child').all()
+    serializer_class = PlBomLineSerializer
     permission_classes = [IsAuthenticated]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -359,7 +510,13 @@ class SearchView(APIView):
         
         if scope in ['ALL', 'PL']:
             results['pl_items'] = PlItemSerializer(
-                PlItem.objects.filter(Q(name__icontains=query) | Q(id__icontains=query))[:10],
+                PlItem.objects.filter(
+                    Q(name__icontains=query) |
+                    Q(id__icontains=query) |
+                    Q(uvam_item_id__icontains=query) |
+                    Q(eligibility_criteria__icontains=query) |
+                    Q(procurement_conditions__icontains=query)
+                )[:10],
                 many=True
             ).data
         
@@ -383,9 +540,9 @@ class SearchHistoryView(APIView):
         history = AuditLog.objects.filter(
             user=request.user,
             action='SEARCH'
-        ).values('entity').distinct()[:20]
+        ).order_by('-created_at').values_list('entity', flat=True)[:20]
 
-        return Response({'searches': list(history)})
+        return Response({'searches': [entry for entry in history if entry]})
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -432,23 +589,27 @@ class HealthStatusView(APIView):
     System health and status information
     """
     permission_classes = [AllowAny]
+    throttle_classes = [HealthRateThrottle]
     
     def get(self, request):
-        import os
         import psutil
         from django.db import connection
         
         # Check database
         try:
             connection.ensure_connection()
+            with connection.cursor() as cursor:
+                cursor.execute('SELECT 1')
+                cursor.fetchone()
             db_status = 'OK'
         except Exception as e:
             db_status = f'Error: {str(e)}'
         
-        # System metrics
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # Use non-blocking metrics so health checks do not serialize a worker for 1s.
+        cpu_percent = psutil.cpu_percent(interval=None)
         memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        disk_root = settings.BASE_DIR.anchor or str(settings.BASE_DIR)
+        disk = psutil.disk_usage(disk_root)
         
         return Response({
             'status': 'OK',

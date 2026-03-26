@@ -100,6 +100,7 @@ export const PLNumberSchema = z.object({
   uvamId: z.string().optional(),
   strNumber: z.string().optional(),
   eligibilityCriteria: z.string().optional(),
+  procurementConditions: z.string().optional(),
   designSupervisor: z.string().optional(),
   concernedSupervisor: z.string().optional(),
   eOfficeFile: z.string().optional(),

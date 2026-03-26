@@ -3,6 +3,8 @@ LDO-2 EDMS - Django Models
 Core data models for the document management system
 """
 
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -18,6 +20,8 @@ class Document(models.Model):
     
     TYPE_CHOICES = [
         ('PDF', 'PDF'),
+        ('TIFF', 'TIFF'),
+        ('PRT', 'PRT'),
         ('Word', 'Word'),
         ('Excel', 'Excel'),
         ('Image', 'Image'),
@@ -162,19 +166,61 @@ class WorkRecord(models.Model):
 
 class PlItem(models.Model):
     STATUS_CHOICES = [
-        ('Active', 'Active'),
-        ('Inactive', 'Inactive'),
-        ('Retired', 'Retired'),
+        ('ACTIVE', 'Active'),
+        ('UNDER_REVIEW', 'Under Review'),
+        ('OBSOLETE', 'Obsolete'),
     ]
+    VENDOR_TYPE_CHOICES = [
+        ('VD', 'Vendor Directory'),
+        ('NVD', 'Non-Vendor Directory'),
+    ]
+    SAFETY_CLASSIFICATION_CHOICES = [
+        ('LOW', 'Low'),
+        ('MEDIUM', 'Medium'),
+        ('HIGH', 'High'),
+        ('CRITICAL', 'Critical'),
+    ]
+    pl_number_validator = RegexValidator(
+        regex=r'^\d{8}$',
+        message='PL number must be exactly 8 digits.',
+    )
 
-    id = models.CharField(max_length=100, primary_key=True)
+    id = models.CharField(max_length=8, primary_key=True, validators=[pl_number_validator])
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     part_number = models.CharField(max_length=100, blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
     
     # Metadata
     category = models.CharField(max_length=100, blank=True, null=True)
+    controlling_agency = models.CharField(max_length=100, blank=True, null=True)
+    safety_critical = models.BooleanField(default=False)
+    safety_classification = models.CharField(
+        max_length=20,
+        choices=SAFETY_CLASSIFICATION_CHOICES,
+        blank=True,
+        null=True,
+    )
+    severity_of_failure = models.CharField(max_length=255, blank=True, null=True)
+    consequences = models.TextField(blank=True, null=True)
+    functionality = models.TextField(blank=True, null=True)
+    application_area = models.CharField(max_length=255, blank=True, null=True)
+    used_in = models.JSONField(default=list, blank=True)
+    drawing_numbers = models.JSONField(default=list, blank=True)
+    spec_numbers = models.JSONField(default=list, blank=True)
+    mother_part = models.CharField(max_length=100, blank=True, null=True)
+    uvam_item_id = models.CharField(max_length=100, blank=True, null=True)
+    str_number = models.CharField(max_length=100, blank=True, null=True)
+    eligibility_criteria = models.TextField(blank=True, null=True)
+    procurement_conditions = models.TextField(blank=True, null=True)
+    design_supervisor = models.CharField(max_length=255, blank=True, null=True)
+    concerned_supervisor = models.CharField(max_length=255, blank=True, null=True)
+    eoffice_file = models.CharField(max_length=255, blank=True, null=True)
+    vendor_type = models.CharField(max_length=10, choices=VENDOR_TYPE_CHOICES, blank=True, null=True)
+    recent_activity = models.JSONField(default=list, blank=True)
+    engineering_changes = models.JSONField(default=list, blank=True)
+    linked_work_ids = models.JSONField(default=list, blank=True)
+    linked_case_ids = models.JSONField(default=list, blank=True)
     manufacturer = models.CharField(max_length=255, blank=True, null=True)
     specifications = models.JSONField(default=dict, blank=True)
     
@@ -190,6 +236,85 @@ class PlItem(models.Model):
     
     def __str__(self):
         return self.name
+
+    def clean(self):
+        if self.vendor_type == 'VD' and not (self.uvam_item_id or '').strip():
+            raise ValidationError({'uvam_item_id': 'UVAM item ID is required for vendor directory items.'})
+
+    def save(self, *args, **kwargs):
+        if not self.part_number:
+            self.part_number = self.id
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+
+class PlDocumentLink(models.Model):
+    ROLE_CHOICES = [
+        ('GENERAL', 'General'),
+        ('DRAWING', 'Drawing'),
+        ('TECHNICAL_EVALUATION', 'Technical Evaluation'),
+        ('ELIGIBILITY', 'Eligibility'),
+        ('PROCUREMENT', 'Procurement'),
+        ('SPECIFICATION', 'Specification'),
+        ('CERTIFICATE', 'Certificate'),
+        ('OTHER', 'Other'),
+    ]
+
+    pl_item = models.ForeignKey(PlItem, on_delete=models.CASCADE, related_name='document_links')
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='pl_links')
+    link_role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='GENERAL')
+    notes = models.TextField(blank=True, null=True)
+    linked_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-linked_at']
+        unique_together = ['pl_item', 'document']
+
+    def __str__(self):
+        return f"{self.pl_item_id} -> {self.document_id} ({self.link_role})"
+
+
+class PlBomLine(models.Model):
+    parent = models.ForeignKey(PlItem, on_delete=models.CASCADE, related_name='bom_children')
+    child = models.ForeignKey(PlItem, on_delete=models.CASCADE, related_name='bom_parents')
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, default=1)
+    unit_of_measure = models.CharField(max_length=20, default='EA')
+    find_number = models.CharField(max_length=50)
+    line_order = models.PositiveIntegerField(default=0)
+    reference_designator = models.CharField(max_length=100, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['line_order', 'find_number', 'id']
+        unique_together = ['parent', 'find_number']
+
+    def __str__(self):
+        return f"{self.parent_id} -> {self.child_id} ({self.find_number})"
+
+    def clean(self):
+        if self.parent_id == self.child_id:
+            raise ValidationError('Parent and child PL numbers cannot be the same.')
+
+        if not self.child_id:
+            return
+
+        descendants = {self.child_id}
+        frontier = [self.child_id]
+        while frontier:
+            next_frontier = list(
+                PlBomLine.objects.filter(parent_id__in=frontier).values_list('child_id', flat=True)
+            )
+            if self.parent_id in next_frontier:
+                raise ValidationError('This BOM relation creates a cycle.')
+            frontier = [node for node in next_frontier if node not in descendants]
+            descendants.update(frontier)
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 class Case(models.Model):
     STATUS_CHOICES = [

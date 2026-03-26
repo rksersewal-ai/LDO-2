@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'supervisor' | 'engineer' | 'reviewer' | 'viewe
 
 export type DocumentCategory =
   | 'DRAWING'
+  | 'TECHNICAL_EVALUATION'
   | 'SPECIFICATION'
   | 'ELIGIBILITY_CRITERIA'
   | 'SCOPE_OF_SUPPLY'
@@ -109,6 +110,7 @@ export interface PLNumber {
   uvamId?: string;
   strNumber?: string;
   eligibilityCriteria?: string;
+  procurementConditions?: string;
   designSupervisor?: string;
   concernedSupervisor?: string;
   eOfficeFile?: string;

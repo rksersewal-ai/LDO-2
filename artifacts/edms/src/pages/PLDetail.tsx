@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
 import { DatePicker } from '../components/ui/DatePicker';
-import { MOCK_DOCUMENTS, MOCK_PL_RECORDS } from '../lib/mock';
+import { MOCK_PL_RECORDS } from '../lib/mock';
 import { getPLRecord } from '../lib/bomData';
 import { usePLItem } from '../hooks/usePLItems';
+import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { PLService } from '../services/PLService';
 import type { PLNumber, EngineeringChange, SafetyClassification, InspectionCategory } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
@@ -85,18 +86,21 @@ function InfoRow({ label, value, mono }: { label: string; value?: string | null;
 
 interface DocumentLinkingSectionProps {
   pl: PLNumber;
-  onLinkChange: () => void;
+  documents: PlLinkableDocument[];
+  documentsLoading: boolean;
+  onLinkChange: (nextLinkedIds: string[]) => Promise<void> | void;
 }
 
-function DocumentLinkingSection({ pl, onLinkChange }: DocumentLinkingSectionProps) {
+function DocumentLinkingSection({ pl, documents, documentsLoading, onLinkChange }: DocumentLinkingSectionProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const linkedDocs = useMemo(() =>
-    MOCK_DOCUMENTS.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
-    [pl.linkedDocumentIds]
+    documents.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
+    [documents, pl.linkedDocumentIds]
   );
   
   const availableDocs = useMemo(() =>
-    MOCK_DOCUMENTS
+    documents
       .filter(d => !(pl.linkedDocumentIds ?? []).includes(d.id))
       .filter(d => 
         !searchQuery || 
@@ -104,19 +108,15 @@ function DocumentLinkingSection({ pl, onLinkChange }: DocumentLinkingSectionProp
         d.id.toLowerCase().includes(searchQuery.toLowerCase())
       )
       .sort((a, b) => a.name.localeCompare(b.name)),
-    [pl.linkedDocumentIds, searchQuery]
+    [documents, pl.linkedDocumentIds, searchQuery]
   );
 
   const handleLink = async (docId: string) => {
-    const updated = { linkedDocumentIds: [...(pl.linkedDocumentIds ?? []), docId] };
-    // This would call the PLService.update in a real app
-    onLinkChange();
+    await onLinkChange([...(pl.linkedDocumentIds ?? []), docId]);
   };
 
   const handleUnlink = async (docId: string) => {
-    const updated = { linkedDocumentIds: (pl.linkedDocumentIds ?? []).filter(id => id !== docId) };
-    // This would call the PLService.update in a real app
-    onLinkChange();
+    await onLinkChange((pl.linkedDocumentIds ?? []).filter(id => id !== docId));
   };
 
   return (
@@ -138,6 +138,11 @@ function DocumentLinkingSection({ pl, onLinkChange }: DocumentLinkingSectionProp
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
+          {documentsLoading && (
+            <div className="text-center py-8 text-slate-500">
+              <p className="text-xs">Loading documents...</p>
+            </div>
+          )}
           {availableDocs.length > 0 ? (
             availableDocs.map(doc => (
               <div
@@ -201,7 +206,7 @@ function DocumentLinkingSection({ pl, onLinkChange }: DocumentLinkingSectionProp
                     size="sm"
                     variant="ghost"
                     className="flex-1 text-xs h-auto py-1"
-                    onClick={() => alert(`Opening ${doc.name} in preview`)}
+                    onClick={() => navigate(`/documents/${doc.id}`)}
                   >
                     <ExternalLink className="w-3 h-3" /> Preview
                   </Button>
@@ -257,6 +262,7 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
     uvamId: pl.uvamId ?? '',
     strNumber: pl.strNumber ?? '',
     eligibilityCriteria: pl.eligibilityCriteria ?? '',
+    procurementConditions: pl.procurementConditions ?? '',
     designSupervisor: pl.designSupervisor ?? '',
     concernedSupervisor: pl.concernedSupervisor ?? '',
     eOfficeFile: pl.eOfficeFile ?? '',
@@ -288,6 +294,7 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
         uvamId: form.uvamId || undefined,
         strNumber: form.strNumber || undefined,
         eligibilityCriteria: form.eligibilityCriteria || undefined,
+        procurementConditions: form.procurementConditions || undefined,
         designSupervisor: form.designSupervisor || undefined,
         concernedSupervisor: form.concernedSupervisor || undefined,
         eOfficeFile: form.eOfficeFile || undefined,
@@ -405,17 +412,26 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                   </div>
                 </div>
               ) : (
-                // NVD (Non-Vendor Directory) - Show Eligibility Criteria
+                // NVD (Non-Vendor Directory) - Show optional eligibility and procurement notes
                 <div className="space-y-3">
                   <div className="bg-purple-900/20 border border-purple-500/30 rounded-xl p-4 mb-3">
-                    <p className="text-xs text-purple-300">Non-Vendor Directory items require documented eligibility criteria for approval.</p>
+                    <p className="text-xs text-purple-300">Non-Vendor Directory items may include optional eligibility criteria and procurement notes.</p>
                   </div>
-                  <F label="Eligibility Criteria *">
+                  <F label="Eligibility Criteria (Optional)">
                     <textarea
                       value={form.eligibilityCriteria}
                       onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))}
                       rows={3}
                       placeholder="Document the eligibility criteria for this NVD item (e.g., design standards, performance requirements, compliance measures)..."
+                      className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 transition-all placeholder:text-slate-600 resize-none"
+                    />
+                  </F>
+                  <F label="Procurement Conditions">
+                    <textarea
+                      value={form.procurementConditions}
+                      onChange={e => setForm(f => ({ ...f, procurementConditions: e.target.value }))}
+                      rows={3}
+                      placeholder="Optional procurement conditions, restrictions, or sourcing notes..."
                       className="w-full bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 transition-all placeholder:text-slate-600 resize-none"
                     />
                   </F>
@@ -637,10 +653,11 @@ function PLNumberDetailView({
   const [activeTab, setActiveTab] = useState<PLNumberTab>('overview');
   const [editOpen, setEditOpen] = useState(false);
   const [showAddEC, setShowAddEC] = useState(false);
+  const { documents, loading: documentsLoading } = usePlLinkableDocuments();
 
   const linkedDocs = useMemo(() =>
-    MOCK_DOCUMENTS.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
-    [pl.linkedDocumentIds]
+    documents.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
+    [documents, pl.linkedDocumentIds]
   );
 
   const engineeringChanges = pl.engineeringChanges ?? [];
@@ -777,7 +794,7 @@ function PLNumberDetailView({
               </GlassCard>
             )}
 
-            {(pl.consequences || pl.severityOfFailure || pl.eligibilityCriteria) && (
+            {(pl.consequences || pl.severityOfFailure || pl.eligibilityCriteria || pl.procurementConditions) && (
               <GlassCard className="p-6">
                 <h2 className="text-sm font-bold text-white mb-4">Safety & Eligibility Details</h2>
                 <div className="space-y-3">
@@ -799,6 +816,12 @@ function PLNumberDetailView({
                     <div>
                       <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">Eligibility Criteria</p>
                       <p className="text-sm text-slate-300">{pl.eligibilityCriteria}</p>
+                    </div>
+                  )}
+                  {pl.procurementConditions && (
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-500 mb-1">Procurement Conditions</p>
+                      <p className="text-sm text-slate-300">{pl.procurementConditions}</p>
                     </div>
                   )}
                 </div>
@@ -884,7 +907,12 @@ function PLNumberDetailView({
 
       {/* Documents Tab — Two-Column Document Linking */}
       {activeTab === 'documents' && (
-        <DocumentLinkingSection pl={pl} onLinkChange={() => {}} />
+        <DocumentLinkingSection
+          pl={pl}
+          documents={documents}
+          documentsLoading={documentsLoading}
+          onLinkChange={(nextLinkedIds) => onUpdate({ linkedDocumentIds: nextLinkedIds })}
+        />
       )}
 
       {/* Engineering Changes Tab */}
