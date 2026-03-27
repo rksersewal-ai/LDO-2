@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { GlassCard, Badge, Button, Input, Select, PageHeader } from '../components/ui/Shared';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
+import { Switch } from '../components/ui/switch';
+import { usePLItems } from '../hooks/usePLItems';
 import { toast } from 'sonner';
 
 const DOC_TYPES = ['Drawing', 'Specification', 'Test Report', 'Certificate', 'Procedure', 'CAD Model', 'Datasheet'] as const;
@@ -47,6 +50,7 @@ export default function DocumentIngestion() {
   const navigate = useNavigate();
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { data: plItems, loading: plItemsLoading } = usePLItems();
 
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -341,24 +345,17 @@ export default function DocumentIngestion() {
               <label className="block text-xs font-semibold text-slate-400 mb-1.5">
                 <span className="flex items-center gap-1.5"><Hash className="w-3 h-3 text-teal-500" /> Link to PL Number</span>
               </label>
-              <div className="relative">
-                <Input
-                  placeholder="38100000"
-                  value={plNumber}
-                  onChange={e => {
-                    const v = e.target.value.replace(/\D/g, '').slice(0, 8);
-                    setPlNumber(v);
-                    setErrors(p => ({ ...p, plNumber: '' }));
-                  }}
-                  className="w-full font-mono pl-12"
-                  maxLength={8}
-                />
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">PL-</span>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono">
-                  {plNumber.length}/8
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-500 mt-1">8-digit PL code, e.g. 38100000. Leave blank if not applicable.</p>
+              <PLNumberSelect
+                value={plNumber}
+                onChange={(next) => {
+                  setPlNumber(next);
+                  setErrors(p => ({ ...p, plNumber: '' }));
+                }}
+                plItems={plItems}
+                loading={plItemsLoading}
+                placeholder="Search and select a linked PL..."
+                helperText="Link the uploaded document to an existing PL record when the file belongs to a controlled component or assembly."
+              />
               {errors.plNumber && <p className="text-xs text-rose-400 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.plNumber}</p>}
             </div>
 
@@ -372,18 +369,11 @@ export default function DocumentIngestion() {
                     <p className="text-[10px] text-slate-500">Extract text and metadata from document</p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setOcrEnabled(!ocrEnabled)}
-                  className={`relative w-10 h-5.5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500/50 ${ocrEnabled ? 'bg-teal-500' : 'bg-slate-700'}`}
-                  style={{ height: '22px' }}
-                  aria-checked={ocrEnabled}
-                  role="switch"
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${ocrEnabled ? 'translate-x-4.5' : 'translate-x-0'}`}
-                    style={{ transform: ocrEnabled ? 'translateX(18px)' : 'translateX(0)' }}
-                  />
-                </button>
+                <Switch
+                  checked={ocrEnabled}
+                  onCheckedChange={setOcrEnabled}
+                  aria-label="Toggle OCR processing"
+                />
               </div>
               {ocrEnabled && (
                 <div className="mt-2.5 pt-2.5 border-t border-white/5 flex items-center gap-1.5 text-[11px] text-teal-400">

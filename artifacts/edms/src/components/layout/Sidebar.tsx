@@ -6,7 +6,7 @@ import {
   Briefcase, CheckSquare, BarChart3, ShieldAlert,
   Settings, ServerCog, DatabaseBackup,
   Megaphone, ClipboardList, FileBarChart, BookOpen, Telescope,
-  Bell, FileCheck2, MonitorCheck, ChevronRight,
+  Bell, FileCheck2, MonitorCheck, ChevronRight, CopyCheck,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import type { UserRole } from '../../lib/auth';
@@ -16,6 +16,7 @@ interface NavItem {
   label: string;
   path: string;
   roles?: UserRole[];
+  exact?: boolean;
 }
 
 interface NavGroup {
@@ -64,7 +65,8 @@ const navGroups: NavGroup[] = [
   {
     label: "System",
     items: [
-      { icon: ServerCog, label: "Admin", path: "/admin", roles: ['admin'] },
+      { icon: ServerCog, label: "Admin", path: "/admin", roles: ['admin'], exact: true },
+      { icon: CopyCheck, label: "Deduplication", path: "/admin/deduplication", roles: ['admin'] },
       { icon: Activity, label: "OCR Monitor", path: "/ocr", roles: ['admin'] },
       { icon: MonitorCheck, label: "System Health", path: "/health", roles: ['admin'] },
       { icon: ClipboardList, label: "Audit Log", path: "/audit", roles: ['admin'] },
@@ -138,7 +140,9 @@ export function Sidebar() {
                 const Icon = item.icon;
                 const isActive = item.path === '/'
                   ? location.pathname === '/'
-                  : location.pathname.startsWith(item.path);
+                  : item.exact
+                    ? location.pathname === item.path
+                    : location.pathname.startsWith(item.path);
                 return (
                   <NavLink
                     key={item.path}

@@ -28,9 +28,16 @@ export interface PLRecord {
 }
 export interface BOMNode {
   id: string; name: string; type: NodeType; revision: string; tags: string[];
-  quantity: number; findNumber: string; unitOfMeasure: string; referenceDesignator?: string; children: BOMNode[];
+  quantity: number; findNumber: string; unitOfMeasure: string; referenceDesignator?: string;
+  unitWeightKg?: number; unitCost?: number; children: BOMNode[];
 }
 export interface BOMVersion { version: number; label: string; timestamp: string; tree: BOMNode[]; }
+export interface BOMRollup {
+  lineQuantity: number;
+  componentInstances: number;
+  totalWeightKg: number;
+  totalCost: number;
+}
 
 export interface Product {
   id: string;
@@ -90,6 +97,154 @@ export function countNodes(nodes: BOMNode[]): { assemblies: number; parts: numbe
   let assemblies = 0, parts = 0;
   function count(arr: BOMNode[]) { for (const n of arr) { if (n.type === 'part') parts++; else assemblies++; count(n.children); } }
   count(nodes); return { assemblies, parts, total: assemblies + parts };
+}
+
+const UNIT_FAMILY_MAP: Record<string, string> = {
+  EA: 'count',
+  NOS: 'count',
+  NO: 'count',
+  SET: 'count',
+  PAIR: 'count',
+  KG: 'mass',
+  G: 'mass',
+  TON: 'mass',
+  TONNE: 'mass',
+  M: 'length',
+  CM: 'length',
+  MM: 'length',
+  L: 'volume',
+  ML: 'volume',
+};
+
+function normalizeUnit(uom?: string) {
+  return (uom ?? '').trim().toUpperCase();
+}
+
+export function getUnitFamily(uom?: string) {
+  return UNIT_FAMILY_MAP[normalizeUnit(uom)] ?? normalizeUnit(uom) ?? '';
+}
+
+export function areUnitsCompatible(a?: string, b?: string) {
+  const aUnit = normalizeUnit(a);
+  const bUnit = normalizeUnit(b);
+
+  if (!aUnit || !bUnit) return true;
+  if (aUnit === bUnit) return true;
+
+  return getUnitFamily(aUnit) === getUnitFamily(bUnit);
+}
+
+export function parseWeightKg(weight?: string): number | null {
+  if (!weight) return null;
+
+  const normalized = weight.trim().toLowerCase().replace(/,/g, '');
+  const numeric = Number.parseFloat(normalized);
+
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+
+  if (normalized.includes('ton')) return numeric * 1000;
+  if (normalized.includes(' g')) return numeric / 1000;
+  return numeric;
+}
+
+export function getNodeUnitWeightKg(node: BOMNode): number {
+  if (typeof node.unitWeightKg === 'number' && Number.isFinite(node.unitWeightKg)) {
+    return node.unitWeightKg;
+  }
+
+  return parseWeightKg(PL_DATABASE[node.id]?.weight) ?? 0;
+}
+
+export function estimateUnitCost(node: Pick<BOMNode, 'id' | 'type' | 'unitCost'>): number {
+  if (typeof node.unitCost === 'number' && Number.isFinite(node.unitCost)) {
+    return node.unitCost;
+  }
+
+  const plRecord = PL_DATABASE[node.id];
+  const weightKg = parseWeightKg(plRecord?.weight) ?? 0;
+  const sourceRate = plRecord?.source === 'Buy' ? 520 : plRecord?.source === 'Make/Buy' ? 390 : 280;
+  const typeFactor = node.type === 'assembly' ? 2.2 : node.type === 'sub-assembly' ? 1.55 : 1;
+
+  if (weightKg > 0) {
+    return Math.round(weightKg * sourceRate * typeFactor);
+  }
+
+  if (node.type === 'assembly') return 350000;
+  if (node.type === 'sub-assembly') return 90000;
+  return 12000;
+}
+
+function computeSingleUnitRollup(node: BOMNode): Omit<BOMRollup, 'lineQuantity'> {
+  let componentInstances = 1;
+  let totalWeightKg = getNodeUnitWeightKg(node);
+  let totalCost = estimateUnitCost(node);
+
+  for (const child of node.children) {
+    const childRollup = computeNodeRollup(child);
+    componentInstances += childRollup.componentInstances;
+    totalWeightKg += childRollup.totalWeightKg;
+    totalCost += childRollup.totalCost;
+  }
+
+  return { componentInstances, totalWeightKg, totalCost };
+}
+
+export function computeNodeRollup(node: BOMNode): BOMRollup {
+  const singleUnit = computeSingleUnitRollup(node);
+  return {
+    lineQuantity: node.quantity,
+    componentInstances: singleUnit.componentInstances * node.quantity,
+    totalWeightKg: singleUnit.totalWeightKg * node.quantity,
+    totalCost: singleUnit.totalCost * node.quantity,
+  };
+}
+
+export function computeTreeRollup(nodes: BOMNode[]): BOMRollup {
+  return nodes.reduce<BOMRollup>((accumulator, node) => {
+    const rollup = computeNodeRollup(node);
+    return {
+      lineQuantity: accumulator.lineQuantity + rollup.lineQuantity,
+      componentInstances: accumulator.componentInstances + rollup.componentInstances,
+      totalWeightKg: accumulator.totalWeightKg + rollup.totalWeightKg,
+      totalCost: accumulator.totalCost + rollup.totalCost,
+    };
+  }, {
+    lineQuantity: 0,
+    componentInstances: 0,
+    totalWeightKg: 0,
+    totalCost: 0,
+  });
+}
+
+export function getAncestorIds(nodes: BOMNode[], targetId: string, ancestors: string[] = []): string[] {
+  for (const node of nodes) {
+    if (node.id === targetId) {
+      return ancestors;
+    }
+
+    const nextAncestors = getAncestorIds(node.children, targetId, [...ancestors, node.id]);
+    if (nextAncestors.length > 0) {
+      return nextAncestors;
+    }
+  }
+
+  return [];
+}
+
+export function getDescendantIds(node: BOMNode): string[] {
+  const descendants: string[] = [];
+
+  function collect(children: BOMNode[]) {
+    for (const child of children) {
+      descendants.push(child.id);
+      collect(child.children);
+    }
+  }
+
+  collect(node.children);
+  return descendants;
 }
 
 export const PL_DATABASE: Record<string, PLRecord> = {

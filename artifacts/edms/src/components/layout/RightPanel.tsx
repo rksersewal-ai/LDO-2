@@ -1,5 +1,5 @@
 import { X, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { RightPanelContent } from '../../contexts/RightPanelContext';
 
 interface RightPanelProps {
@@ -9,8 +9,13 @@ interface RightPanelProps {
 
 export function RightPanel({ content, onClose }: RightPanelProps) {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
-    new Set([0])
+    new Set(content?.defaultExpandedSections ?? [0])
   );
+
+  useEffect(() => {
+    if (!content) return;
+    setExpandedSections(new Set(content.defaultExpandedSections ?? [0]));
+  }, [content?.panelKey]);
 
   if (!content) return null;
 
@@ -27,17 +32,27 @@ export function RightPanel({ content, onClose }: RightPanelProps) {
   return (
     <aside className="w-96 border-l border-slate-700/50 bg-slate-900/40 backdrop-blur-xl overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/30 shrink-0">
-        <div className="flex items-center gap-3">
-          {content.icon && <div className="text-teal-400">{content.icon}</div>}
-          <h2 className="text-sm font-semibold text-white">{content.title}</h2>
+      <div className="px-6 py-4 border-b border-slate-700/30 shrink-0 bg-slate-950/20">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            {content.icon && <div className="text-teal-400 mt-0.5 shrink-0">{content.icon}</div>}
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-white truncate">{content.title}</h2>
+              {content.subtitle && (
+                <p className="mt-1 text-xs text-slate-400 leading-relaxed">{content.subtitle}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {content.headerActions}
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors flex items-center justify-center"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-        <button
-          onClick={onClose}
-          className="w-8 h-8 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-slate-700/50 transition-colors flex items-center justify-center"
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Sections */}
@@ -67,6 +82,12 @@ export function RightPanel({ content, onClose }: RightPanelProps) {
           ))}
         </div>
       </div>
+
+      {content.footer && (
+        <div className="shrink-0 border-t border-slate-700/30 bg-slate-950/30 px-6 py-4">
+          {content.footer}
+        </div>
+      )}
     </aside>
   );
 }

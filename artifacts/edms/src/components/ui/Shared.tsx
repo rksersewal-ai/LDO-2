@@ -1,4 +1,7 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
+import { Button as ShadcnButton, type ButtonProps as ShadcnButtonProps } from './button';
+import { Input as ShadcnInput } from './input';
 
 export function GlassCard({ children, className = "", ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
@@ -69,32 +72,54 @@ export function Button({
   variant?: "primary" | "secondary" | "ghost" | "danger" | "teal-outline";
   size?: "sm" | "md" | "lg";
 }) {
-  const variants: Record<string, string> = {
-    primary: "bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white shadow-md shadow-teal-900/30 border border-teal-400/20",
-    secondary: "bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-600/60 hover:border-slate-500",
-    ghost: "bg-transparent hover:bg-white/5 text-slate-300 hover:text-slate-100",
-    danger: "bg-rose-600/20 hover:bg-rose-600/30 text-rose-400 border border-rose-500/30 hover:border-rose-500/50",
-    "teal-outline": "bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/30 hover:border-teal-400/50",
+  const variants: Record<string, ShadcnButtonProps["variant"]> = {
+    primary: "default",
+    secondary: "secondary",
+    ghost: "ghost",
+    danger: "destructive",
+    "teal-outline": "outline",
   };
-  const sizes: Record<string, string> = {
-    sm: "h-9 px-3 py-2 text-xs gap-1.5",
-    md: "h-10 px-4 py-2.5 text-sm gap-2",
-    lg: "h-12 px-5 py-3 text-sm gap-2",
+  const sizes: Record<string, ShadcnButtonProps["size"]> = {
+    sm: "sm",
+    md: "default",
+    lg: "lg",
+  };
+  const variantClasses: Record<string, string> = {
+    primary: "rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-md shadow-teal-900/30 border border-teal-400/20 hover:from-teal-500 hover:to-emerald-500",
+    secondary: "rounded-xl bg-slate-800/80 text-slate-200 border border-slate-600/60 hover:bg-slate-700/80 hover:border-slate-500",
+    ghost: "rounded-xl bg-transparent text-slate-300 hover:bg-white/5 hover:text-slate-100",
+    danger: "rounded-xl bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 hover:border-rose-500/50",
+    "teal-outline": "rounded-xl bg-teal-500/10 text-teal-300 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50",
+  };
+  const sizeClasses: Record<string, string> = {
+    sm: "min-h-9 px-3 py-2 text-xs gap-1.5",
+    md: "min-h-10 px-4 py-2.5 text-sm gap-2",
+    lg: "min-h-12 px-5 py-3 text-sm gap-2",
   };
   return (
-    <button
-      className={`rounded-xl font-medium transition-all duration-150 flex items-center justify-center cursor-pointer ${sizes[size]} ${variants[variant]} ${className}`}
+    <ShadcnButton
+      variant={variants[variant]}
+      size={sizes[size]}
+      className={cn(
+        "font-medium transition-all duration-150 cursor-pointer",
+        sizeClasses[size],
+        variantClasses[variant],
+        className
+      )}
       {...props}
     >
       {children}
-    </button>
+    </ShadcnButton>
   );
 }
 
 export function Input({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <input
-      className={`h-10 bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all placeholder:text-slate-600 ${className}`}
+    <ShadcnInput
+      className={cn(
+        "h-10 rounded-lg border-slate-700/50 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-200 placeholder:text-slate-600 focus-visible:border-teal-500/50 focus-visible:ring-1 focus-visible:ring-teal-500/30 focus-visible:ring-offset-0",
+        className
+      )}
       {...props}
     />
   );
@@ -103,7 +128,10 @@ export function Input({ className = "", ...props }: React.InputHTMLAttributes<HT
 export function Select({ className = "", children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
-      className={`h-10 bg-slate-950/60 border border-slate-700/50 text-slate-200 text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 transition-all cursor-pointer ${className}`}
+      className={cn(
+        "h-10 w-full cursor-pointer rounded-lg border border-slate-700/50 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-200 transition-all focus:border-teal-500/50 focus:outline-none focus:ring-1 focus:ring-teal-500/30",
+        className
+      )}
       {...props}
     >
       {children}
@@ -222,8 +250,10 @@ export function FilterPills({
     <div className="flex flex-wrap gap-1.5">
       {options.map(opt => (
         <button
+          type="button"
           key={opt}
           onClick={() => onChange(opt)}
+          aria-pressed={value === opt}
           className={`pill-filter ${value === opt ? 'pill-filter-active' : 'pill-filter-inactive'}`}
         >
           {opt}

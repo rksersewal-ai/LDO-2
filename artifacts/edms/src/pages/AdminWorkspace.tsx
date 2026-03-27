@@ -1,10 +1,11 @@
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_AUDIT_LOG } from '../lib/mock';
-import { Server, Activity, ShieldCheck, Database, FileSearch, ClipboardList, Settings, Megaphone, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Server, Activity, ShieldCheck, Database, FileSearch, ClipboardList, Settings, Megaphone, ArrowRight, AlertTriangle, CopyCheck } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
 const quickLinks = [
   { icon: FileSearch, label: 'OCR Monitor', path: '/ocr', description: 'Pipeline status and job tracking', color: 'text-teal-400 bg-teal-500/10' },
+  { icon: CopyCheck, label: 'Deduplication', path: '/admin/deduplication', description: 'Duplicate groups, hash scans, and storage cleanup decisions', color: 'text-emerald-400 bg-emerald-500/10' },
   { icon: ClipboardList, label: 'Audit Log', path: '/audit', description: 'System event traceability', color: 'text-blue-400 bg-blue-500/10' },
   { icon: Megaphone, label: 'Banner Management', path: '/banners', description: 'Announcements and notices', color: 'text-amber-400 bg-amber-500/10' },
   { icon: Settings, label: 'Settings', path: '/settings', description: 'System configuration', color: 'text-slate-400 bg-slate-500/10' },

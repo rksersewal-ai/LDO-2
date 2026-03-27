@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
+import { PLNumberMultiSelect } from '../components/ui/PLNumberMultiSelect';
+import { Switch } from '../components/ui/switch';
 import { usePLItems } from '../hooks/usePLItems';
 import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { LoadingState } from '../components/ui/LoadingState';
@@ -260,7 +263,15 @@ function LinkDocumentsModal({
   );
 }
 
-function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data: CreatePLFormData) => Promise<void> }) {
+function CreatePLModal({
+  onClose,
+  onSave,
+  plItems,
+}: {
+  onClose: () => void;
+  onSave: (data: CreatePLFormData) => Promise<void>;
+  plItems: PLNumber[];
+}) {
   const [form, setForm] = useState<CreatePLFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -353,7 +364,13 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
               </Select>
             </PlModalField>
             <PlModalField label="Mother Part No.">
-              <Input value={form.motherPart} onChange={e => setForm(f => ({ ...f, motherPart: e.target.value }))} placeholder="e.g. 38000000" className="w-full font-mono" />
+              <PLNumberSelect
+                value={form.motherPart}
+                onChange={(motherPart) => setForm(f => ({ ...f, motherPart }))}
+                plItems={plItems.filter(item => item.plNumber !== form.plNumber)}
+                placeholder="Search parent assembly PL number..."
+                helperText="Select the parent assembly or leave this blank if the PL is itself a top-level item."
+              />
             </PlModalField>
           </div>
 
@@ -364,9 +381,11 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
               <p className="text-sm font-medium text-slate-200">Safety Vital Component</p>
               <p className="text-xs text-slate-500">Triggers additional oversight requirements</p>
             </div>
-            <button onClick={() => setForm(f => ({ ...f, safetyCritical: !f.safetyCritical }))} className={`relative w-11 h-6 rounded-full transition-all ${form.safetyCritical ? 'bg-rose-500' : 'bg-slate-700'}`}>
-              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.safetyCritical ? 'left-5' : 'left-0.5'}`} />
-            </button>
+            <Switch
+              checked={form.safetyCritical}
+              onCheckedChange={(safetyCritical) => setForm(f => ({ ...f, safetyCritical }))}
+              aria-label="Toggle safety vital component"
+            />
           </div>
           {form.safetyCritical && <>
             <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20">
@@ -423,8 +442,13 @@ function CreatePLModal({ onClose, onSave }: { onClose: () => void; onSave: (data
           <PlModalField label="Application Area (platforms)">
             <Input value={form.applicationArea} onChange={e => setForm(f => ({ ...f, applicationArea: e.target.value }))} placeholder="e.g. WAP7, WAG9HC, LHB Coach" className="w-full" />
           </PlModalField>
-          <PlModalField label="Used In (products, comma-separated)">
-            <Input value={form.usedIn} onChange={e => setForm(f => ({ ...f, usedIn: e.target.value }))} placeholder="e.g. WAP7 Brake System, LHB Coach Control Panel" className="w-full" />
+          <PlModalField label="Used In PL Records">
+            <PLNumberMultiSelect
+              values={form.usedIn.split(',').map(value => value.trim()).filter(Boolean)}
+              onChange={(values) => setForm(f => ({ ...f, usedIn: values.join(', ') }))}
+              plItems={plItems.filter(item => item.plNumber !== form.plNumber)}
+              helperText="Select the assemblies or higher-level PL records where this component is already used."
+            />
           </PlModalField>
           <PlModalField label="Eligibility Criteria">
             <textarea value={form.eligibilityCriteria} onChange={e => setForm(f => ({ ...f, eligibilityCriteria: e.target.value }))} rows={2} placeholder="Conditions under which this component is eligible for use..." className={ta} />
@@ -793,6 +817,7 @@ export default function PLKnowledgeHub() {
         <CreatePLModal
           onClose={() => setShowCreateModal(false)}
           onSave={handleCreate}
+          plItems={plItems}
         />
       )}
 

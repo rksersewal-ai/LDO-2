@@ -25,6 +25,7 @@ const Cases = lazy(() => import('./pages/Cases'));
 const Approvals = lazy(() => import('./pages/Approvals'));
 const Reports = lazy(() => import('./pages/Reports'));
 const AdminWorkspace = lazy(() => import('./pages/AdminWorkspace'));
+const DeduplicationConsole = lazy(() => import('./pages/DeduplicationConsole'));
 const OCRMonitor = lazy(() => import('./pages/OCRMonitor'));
 const AuditLog = lazy(() => import('./pages/AuditLog'));
 const Settings = lazy(() => import('./pages/Settings'));
@@ -86,6 +87,7 @@ const router = createBrowserRouter([
       { path: 'alerts', element: <ProtectedRoute allowedRoles={[...REVIEWER_UP]}><LazyView Component={AlertRules} /></ProtectedRoute> },
       { path: 'templates', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={DocumentTemplates} /></ProtectedRoute> },
       { path: 'admin', element: <ProtectedRoute allowedRoles={[...ADMIN_ONLY]}><LazyView Component={AdminWorkspace} /></ProtectedRoute> },
+      { path: 'admin/deduplication', element: <ProtectedRoute allowedRoles={[...ADMIN_ONLY]}><LazyView Component={DeduplicationConsole} /></ProtectedRoute> },
       { path: 'ocr', element: <ProtectedRoute allowedRoles={[...ADMIN_ONLY]}><LazyView Component={OCRMonitor} /></ProtectedRoute> },
       { path: 'audit', element: <ProtectedRoute allowedRoles={[...ADMIN_ONLY]}><LazyView Component={AuditLog} /></ProtectedRoute> },
       { path: 'health', element: <ProtectedRoute allowedRoles={[...ADMIN_ONLY]}><LazyView Component={SystemHealth} /></ProtectedRoute> },

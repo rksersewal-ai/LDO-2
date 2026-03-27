@@ -45,6 +45,16 @@ export function Header() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
+  const floatingToggleClass = (active: boolean, tone: 'teal' | 'rose' = 'teal') => {
+    if (active) {
+      return tone === 'rose'
+        ? 'bg-rose-500/12 border-rose-400/30 text-rose-200 shadow-[0_10px_28px_rgba(244,63,94,0.18)]'
+        : 'bg-teal-500/12 border-teal-400/35 text-teal-100 shadow-[0_10px_28px_rgba(20,184,166,0.16)]';
+    }
+
+    return 'bg-slate-800/50 border-slate-700/50 text-slate-400 hover:text-teal-300 hover:border-teal-500/30 hover:bg-slate-800/70';
+  };
+
   // Cmd+K / Ctrl+K global shortcut
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -128,7 +138,12 @@ export function Header() {
             <button
               onClick={toggleTheme}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              className="w-10 h-10 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-amber-400 hover:border-amber-500/30 flex items-center justify-center transition-all"
+              aria-pressed={theme === 'light'}
+              className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-all ${
+                theme === 'dark'
+                  ? 'bg-amber-500/10 border-amber-400/25 text-amber-200 shadow-[0_10px_28px_rgba(245,158,11,0.14)] hover:border-amber-300/45 hover:bg-amber-500/14'
+                  : 'bg-indigo-500/10 border-indigo-400/25 text-indigo-200 shadow-[0_10px_28px_rgba(99,102,241,0.14)] hover:border-indigo-300/45 hover:bg-indigo-500/14'
+              }`}
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -137,7 +152,8 @@ export function Header() {
             <div className="relative">
               <button
                 onClick={() => { setShowTextControls(!showTextControls); setShowNotifications(false); setShowProfile(false); }}
-                className="w-10 h-10 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-teal-400 hover:border-teal-500/30 flex items-center justify-center transition-all"
+                aria-pressed={showTextControls}
+                className={`flex h-10 w-10 items-center justify-center rounded-lg border transition-all ${floatingToggleClass(showTextControls)}`}
               >
                 <Type className="w-4 h-4" />
               </button>
@@ -155,7 +171,8 @@ export function Header() {
             <div className="relative">
               <button
                 onClick={() => { setShowNotifications(!showNotifications); setShowTextControls(false); setShowProfile(false); }}
-                className="relative w-10 h-10 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-teal-400 hover:border-teal-500/30 flex items-center justify-center transition-all"
+                aria-pressed={showNotifications}
+                className={`relative flex h-10 w-10 items-center justify-center rounded-lg border transition-all ${floatingToggleClass(showNotifications)}`}
               >
                 <Bell className="w-4 h-4" />
                 {unreadCount > 0 && (
@@ -173,7 +190,8 @@ export function Header() {
             <div className="relative">
               <button
                 onClick={() => { setShowProfile(!showProfile); setShowNotifications(false); setShowTextControls(false); }}
-                className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:border-teal-500/30 transition-all"
+                aria-pressed={showProfile}
+                className={`flex items-center gap-2 rounded-xl border pl-2 pr-3 py-1.5 transition-all ${floatingToggleClass(showProfile)}`}
               >
                 <div className="w-7 h-7 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center">
                   <span className="text-white text-xs font-bold">{user?.name.charAt(0) ?? 'U'}</span>

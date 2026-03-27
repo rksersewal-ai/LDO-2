@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { GlassCard, Badge, Button, Input, PageHeader } from '../components/ui/Shared';
+import { DatePicker } from '../components/ui/DatePicker';
 import { SafeSection } from '../components/ui/SafeSection';
 import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { MOCK_AUDIT_EXTENDED } from '../lib/mockExtended';
@@ -172,18 +173,20 @@ export default function AuditLog() {
             <Calendar className="w-3.5 h-3.5 text-slate-600" />
             <span>Date range:</span>
           </div>
-          <input
-            type="date"
+          <DatePicker
             value={dateFrom}
-            onChange={e => setDateFrom(e.target.value)}
-            className="bg-slate-950/50 border border-teal-500/20 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-teal-500/40"
+            onChange={setDateFrom}
+            placeholder="Start date"
+            maxDate={dateTo || undefined}
+            className="w-[168px]"
           />
           <span className="text-slate-600 text-xs">to</span>
-          <input
-            type="date"
+          <DatePicker
             value={dateTo}
-            onChange={e => setDateTo(e.target.value)}
-            className="bg-slate-950/50 border border-teal-500/20 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-teal-500/40"
+            onChange={setDateTo}
+            placeholder="End date"
+            minDate={dateFrom || undefined}
+            className="w-[168px]"
           />
           <span className="text-xs text-slate-500 ml-auto">
             <span className="text-teal-400 font-semibold">{filtered.length}</span> events

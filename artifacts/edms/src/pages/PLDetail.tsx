@@ -2,9 +2,12 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared';
 import { DatePicker } from '../components/ui/DatePicker';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
+import { PLNumberMultiSelect } from '../components/ui/PLNumberMultiSelect';
+import { Switch } from '../components/ui/switch';
 import { MOCK_PL_RECORDS } from '../lib/mock';
 import { getPLRecord } from '../lib/bomData';
-import { usePLItem } from '../hooks/usePLItems';
+import { usePLItem, usePLItems } from '../hooks/usePLItems';
 import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { PLService } from '../services/PLService';
 import type { PLNumber, EngineeringChange, SafetyClassification, InspectionCategory } from '../lib/types';
@@ -243,6 +246,7 @@ interface EditPLSlideOverProps {
 }
 
 function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
+  const { data: plItems, loading: plItemsLoading } = usePLItems();
   const [form, setForm] = useState({
     name: pl.name,
     description: pl.description,
@@ -449,12 +453,11 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                   <p className="text-sm font-medium text-slate-200">Safety Vital Component</p>
                   <p className="text-xs text-slate-500">Triggers additional oversight requirements</p>
                 </div>
-                <button
-                  onClick={() => setForm(f => ({ ...f, safetyCritical: !f.safetyCritical }))}
-                  className={`relative w-11 h-6 rounded-full transition-all ${form.safetyCritical ? 'bg-rose-500' : 'bg-slate-700'}`}
-                >
-                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.safetyCritical ? 'left-5' : 'left-0.5'}`} />
-                </button>
+                <Switch
+                  checked={form.safetyCritical}
+                  onCheckedChange={(safetyCritical) => setForm(f => ({ ...f, safetyCritical }))}
+                  aria-label="Toggle safety vital component"
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <F label="Safety Classification">
@@ -496,7 +499,14 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                 <TextInput field="specNumbers" placeholder="e.g. SPEC-101, SPEC-102" />
               </F>
               <F label="Mother Part">
-                <TextInput field="motherPart" placeholder="Parent assembly PL number" />
+                <PLNumberSelect
+                  value={form.motherPart}
+                  onChange={(motherPart) => setForm(f => ({ ...f, motherPart }))}
+                  plItems={plItems.filter(item => item.plNumber !== pl.plNumber)}
+                  loading={plItemsLoading}
+                  placeholder="Search parent assembly PL number..."
+                  helperText="Choose the parent assembly PL or leave blank if this is a top-level controlled item."
+                />
               </F>
               <div className="grid grid-cols-2 gap-3">
                 <F label="UVAM ID">
@@ -517,7 +527,13 @@ function EditPLSlideOver({ pl, onClose, onSave }: EditPLSlideOverProps) {
                 <TextInput field="applicationArea" placeholder="e.g. WAP7, WAG9HC" />
               </F>
               <F label="Used In (comma-separated PL numbers)">
-                <TextInput field="usedIn" placeholder="e.g. 38100000, 46100000" />
+                <PLNumberMultiSelect
+                  values={form.usedIn.split(',').map(value => value.trim()).filter(Boolean)}
+                  onChange={(values) => setForm(f => ({ ...f, usedIn: values.join(', ') }))}
+                  plItems={plItems.filter(item => item.plNumber !== pl.plNumber)}
+                  loading={plItemsLoading}
+                  helperText="Select the parent assemblies or consuming PL records where this item is used."
+                />
               </F>
               <F label="Eligibility Criteria">
                 <textarea

@@ -181,10 +181,10 @@
 .app-shell-bg {
   position: relative;
   background:
-    radial-gradient(circle at 12% 18%, rgba(56, 189, 248, 0.08), transparent 24%),
-    radial-gradient(circle at 84% 16%, rgba(34, 211, 238, 0.07), transparent 22%),
-    radial-gradient(circle at 70% 78%, rgba(16, 185, 129, 0.06), transparent 20%),
-    linear-gradient(130deg, #04090f 0%, #081018 24%, #0d1722 52%, #101a24 72%, #070d13 100%);
+    radial-gradient(circle at 14% 16%, rgba(56, 189, 248, 0.12), transparent 26%),
+    radial-gradient(circle at 86% 18%, rgba(45, 212, 191, 0.1), transparent 24%),
+    radial-gradient(circle at 72% 80%, rgba(96, 165, 250, 0.08), transparent 22%),
+    linear-gradient(135deg, #06111a 0%, #091520 34%, #0c1822 56%, #08121b 100%);
 }
 
 .app-shell-bg::before,
@@ -197,22 +197,23 @@
 
 .app-shell-bg::before {
   background:
-    linear-gradient(rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.04) 0, rgba(34, 211, 238, 0.04) 1px, transparent 1px);
-  background-size: 44px 44px, 44px 44px, 176px 176px;
-  mask-image: radial-gradient(circle at center, black 38%, transparent 92%);
-  opacity: 0.62;
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  opacity: 0.66;
 }
 
 .app-shell-bg::after {
   background:
-    linear-gradient(120deg, transparent 0 14%, rgba(45, 212, 191, 0.05) 14% 15%, transparent 15% 100%),
-    linear-gradient(180deg, transparent 0 44%, rgba(59, 130, 246, 0.06) 44% 45%, transparent 45% 100%),
-    radial-gradient(circle at 22% 74%, rgba(45, 212, 191, 0.14) 0 2px, transparent 3px),
-    radial-gradient(circle at 74% 32%, rgba(56, 189, 248, 0.14) 0 2px, transparent 3px),
-    linear-gradient(90deg, transparent 0 72%, rgba(20, 184, 166, 0.035) 72% 73%, transparent 73% 100%);
-  opacity: 0.42;
+    linear-gradient(116deg, transparent 0 22%, rgba(34, 211, 238, 0.05) 22% 22.6%, transparent 22.6% 100%),
+    linear-gradient(180deg, transparent 0 52%, rgba(148, 163, 184, 0.055) 52% 52.6%, transparent 52.6% 100%),
+    linear-gradient(90deg, transparent 0 74%, rgba(20, 184, 166, 0.045) 74% 74.6%, transparent 74.6% 100%),
+    radial-gradient(circle at 22% 72%, rgba(45, 212, 191, 0.16) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 34%, rgba(56, 189, 248, 0.16) 0 2px, transparent 3px),
+    radial-gradient(circle at 58% 22%, rgba(148, 163, 184, 0.16) 0 1.5px, transparent 3px);
+  opacity: 0.48;
 }
 
 @layer base {
@@ -269,15 +270,22 @@
   }
 
   .pill-filter {
-    @apply px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 cursor-pointer;
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-[0.01em] transition-all duration-150 cursor-pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .pill-filter-active {
-    @apply bg-teal-500/15 border-teal-500/40 text-teal-300;
+    @apply border-teal-400/45 bg-teal-500/15 text-teal-200;
+    box-shadow: 0 12px 28px rgba(20, 184, 166, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .pill-filter-inactive {
-    @apply bg-slate-900/50 border-slate-700/50 text-slate-400 hover:text-slate-200 hover:border-slate-600;
+    @apply border-slate-700/60 bg-slate-900/55 text-slate-400 hover:border-slate-500/85 hover:bg-slate-800/70 hover:text-slate-200;
+  }
+
+  .pill-filter:focus-visible {
+    outline: 2px solid rgba(45, 212, 191, 0.4);
+    outline-offset: 2px;
   }
 
   /* ──────────────────────────────────────────────────────────────────────────

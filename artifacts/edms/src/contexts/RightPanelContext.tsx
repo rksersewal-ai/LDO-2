@@ -1,8 +1,13 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface RightPanelContent {
+  panelKey?: string;
   title: string;
+  subtitle?: string;
   icon?: React.ReactNode;
+  headerActions?: React.ReactNode;
+  footer?: React.ReactNode;
+  defaultExpandedSections?: number[];
   sections: Array<{
     heading: string;
     content: React.ReactNode;

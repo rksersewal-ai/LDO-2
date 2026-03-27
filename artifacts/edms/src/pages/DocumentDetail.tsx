@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { PL_DATABASE } from '../lib/bomData';
 import { useDocTabs } from '../contexts/DocTabsContext';
+import { usePLItems } from '../hooks/usePLItems';
 
 type DocRecord = {
   id: string;
@@ -518,6 +520,7 @@ interface EditMetaFormData {
 }
 
 function EditMetadataSlideOver({ doc, onClose, onSave }: { doc: DocRecord; onClose: () => void; onSave: (data: EditMetaFormData) => void }) {
+  const { data: plItems, loading: plItemsLoading } = usePLItems();
   const [form, setForm] = useState<EditMetaFormData>({
     revision: doc.revision,
     status: doc.status,
@@ -567,11 +570,13 @@ function EditMetadataSlideOver({ doc, onClose, onSave }: { doc: DocRecord; onClo
 
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-1.5">Linked PL Number</label>
-            <input
-              value={form.linkedPL}
-              onChange={e => setForm(f => ({ ...f, linkedPL: e.target.value }))}
-              className="w-full px-3 py-2 bg-slate-800/60 border border-slate-700/60 focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/30 rounded-xl text-sm text-slate-200 font-mono outline-none transition-all"
-              placeholder="e.g. PL-55092"
+            <PLNumberSelect
+              value={form.linkedPL === 'N/A' ? '' : form.linkedPL.replace(/^PL-/, '')}
+              onChange={(linkedPL) => setForm(f => ({ ...f, linkedPL: linkedPL ? `PL-${linkedPL}` : 'N/A' }))}
+              plItems={plItems}
+              loading={plItemsLoading}
+              placeholder="Search and select a linked PL..."
+              helperText="Link the document to one controlled PL record or clear the selection if the file is not PL-bound."
             />
           </div>
 

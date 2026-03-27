@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AlertCircle, ArrowLeft, CheckCircle2, Layers, Plus, Search, Shield } from 'lucide-react';
 import { GlassCard, Button, Input, PageHeader, Select, Badge } from '../components/ui/Shared';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { PL_DATABASE, type BOMNode } from '../lib/bomData';
+import type { PLNumber } from '../lib/types';
+import { usePLItems } from '../hooks/usePLItems';
 import { BomDraftService } from '../services/BomDraftService';
 
 type LifecycleOption = 'In Development' | 'Production' | 'Prototyping';
@@ -25,18 +28,18 @@ const DEFAULT_FORM: CreateBomForm = {
   rootPlNumber: '',
 };
 
-function createRootNode(form: CreateBomForm) {
+function createRootNode(form: CreateBomForm, selectedPl?: PLNumber) {
   const matchedPL = PL_DATABASE[form.rootPlNumber.trim()];
 
   const rootNode: BOMNode = {
     id: form.rootPlNumber.trim(),
-    name: matchedPL?.name || form.productName.trim(),
+    name: matchedPL?.name || selectedPl?.name || form.productName.trim(),
     type: matchedPL?.type || 'assembly',
     revision: matchedPL?.revision || 'A',
     quantity: 1,
     findNumber: '1',
     unitOfMeasure: matchedPL?.unitOfMeasure || 'EA',
-    tags: matchedPL?.tags?.slice(0, 3) ?? ['Draft'],
+    tags: matchedPL?.tags?.slice(0, 3) ?? [selectedPl?.category ?? 'Draft'],
     children: [],
   };
 
@@ -45,11 +48,14 @@ function createRootNode(form: CreateBomForm) {
 
 export default function BOMCreate() {
   const navigate = useNavigate();
+  const { data: plItems, loading: plItemsLoading } = usePLItems();
   const [form, setForm] = useState<CreateBomForm>(DEFAULT_FORM);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [lookupTouched, setLookupTouched] = useState(false);
 
   const matchedPL = form.rootPlNumber.trim() ? PL_DATABASE[form.rootPlNumber.trim()] : undefined;
+  const selectedPl = form.rootPlNumber.trim()
+    ? plItems.find((item) => item.plNumber === form.rootPlNumber.trim())
+    : undefined;
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
@@ -58,8 +64,8 @@ export default function BOMCreate() {
       nextErrors.productName = 'Product name is required.';
     }
 
-    if (!/^\d{8}$/.test(form.rootPlNumber.trim())) {
-      nextErrors.rootPlNumber = 'Enter at least one 8-digit root PL number.';
+    if (!form.rootPlNumber.trim()) {
+      nextErrors.rootPlNumber = 'Select at least one root PL number.';
     }
 
     return nextErrors;
@@ -73,14 +79,14 @@ export default function BOMCreate() {
       return;
     }
 
-    const { rootNode } = createRootNode(form);
+    const { rootNode } = createRootNode(form, selectedPl);
     const draft = BomDraftService.create({
       product: {
         id: 'draft',
         name: form.productName.trim(),
-        subtitle: form.subtitle.trim() || (matchedPL?.name ?? 'Draft BOM workspace'),
+        subtitle: form.subtitle.trim() || (matchedPL?.name ?? selectedPl?.name ?? 'Draft BOM workspace'),
         category: form.category,
-        description: form.description.trim() || matchedPL?.description || 'Custom BOM created in the frontend workspace.',
+        description: form.description.trim() || matchedPL?.description || selectedPl?.description || 'Custom BOM created in the frontend workspace.',
         rootPL: rootNode.id,
         revision: rootNode.revision,
         lifecycle: form.lifecycle,
@@ -159,27 +165,16 @@ export default function BOMCreate() {
             </div>
 
             <div className="md:col-span-2">
-              <div className="mb-1.5 flex items-center justify-between gap-3">
-                <label className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Root PL Number</label>
-                <button
-                  type="button"
-                  onClick={() => setLookupTouched(true)}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-400 transition-colors hover:text-teal-300"
-                >
-                  <Search className="w-3 h-3" /> Check PL
-                </button>
-              </div>
-              <Input
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Root PL Number</label>
+              <PLNumberSelect
                 value={form.rootPlNumber}
-                onChange={(event) => {
-                  setLookupTouched(false);
-                  setForm((current) => ({ ...current, rootPlNumber: event.target.value.replace(/\D/g, '').slice(0, 8) }));
-                }}
-                placeholder="8-digit PL number"
-                className={`font-mono ${errors.rootPlNumber ? 'border-rose-500/60' : ''}`}
+                onChange={(rootPlNumber) => setForm((current) => ({ ...current, rootPlNumber }))}
+                plItems={plItems}
+                loading={plItemsLoading}
+                placeholder="Search and select the root PL..."
+                helperText="This PL becomes the first node in the BOM. Additional PLs can be added later from the editor."
               />
               {errors.rootPlNumber && <p className="mt-1 text-[11px] text-rose-400">{errors.rootPlNumber}</p>}
-              <p className="mt-2 text-[11px] text-slate-500">This PL becomes the first node in the BOM. Additional PLs can be added later from the editor.</p>
             </div>
           </div>
 
@@ -199,46 +194,38 @@ export default function BOMCreate() {
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Root PL Preview</p>
             </div>
             <div className="p-5">
-              {matchedPL ? (
+              {matchedPL || selectedPl ? (
                 <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-base font-semibold text-white">{matchedPL.name}</p>
-                      <p className="mt-1 text-xs text-slate-400">{matchedPL.description}</p>
+                      <p className="text-base font-semibold text-white">{matchedPL?.name ?? selectedPl?.name}</p>
+                      <p className="mt-1 text-xs text-slate-400">{matchedPL?.description ?? selectedPl?.description}</p>
                     </div>
                     <Badge variant="success">Matched</Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
                       <p className="text-slate-500">PL Number</p>
-                      <p className="font-mono text-teal-400">{matchedPL.plNumber}</p>
+                      <p className="font-mono text-teal-400">{matchedPL?.plNumber ?? selectedPl?.plNumber}</p>
                     </div>
                     <div>
                       <p className="text-slate-500">Revision</p>
-                      <p className="font-mono text-slate-200">{matchedPL.revision}</p>
+                      <p className="font-mono text-slate-200">{matchedPL?.revision ?? 'A'}</p>
                     </div>
                     <div>
                       <p className="text-slate-500">Type</p>
-                      <p className="capitalize text-slate-200">{matchedPL.type}</p>
+                      <p className="capitalize text-slate-200">{matchedPL?.type ?? 'assembly'}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500">Department</p>
-                      <p className="text-slate-200">{matchedPL.department}</p>
+                      <p className="text-slate-500">{matchedPL ? 'Department' : 'Agency'}</p>
+                      <p className="text-slate-200">{matchedPL?.department ?? selectedPl?.controllingAgency ?? '—'}</p>
                     </div>
                   </div>
-                  {matchedPL.safetyVital && (
+                  {(matchedPL?.safetyVital || selectedPl?.safetyCritical) && (
                     <div className="flex items-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
                       <Shield className="w-3.5 h-3.5" /> Safety-vital root PL
                     </div>
                   )}
-                </div>
-              ) : form.rootPlNumber.length === 8 && lookupTouched ? (
-                <div className="flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-4">
-                  <AlertCircle className="mt-0.5 w-4 h-4 shrink-0 text-amber-400" />
-                  <div>
-                    <p className="text-sm font-medium text-amber-300">PL not found in the current frontend catalog</p>
-                    <p className="mt-1 text-xs text-slate-400">You can still create the BOM draft with this PL number now and bind it to the real backend PL record later.</p>
-                  </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-3 rounded-xl border border-white/6 bg-slate-950/35 px-4 py-4">

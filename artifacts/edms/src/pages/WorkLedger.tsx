@@ -4,6 +4,7 @@ import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared
 import { DatePicker } from '../components/ui/DatePicker';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { useWorkRecords } from '../hooks/useWorkRecords';
 import { usePLItems } from '../hooks/usePLItems';
 import { useAuth } from '../lib/auth';
@@ -165,178 +166,17 @@ function PlLookupField({
   value: string;
   onSelect: (plNumber: string) => void;
 }) {
-  const navigate = useNavigate();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [query, setQuery] = useState(value);
-  const [open, setOpen] = useState(false);
-
-  const selectedPl = useMemo(
-    () => plItems.find(pl => pl.plNumber === value) ?? null,
-    [plItems, value]
-  );
-
-  useEffect(() => {
-    if (!value) {
-      setQuery('');
-      return;
-    }
-
-    if (selectedPl && query !== selectedPl.plNumber) {
-      setQuery(selectedPl.plNumber);
-    }
-  }, [query, selectedPl, value]);
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (containerRef.current?.contains(event.target as Node)) {
-        return;
-      }
-      setOpen(false);
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const sorted = [...plItems].sort((a, b) => a.plNumber.localeCompare(b.plNumber));
-
-    const matches = !q
-      ? sorted
-      : sorted.filter(pl =>
-          pl.plNumber.toLowerCase().includes(q) ||
-          pl.name.toLowerCase().includes(q) ||
-          pl.description.toLowerCase().includes(q) ||
-          pl.category.toLowerCase().includes(q) ||
-          pl.controllingAgency.toLowerCase().includes(q)
-        );
-
-    return matches.slice(0, 10);
-  }, [plItems, query]);
-
-  const handleChange = (next: string) => {
-    setQuery(next);
-    setOpen(true);
-
-    const exact = plItems.find(pl =>
-      pl.plNumber.toLowerCase() === next.trim().toLowerCase()
-    );
-
-    onSelect(exact?.plNumber ?? '');
-  };
-
-  const handleSelect = (pl: PLNumber) => {
-    onSelect(pl.plNumber);
-    setQuery(pl.plNumber);
-    setOpen(false);
-  };
-
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
-        <label className="text-xs font-medium text-slate-400">Linked PL Number</label>
-        {selectedPl && (
-          <button
-            type="button"
-            onClick={() => navigate(`/pl/${selectedPl.plNumber}`)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-cyan-300 hover:text-cyan-200 transition-colors"
-          >
-            View PL Details
-            <ExternalLink className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-
-      <div ref={containerRef} className="relative" data-no-context-palette="true">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-200/55" />
-        <Input
-          value={query}
-          onChange={event => handleChange(event.target.value)}
-          onFocus={() => setOpen(true)}
-          placeholder="Search PL number or component name..."
-          className="w-full pl-10 pr-10 font-mono"
-        />
-        {query && (
-          <button
-            type="button"
-            onClick={() => {
-              setQuery('');
-              onSelect('');
-              setOpen(false);
-            }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-200 transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-
-        {open && (
-          <div className="absolute inset-x-0 top-full z-40 mt-2 overflow-hidden rounded-2xl border border-cyan-400/15 bg-slate-950/96 shadow-2xl backdrop-blur-xl">
-            {loading ? (
-              <div className="px-4 py-3 text-xs text-slate-500">Loading PL records...</div>
-            ) : filtered.length === 0 ? (
-              <div className="px-4 py-3 text-xs text-slate-500">No PL records match this search.</div>
-            ) : (
-              filtered.map(pl => (
-                <button
-                  key={pl.id}
-                  type="button"
-                  onMouseDown={event => {
-                    event.preventDefault();
-                    handleSelect(pl);
-                  }}
-                  className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors ${
-                    selectedPl?.id === pl.id ? 'bg-cyan-400/10' : 'hover:bg-cyan-400/6'
-                  }`}
-                >
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/6 text-cyan-300">
-                    <Hash className="w-3.5 h-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-cyan-300">{pl.plNumber}</span>
-                      <Badge size="sm" variant={pl.status === 'ACTIVE' ? 'success' : pl.status === 'UNDER_REVIEW' ? 'warning' : 'danger'}>
-                        {pl.status}
-                      </Badge>
-                    </div>
-                    <p className="truncate text-sm text-slate-200">{pl.name}</p>
-                    <p className="truncate text-[11px] text-slate-500">
-                      {pl.category} · {pl.controllingAgency} · {pl.description}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {selectedPl && (
-        <div className="rounded-2xl border border-cyan-400/14 bg-cyan-400/[0.04] px-4 py-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-cyan-300">{selectedPl.plNumber}</span>
-                <Badge size="sm" variant={selectedPl.status === 'ACTIVE' ? 'success' : selectedPl.status === 'UNDER_REVIEW' ? 'warning' : 'danger'}>
-                  {selectedPl.status}
-                </Badge>
-              </div>
-              <p className="mt-1 text-sm font-medium text-slate-100">{selectedPl.name}</p>
-            </div>
-            <div className="grid gap-1 text-right text-[11px] text-slate-400 sm:text-left">
-              <span>Category: <span className="text-slate-200">{selectedPl.category}</span></span>
-              <span>Agency: <span className="text-slate-200">{selectedPl.controllingAgency}</span></span>
-              {selectedPl.vendorType && (
-                <span>Vendor Type: <span className="text-slate-200">{selectedPl.vendorType}</span></span>
-              )}
-            </div>
-          </div>
-          {selectedPl.description && (
-            <p className="mt-3 text-xs leading-5 text-slate-400">{selectedPl.description}</p>
-          )}
-        </div>
-      )}
+    <div className="space-y-2">
+      <label className="text-xs font-medium text-slate-400">Linked PL Number</label>
+      <PLNumberSelect
+        value={value}
+        onChange={onSelect}
+        plItems={plItems}
+        loading={loading}
+        placeholder="Search PL number or component name..."
+        helperText="Search the current PL catalog and attach the work item to the correct PL record."
+      />
     </div>
   );
 }
