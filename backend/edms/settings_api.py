@@ -115,6 +115,11 @@ ADDITIONAL_INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'edms_api',
+    'shared',
+    'documents',
+    'config_mgmt',
+    'work',
+    'integrations',
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -124,6 +129,7 @@ ADDITIONAL_INSTALLED_APPS = [
 ADDITIONAL_MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'shared.middleware.RequestContextMiddleware',
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -112,35 +112,42 @@ class DocumentVersion(models.Model):
 
 class WorkRecord(models.Model):
     STATUS_CHOICES = [
-        ('Open', 'Open'),
-        ('In Progress', 'In Progress'),
-        ('Completed', 'Completed'),
-        ('Closed', 'Closed'),
-    ]
-    
-    CATEGORY_CHOICES = [
-        ('Maintenance', 'Maintenance'),
-        ('Repair', 'Repair'),
-        ('Inspection', 'Inspection'),
-        ('Modification', 'Modification'),
-        ('Testing', 'Testing'),
+        ('OPEN', 'Open'),
+        ('SUBMITTED', 'Submitted'),
+        ('VERIFIED', 'Verified'),
+        ('CLOSED', 'Closed'),
+        ('Open', 'Open (Legacy)'),
+        ('In Progress', 'In Progress (Legacy)'),
+        ('Completed', 'Completed (Legacy)'),
+        ('Closed', 'Closed (Legacy)'),
     ]
 
     id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
     description = models.TextField()
-    work_category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
+    work_category = models.CharField(max_length=50)
     work_type = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Open')
     
     # Work Details
     date = models.DateField()
+    completion_date = models.DateField(blank=True, null=True)
+    closing_date = models.DateField(blank=True, null=True)
+    closed_date = models.DateField(blank=True, null=True)
+    dispatch_date = models.DateField(blank=True, null=True)
     pl_number = models.CharField(max_length=100, blank=True, null=True)
     eoffice_number = models.CharField(max_length=100, blank=True, null=True)
     drawing_number = models.CharField(max_length=100, blank=True, null=True)
+    tender_number = models.CharField(max_length=100, blank=True, null=True)
+    section_type = models.CharField(max_length=100, blank=True, null=True)
+    concerned_officer = models.CharField(max_length=255, blank=True, null=True)
+    consent_given = models.CharField(max_length=50, blank=True, null=True)
+    user_section = models.CharField(max_length=100, blank=True, null=True)
     
     # Tracking
     days_taken = models.IntegerField(default=0)
     target_days = models.IntegerField(default=0)
+    is_locked = models.BooleanField(default=False)
+    verification_date = models.DateField(blank=True, null=True)
     
     # Responsibility
     user_name = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='work_records')

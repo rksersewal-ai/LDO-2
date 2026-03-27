@@ -23,7 +23,7 @@ SECRET_KEY = os.getenv(
 )
 DEBUG = os.getenv('DJANGO_DEBUG', 'true').lower() == 'true'
 
-allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0')
+allowed_hosts = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,0.0.0.0,testserver')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts.split(',') if host.strip()]
 
 INSTALLED_APPS = [
@@ -107,6 +107,8 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = dict(REST_FRAMEWORK)
+REST_FRAMEWORK['DEFAULT_PAGINATION_CLASS'] = 'shared.pagination.StandardResultsSetPagination'
+REST_FRAMEWORK['EXCEPTION_HANDLER'] = 'shared.exceptions.edms_exception_handler'
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = dict(REST_FRAMEWORK.get('DEFAULT_THROTTLE_RATES', {}))
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'].setdefault('login', os.getenv('EDMS_LOGIN_THROTTLE', '6000/hour'))
 REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'].setdefault('health', os.getenv('EDMS_HEALTH_THROTTLE', '12000/hour'))
@@ -119,6 +121,25 @@ CORS_ALLOW_CREDENTIALS = CORS_ALLOW_CREDENTIALS
 CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS
 
 LOGGING = dict(API_LOGGING)
+LOGGING['filters']['request_context'] = {'()': 'shared.logging.RequestContextFilter'}
+LOGGING['formatters']['verbose']['format'] = (
+    '{levelname} {asctime} corr={correlation_id} tenant={tenant_id} plant={plant_id} '
+    '{module} {process:d} {thread:d} {message}'
+)
+LOGGING['formatters']['simple']['format'] = (
+    '{levelname} {asctime} corr={correlation_id} tenant={tenant_id} plant={plant_id} {message}'
+)
 for handler_name in ('file', 'api_file'):
     handler = LOGGING['handlers'][handler_name]
     handler['filename'] = str(LOG_DIR / Path(handler['filename']).name)
+for handler_name in ('console', 'file', 'api_file'):
+    LOGGING['handlers'][handler_name]['filters'] = ['request_context']
+
+EDMS_RUNTIME = {
+    'database_backend': db_engine,
+    'redis_url': os.getenv('REDIS_URL', 'redis://localhost:6379/0'),
+    'celery_broker_url': os.getenv('CELERY_BROKER_URL', os.getenv('REDIS_URL', 'redis://localhost:6379/0')),
+    'celery_result_backend': os.getenv('CELERY_RESULT_BACKEND', os.getenv('REDIS_URL', 'redis://localhost:6379/0')),
+    'object_storage_bucket': os.getenv('EDMS_OBJECT_STORAGE_BUCKET', ''),
+    'object_storage_endpoint': os.getenv('EDMS_OBJECT_STORAGE_ENDPOINT', ''),
+}

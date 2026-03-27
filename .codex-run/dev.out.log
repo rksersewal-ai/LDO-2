@@ -44,3 +44,6 @@
 [2m7:19:06 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/WorkLedger.tsx, /src/index.css[22m
 [2m7:20:50 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/index.css, /src/components/ui/DatePicker.tsx[22m
 [2m7:21:16 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/App.tsx, /src/index.css[22m
+C:\Users\Ravi\Downloads\EDMS-Figma-Plan\EDMS-Figma-Plan\artifacts\edms:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/edms@0.0.0 dev: `vite --config vite.config.ts --host 0.0.0.0`
+Exit status 3221225786
