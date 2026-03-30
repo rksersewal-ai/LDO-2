@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_APPROVALS } from '../lib/mockExtended';
 import { CheckSquare, X, FileText, Clock, AlertCircle, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 const statusVariant = (s: string) => {
   if (s === 'Approved') return 'success' as const;
@@ -13,6 +13,7 @@ const statusVariant = (s: string) => {
 
 export default function Approvals() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>('Pending');
   const [selectedApproval, setSelectedApproval] = useState<typeof MOCK_APPROVALS[0] | null>(null);
   const [approvals, setApprovals] = useState(MOCK_APPROVALS);
@@ -20,9 +21,37 @@ export default function Approvals() {
   const filtered = filter === 'All' ? approvals : approvals.filter(a => a.status === filter);
   const pendingCount = approvals.filter(a => a.status === 'Pending').length;
 
+  const focusApproval = (approval: typeof MOCK_APPROVALS[0] | null) => {
+    setSelectedApproval(approval);
+    const next = new URLSearchParams(searchParams);
+    if (approval) {
+      next.set('id', approval.id);
+      if (approval.status !== 'Pending' && filter === 'Pending') {
+        setFilter('All');
+      }
+    } else {
+      next.delete('id');
+    }
+    setSearchParams(next, { replace: true });
+  };
+
+  useEffect(() => {
+    const requestedId = searchParams.get('id');
+    if (!requestedId) {
+      return;
+    }
+    const match = approvals.find((approval) => approval.id === requestedId) ?? null;
+    if (match) {
+      setSelectedApproval(match);
+      if (match.status !== 'Pending') {
+        setFilter('All');
+      }
+    }
+  }, [approvals, searchParams]);
+
   const handleAction = (id: string, action: 'Approved' | 'Rejected') => {
     setApprovals(prev => prev.map(a => a.id === id ? { ...a, status: action } : a));
-    setSelectedApproval(null);
+    focusApproval(null);
   };
 
   return (
@@ -61,7 +90,7 @@ export default function Approvals() {
             <GlassCard
               key={apr.id}
               className={`p-4 hover:border-teal-500/40 cursor-pointer transition-all ${selectedApproval?.id === apr.id ? 'border-teal-500/50' : ''}`}
-              onClick={() => setSelectedApproval(apr)}
+              onClick={() => focusApproval(apr)}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -109,7 +138,7 @@ export default function Approvals() {
                 <h2 className="text-lg font-bold text-white mb-1">{selectedApproval.title}</h2>
                 <span className="font-mono text-xs text-teal-400">{selectedApproval.id}</span>
               </div>
-              <button onClick={() => setSelectedApproval(null)} className="text-slate-500 hover:text-white transition-colors">
+              <button onClick={() => focusApproval(null)} className="text-slate-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

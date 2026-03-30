@@ -1,1 +1,19 @@
 INFO 2026-03-28 17:54:53,743 corr=- tenant=- plant=- Watching for file changes with StatReloader
+WARNING 2026-03-28 17:56:07,589 corr=- tenant=- plant=- "GET /api/health/ HTTP/1.1" 404 41038
+WARNING 2026-03-28 17:56:28,944 corr=- tenant=- plant=- "POST /api/v1/auth/login/ HTTP/1.1" 401 32
+INFO 2026-03-28 17:56:42,555 corr=- tenant=- plant=- "OPTIONS /api/auth/login/ HTTP/1.1" 200 0
+INFO 2026-03-28 17:56:45,805 corr=- tenant=- plant=- "POST /api/auth/login/ HTTP/1.1" 200 611
+INFO 2026-03-28 17:56:46,006 corr=- tenant=- plant=- "OPTIONS /api/supervisor-document-reviews/ HTTP/1.1" 200 0
+INFO 2026-03-28 17:56:46,072 corr=- tenant=- plant=- "GET /api/supervisor-document-reviews/ HTTP/1.1" 200 75
+INFO 2026-03-28 17:57:54,747 corr=- tenant=- plant=- "OPTIONS /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 0
+INFO 2026-03-28 17:57:55,646 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 17:57:56,474 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 17:58:54,845 corr=- tenant=- plant=- "OPTIONS /api/pl-items/46130000/ HTTP/1.1" 200 0
+WARNING 2026-03-28 17:58:55,013 corr=- tenant=- plant=- "GET /api/pl-items/46130000/ HTTP/1.1" 404 148
+WARNING 2026-03-28 17:58:55,088 corr=- tenant=- plant=- "GET /api/pl-items/46130000/ HTTP/1.1" 404 148
+INFO 2026-03-28 17:59:23,505 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 17:59:24,137 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 17:59:24,846 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 17:59:25,717 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
+INFO 2026-03-28 18:00:51,355 corr=- tenant=- plant=- "OPTIONS /api/auth/logout/ HTTP/1.1" 200 0
+INFO 2026-03-28 18:00:51,457 corr=- tenant=- plant=- "POST /api/auth/logout/ HTTP/1.1" 200 36

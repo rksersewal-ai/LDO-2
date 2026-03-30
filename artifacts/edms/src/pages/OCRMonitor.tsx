@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { ServerCog, RefreshCw, FileText, X, CheckCircle, Clock, XCircle, SkipForward, AlertCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router';
 
 interface OcrJobRecord {
   id: string;
@@ -30,6 +31,7 @@ const statusVariant = (s: string) => {
 };
 
 export default function OCRMonitor() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>('All');
   const [selectedJob, setSelectedJob] = useState<OcrJobRecord | null>(null);
   const [jobs, setJobs] = useState<OcrJobRecord[]>([...MOCK_OCR_JOBS]);
@@ -39,9 +41,31 @@ export default function OCRMonitor() {
   const failed = jobs.filter(j => j.status === 'Failed').length;
   const processing = jobs.filter(j => j.status === 'Processing').length;
 
+  useEffect(() => {
+    const requestedJobId = searchParams.get('id');
+    const requestedDocumentId = searchParams.get('document');
+    const match = jobs.find((job) => job.id === requestedJobId)
+      ?? jobs.find((job) => job.document === requestedDocumentId)
+      ?? null;
+    setSelectedJob(match);
+  }, [jobs, searchParams]);
+
+  const updateSelectedJob = (job: OcrJobRecord | null) => {
+    setSelectedJob(job);
+    const next = new URLSearchParams(searchParams);
+    if (job) {
+      next.set('id', job.id);
+      next.set('document', job.document);
+    } else {
+      next.delete('id');
+      next.delete('document');
+    }
+    setSearchParams(next, { replace: true });
+  };
+
   const handleRetry = (id: string) => {
     setJobs(prev => prev.map(j => j.id === id ? { ...j, status: 'Processing', confidence: null } : j));
-    setSelectedJob(null);
+    updateSelectedJob(null);
   };
 
   return (
@@ -107,7 +131,7 @@ export default function OCRMonitor() {
                   <tr
                     key={job.id}
                     className={`hover:bg-slate-800/30 cursor-pointer transition-colors group ${selectedJob?.id === job.id ? 'bg-slate-800/30' : ''}`}
-                    onClick={() => setSelectedJob(job)}
+                    onClick={() => updateSelectedJob(job)}
                   >
                     <td className="py-3 pl-4 font-mono text-xs text-teal-400">{job.id}</td>
                     <td className="py-3 font-mono text-xs text-blue-400">{job.document}</td>
@@ -146,7 +170,7 @@ export default function OCRMonitor() {
           <GlassCard className="p-6 self-start">
             <div className="flex items-start justify-between mb-4">
               <h2 className="text-lg font-bold text-white">Job Detail</h2>
-              <button onClick={() => setSelectedJob(null)} className="text-slate-500 hover:text-white transition-colors">
+              <button onClick={() => updateSelectedJob(null)} className="text-slate-500 hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>

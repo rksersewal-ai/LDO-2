@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import {
   ArrowLeft,
   Calendar,
@@ -121,6 +121,7 @@ function persistComments(value: Record<string, CaseComment[]>) {
 
 export default function Cases() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: plItems, loading: plItemsLoading } = usePLItems();
   const [cases, setCases] = useState<CaseRecord[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -146,6 +147,17 @@ export default function Cases() {
   useEffect(() => {
     refreshCases();
   }, []);
+
+  useEffect(() => {
+    const requestedId = searchParams.get('id');
+    if (!requestedId) {
+      return;
+    }
+    const match = cases.find((item) => item.id === requestedId || item.caseNumber === requestedId) ?? null;
+    if (match) {
+      setSelectedCaseId(match.id);
+    }
+  }, [cases, searchParams]);
 
   useEffect(() => {
     persistComments(commentsByCase);
@@ -193,6 +205,17 @@ export default function Cases() {
 
   const selectedComments = selectedCase ? (commentsByCase[selectedCase.id] ?? []) : [];
 
+  const openCase = (caseId: string | null) => {
+    setSelectedCaseId(caseId);
+    const next = new URLSearchParams(searchParams);
+    if (caseId) {
+      next.set('id', caseId);
+    } else {
+      next.delete('id');
+    }
+    setSearchParams(next, { replace: true });
+  };
+
   const resetNewCaseForm = () => {
     setNewCaseForm(DEFAULT_NEW_CASE_FORM);
     setNewCaseOpen(false);
@@ -237,7 +260,7 @@ export default function Cases() {
     });
 
     await refreshCases();
-    setSelectedCaseId(created.id);
+    openCase(created.id);
     resetNewCaseForm();
     toast.success(`Case ${created.caseNumber} created`);
   };
@@ -314,7 +337,7 @@ export default function Cases() {
       <>
         <div className="space-y-6 max-w-[1200px] mx-auto">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" className="px-2" onClick={() => setSelectedCaseId(null)}>
+            <Button variant="ghost" className="px-2" onClick={() => openCase(null)}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <div className="flex-1">
@@ -621,7 +644,7 @@ export default function Cases() {
               <GlassCard
                 key={record.id}
                 className="p-5 hover:border-teal-500/40 cursor-pointer transition-all group"
-                onClick={() => setSelectedCaseId(record.id)}
+                onClick={() => openCase(record.id)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2 flex-wrap">

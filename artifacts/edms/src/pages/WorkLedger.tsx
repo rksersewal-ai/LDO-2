@@ -21,7 +21,7 @@ import {
   Download, Upload, Copy, Check, FileSpreadsheet,
   ChevronLeft, ChevronRight as ChevronRightIcon, User as UserIcon,
 } from 'lucide-react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 const STATUS_VARIANT: Record<WorkRecord['status'], 'success' | 'warning' | 'danger' | 'processing' | 'default'> = {
   OPEN: 'default',
@@ -518,6 +518,7 @@ function RecordDetail({ record, onVerify, onClose, canVerify }: { record: WorkRe
 }
 
 export default function WorkLedger() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: records, loading, error, refetch, add, verify } = useWorkRecords();
   const { data: plItems, loading: plItemsLoading } = usePLItems();
   const { user, hasPermission } = useAuth();
@@ -601,6 +602,28 @@ export default function WorkLedger() {
   }, [records]);
 
   const selectedRecord = records.find(r => r.id === selectedId) ?? null;
+
+  useEffect(() => {
+    const requestedId = searchParams.get('id');
+    if (!requestedId) {
+      return;
+    }
+    const match = records.find((record) => record.id === requestedId) ?? null;
+    if (match) {
+      setSelectedId(match.id);
+    }
+  }, [records, searchParams]);
+
+  const openRecord = (recordId: string | null) => {
+    setSelectedId(recordId);
+    const next = new URLSearchParams(searchParams);
+    if (recordId) {
+      next.set('id', recordId);
+    } else {
+      next.delete('id');
+    }
+    setSearchParams(next, { replace: true });
+  };
 
   const handleVerify = async (id: string) => {
     await verify(id, user?.name ?? 'Admin');
@@ -793,7 +816,7 @@ export default function WorkLedger() {
                 <tr
                   key={w.id}
                   className={`cursor-pointer transition-colors group ${selectedId === w.id ? 'bg-teal-500/5 border-l-2 border-teal-500/30' : 'hover:bg-slate-800/30'}`}
-                  onClick={() => setSelectedId(selectedId === w.id ? null : w.id)}
+                  onClick={() => openRecord(selectedId === w.id ? null : w.id)}
                 >
                   <td className="py-3 pl-3">
                     <div className="flex items-center gap-1.5">
@@ -985,7 +1008,7 @@ export default function WorkLedger() {
         <RecordDetail
           record={selectedRecord}
           onVerify={() => handleVerify(selectedRecord.id)}
-          onClose={() => setSelectedId(null)}
+          onClose={() => openRecord(null)}
           canVerify={canVerify}
         />
       )}
