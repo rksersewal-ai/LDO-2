@@ -5,16 +5,23 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { PLNumberMultiSelect } from '../components/ui/PLNumberMultiSelect';
 import { Switch } from '../components/ui/switch';
+import { useAuth } from '../lib/auth';
 import { MOCK_PL_RECORDS } from '../lib/mock';
 import { getPLRecord } from '../lib/bomData';
 import { usePLItem, usePLItems } from '../hooks/usePLItems';
 import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { useDocumentChangeAlerts } from '../hooks/useDocumentChangeAlerts';
 import { PLService } from '../services/PLService';
+import { ExportImportService } from '../services/ExportImportService';
+import { PLPreviewService } from '../services/PLPreviewService';
+import { resolveDocumentPreviewPath } from '../lib/documentPreview';
 import type { DocumentChangeAlert } from '../services/DocumentChangeAlertService';
 import type { PLNumber, EngineeringChange, SafetyClassification, InspectionCategory } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
 import { LoadingState } from '../components/ui/LoadingState';
+import { toast } from 'sonner';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
+import { DocumentChangeReviewCard } from '../components/documents/DocumentChangeReviewCard';
 import {
   ArrowLeft, FileText, AlertCircle, FileSearch, DatabaseBackup,
   Box, Layers, Cpu, Shield, Package, Hash, Weight, Building2,
@@ -87,6 +94,15 @@ function InfoRow({ label, value, mono }: { label: string; value?: string | null;
   );
 }
 
+function exportPlDetails(title: string, rows: Array<[string, string | number]>) {
+  ExportImportService.exportGenericTableExcel(
+    title,
+    ['Field', 'Value'],
+    rows.map(([field, value]) => [field, value]),
+    title.toLowerCase().replace(/\s+/g, '-')
+  );
+}
+
 // ─── Document Linking Section (Two-Column Layout) ──────────────────────────────
 
 interface DocumentLinkingSectionProps {
@@ -112,6 +128,7 @@ function DocumentLinkingSection({
 }: DocumentLinkingSectionProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedAlertId, setExpandedAlertId] = useState<string | null>(null);
   const linkedDocs = useMemo(() =>
     documents.filter(d => (pl.linkedDocumentIds ?? []).includes(d.id)),
     [documents, pl.linkedDocumentIds]
@@ -214,6 +231,7 @@ function DocumentLinkingSection({
                 return (
               <div
                 key={doc.id}
+                {...getDocumentContextAttributes(doc.id, doc.name)}
                 className={`p-3 rounded-lg bg-slate-800/40 border transition-all ${alert ? 'border-amber-500/30 hover:border-amber-400/50' : 'border-teal-500/20 hover:border-teal-500/40'} ${isFocused ? 'ring-2 ring-amber-400/60 shadow-[0_0_0_1px_rgba(251,191,36,0.18)]' : ''}`}
               >
                 {alert && (
@@ -226,21 +244,11 @@ function DocumentLinkingSection({
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
-                        void onApproveAlert?.(alert.id, 'Approved from PL linked documents');
+                        setExpandedAlertId((current) => current === alert.id ? null : alert.id);
                       }}
                       className="shrink-0 rounded-md border border-amber-400/30 px-2 py-0.5 text-[9px] font-semibold text-amber-100 hover:bg-amber-500/12 transition-colors"
                     >
-                      Approve
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void onBypassAlert?.(alert.id, { bypassReason: 'Bypassed from PL linked documents' });
-                      }}
-                      className="shrink-0 rounded-md border border-rose-400/30 px-2 py-0.5 text-[9px] font-semibold text-rose-200 hover:bg-rose-500/12 transition-colors"
-                    >
-                      Bypass
+                      {expandedAlertId === alert.id ? 'Hide review' : 'Review change'}
                     </button>
                   </div>
                 )}
@@ -256,7 +264,7 @@ function DocumentLinkingSection({
                     size="sm"
                     variant="ghost"
                     className="flex-1 text-xs h-auto py-1"
-                    onClick={() => navigate(`/documents/${doc.id}`)}
+                    onClick={() => navigate(resolveDocumentPreviewPath(doc.id))}
                   >
                     <ExternalLink className="w-3 h-3" /> Preview
                   </Button>
@@ -269,6 +277,16 @@ function DocumentLinkingSection({
                     <X className="w-3 h-3" /> Unlink
                   </Button>
                 </div>
+                {alert && expandedAlertId === alert.id && (
+                  <DocumentChangeReviewCard
+                    alert={alert}
+                    className="mt-3"
+                    defaultOpen
+                    onOpenPl={() => navigate(`/pl/${pl.id}?tab=crossrefs&doc=${doc.id}`)}
+                    onApprove={() => onApproveAlert?.(alert.id, 'Approved from PL linked documents')}
+                    onBypass={() => onBypassAlert?.(alert.id, { bypassReason: 'Bypassed from PL linked documents' })}
+                  />
+                )}
               </div>
                 );
               })()
@@ -725,6 +743,7 @@ function PLNumberDetailView({
   ));
   const [editOpen, setEditOpen] = useState(false);
   const [showAddEC, setShowAddEC] = useState(false);
+  const [expandedCrossrefAlertId, setExpandedCrossrefAlertId] = useState<string | null>(null);
   const { documents, loading: documentsLoading } = usePlLinkableDocuments();
   const { alerts: documentAlerts, approveAlert, bypassAlert } = useDocumentChangeAlerts({ plItem: pl.id });
   const focusedDocumentId = searchParams.get('doc');
@@ -739,6 +758,30 @@ function PLNumberDetailView({
   );
 
   const engineeringChanges = pl.engineeringChanges ?? [];
+
+  const handleExport = () => {
+    exportPlDetails(`PL-${pl.plNumber}-summary`, [
+      ['PL Number', pl.plNumber],
+      ['Name', pl.name],
+      ['Status', pl.status],
+      ['Category', pl.category],
+      ['Controlling Agency', pl.controllingAgency ?? '—'],
+      ['Application Area', pl.applicationArea ?? '—'],
+      ['Design Supervisor', pl.designSupervisor ?? '—'],
+      ['Concerned Supervisor', pl.concernedSupervisor ?? '—'],
+      ['Linked Documents', linkedDocs.length],
+      ['Engineering Changes', engineeringChanges.length],
+    ]);
+    toast.success('PL summary exported');
+  };
+
+  const handleCreateCase = () => {
+    navigate(`/cases?new=1&pl=${encodeURIComponent(pl.plNumber)}&title=${encodeURIComponent(`Review ${pl.name}`)}&description=${encodeURIComponent(`Create a follow-up case for PL ${pl.plNumber} — ${pl.name}.`)}`);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   useEffect(() => {
     const nextTab = searchParams.get('tab');
@@ -812,8 +855,9 @@ function PLNumberDetailView({
             <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
               <Edit3 className="w-4 h-4" /> Edit PL
             </Button>
-            <Button variant="secondary" size="sm"><Download className="w-4 h-4" /> Export</Button>
-            <Button size="sm"><AlertCircle className="w-4 h-4" /> Create Case</Button>
+            <Button variant="secondary" size="sm" onClick={handleExport}><Download className="w-4 h-4" /> Export</Button>
+            <Button variant="secondary" size="sm" onClick={handlePrint}><Printer className="w-4 h-4" /> Print</Button>
+            <Button size="sm" onClick={handleCreateCase}><AlertCircle className="w-4 h-4" /> Create Case</Button>
           </div>
         </div>
       </div>
@@ -1097,54 +1141,60 @@ function PLNumberDetailView({
                   const isFocused = focusedDocumentId === doc.id;
 
                   return (
-                    <div
-                      key={doc.id}
-                      className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30 border cursor-pointer transition-all ${alert ? 'border-amber-500/25 hover:border-amber-400/45' : 'border-slate-700/40 hover:border-teal-500/30'} ${isFocused ? 'ring-2 ring-amber-400/50' : ''}`}
-                      onClick={() => navigate(`/documents/${doc.id}`)}
-                    >
-                      <FileText className="w-4 h-4 text-teal-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm text-slate-200 truncate">{doc.name}</span>
-                        <span className="font-mono text-[10px] text-slate-500 ml-2">{doc.id}</span>
-                        {alert && (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200">
-                            <AlertTriangle className="w-2.5 h-2.5" />
-                            Change alert
-                          </span>
-                        )}
+                    <div key={doc.id} className="space-y-2">
+                      <div
+                        {...getDocumentContextAttributes(doc.id, doc.name)}
+                        className={`flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/30 border cursor-pointer transition-all ${alert ? 'border-amber-500/25 hover:border-amber-400/45' : 'border-slate-700/40 hover:border-teal-500/30'} ${isFocused ? 'ring-2 ring-amber-400/50' : ''}`}
+                        onClick={() => navigate(`/documents/${doc.id}`)}
+                      >
+                        <FileText className="w-4 h-4 text-teal-400 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm text-slate-200 truncate">{doc.name}</span>
+                          <span className="font-mono text-[10px] text-slate-500 ml-2">{doc.id}</span>
+                          {alert && (
+                            <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-amber-200">
+                              <AlertTriangle className="w-2.5 h-2.5" />
+                              Change alert
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {(doc.ocrStatus === 'Completed' || doc.ocrStatus === 'COMPLETED') && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-[9px] text-indigo-300">
+                              <FileSearch className="w-2.5 h-2.5" /> OCR
+                            </span>
+                          )}
+                          {alert && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setExpandedCrossrefAlertId((current) => current === alert.id ? null : alert.id);
+                              }}
+                              className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold text-amber-100 hover:bg-amber-500/14 transition-colors"
+                            >
+                              {expandedCrossrefAlertId === alert.id ? 'Hide review' : 'Review'}
+                            </button>
+                          )}
+                          <Badge variant={statusBadgeVariant(doc.status)} className="text-[9px]">{doc.status}</Badge>
+                          <DocumentPreviewButton
+                            documentId={doc.id}
+                            title={doc.name}
+                            iconOnly
+                            className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                          />
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {(doc.ocrStatus === 'Completed' || doc.ocrStatus === 'COMPLETED') && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-[9px] text-indigo-300">
-                            <FileSearch className="w-2.5 h-2.5" /> OCR
-                          </span>
-                        )}
-                        {alert && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void approveAlert(alert.id, 'Approved from PL cross-reference list');
-                            }}
-                            className="rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[9px] font-semibold text-amber-100 hover:bg-amber-500/14 transition-colors"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {alert && (
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void bypassAlert(alert.id, { bypassReason: 'Bypassed from PL cross-reference list' });
-                            }}
-                            className="rounded-full border border-rose-500/25 bg-rose-500/10 px-2 py-0.5 text-[9px] font-semibold text-rose-100 hover:bg-rose-500/14 transition-colors"
-                          >
-                            Bypass
-                          </button>
-                        )}
-                        <Badge variant={statusBadgeVariant(doc.status)} className="text-[9px]">{doc.status}</Badge>
-                      </div>
+                      {alert && expandedCrossrefAlertId === alert.id && (
+                        <DocumentChangeReviewCard
+                          alert={alert}
+                          defaultOpen
+                          className="border-amber-500/15"
+                          onOpenPl={() => navigate(`/pl/${pl.id}?tab=crossrefs&doc=${doc.id}`)}
+                          onApprove={() => approveAlert(alert.id, 'Approved from PL cross-reference list')}
+                          onBypass={() => bypassAlert(alert.id, { bypassReason: 'Bypassed from PL cross-reference list' })}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -1231,8 +1281,9 @@ function PLNumberDetailView({
 export default function PLDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const { data: plItem, loading: plItemLoading, refetch } = usePLItem(id);
+  const { data: plItem, loading: plItemLoading } = usePLItem(id);
 
   const plRecord = id ? getPLRecord(id) : undefined;
   const legacyPL = !plRecord ? MOCK_PL_RECORDS.find(r => r.id === `PL-${id}` || r.id === id) : undefined;
@@ -1241,8 +1292,19 @@ export default function PLDetail() {
 
   const handleUpdatePL = async (patch: Partial<PLNumber>) => {
     if (!plItem) return;
-    await PLService.update(plItem.id, patch);
-    refetch();
+    const basePayload = PLPreviewService.toPreviewPayload(plItem);
+    const preview = PLPreviewService.createDraft({
+      mode: 'edit',
+      baseline: plItem,
+      draft: {
+        ...basePayload,
+        ...patch,
+      },
+      actor: user ?? undefined,
+      originPath: `/pl/${plItem.plNumber}`,
+    });
+    toast.success('PL change review opened', { description: `PL-${plItem.plNumber}` });
+    navigate(`/pl/preview/${preview.draftId}`);
   };
 
   if (plItemLoading && !plRecord && !legacyPL) {
@@ -1259,6 +1321,26 @@ export default function PLDetail() {
   }
 
   if (plRecord) {
+    const handleLegacyExport = () => {
+      exportPlDetails(`PL-${plRecord.plNumber}-summary`, [
+        ['PL Number', plRecord.plNumber],
+        ['Name', plRecord.name],
+        ['Revision', plRecord.revision],
+        ['Lifecycle State', plRecord.lifecycleState],
+        ['Type', plRecord.type],
+        ['Owner', plRecord.owner],
+        ['Department', plRecord.department],
+        ['Linked Documents', plRecord.linkedDocuments.length],
+        ['Linked Drawings', plRecord.linkedDrawings.length],
+        ['Where Used', plRecord.whereUsed.length],
+      ]);
+      toast.success('PL summary exported');
+    };
+
+    const handleLegacyCreateCase = () => {
+      navigate(`/cases?new=1&pl=${encodeURIComponent(plRecord.plNumber)}&title=${encodeURIComponent(`Review ${plRecord.name}`)}&description=${encodeURIComponent(`Create a follow-up case for PL ${plRecord.plNumber} — ${plRecord.name}.`)}`);
+    };
+
     const tabs = [
       { id: 'overview', label: 'Overview' },
       { id: 'documents', label: `Linked Documents (${plRecord.linkedDocuments.length})` },
@@ -1291,9 +1373,9 @@ export default function PLDetail() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary"><Download className="w-4 h-4" /> Export</Button>
-              <Button variant="secondary"><Printer className="w-4 h-4" /> Print</Button>
-              <Button><AlertCircle className="w-4 h-4" /> Create Case</Button>
+              <Button variant="secondary" onClick={handleLegacyExport}><Download className="w-4 h-4" /> Export</Button>
+              <Button variant="secondary" onClick={() => window.print()}><Printer className="w-4 h-4" /> Print</Button>
+              <Button onClick={handleLegacyCreateCase}><AlertCircle className="w-4 h-4" /> Create Case</Button>
             </div>
           </div>
         </div>
@@ -1391,7 +1473,12 @@ export default function PLDetail() {
             <h2 className="text-base font-bold text-white mb-4">Linked Documents</h2>
             <div className="space-y-3">
               {plRecord.linkedDocuments.map(doc => (
-                <div key={doc.docId} className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-teal-500/30 cursor-pointer transition-all" onClick={() => navigate(`/documents/${doc.docId}`)}>
+                <div
+                  key={doc.docId}
+                  {...getDocumentContextAttributes(doc.docId, doc.title)}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-slate-800/30 border border-slate-700/50 hover:border-teal-500/30 cursor-pointer transition-all"
+                  onClick={() => navigate(`/documents/${doc.docId}`)}
+                >
                   <FileText className="w-9 h-9 p-2 rounded-lg bg-teal-500/10 text-teal-400 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-200">{doc.title}</p>
@@ -1404,6 +1491,12 @@ export default function PLDetail() {
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant={statusBadgeVariant(doc.status)}>{doc.status}</Badge>
+                    <DocumentPreviewButton
+                      documentId={doc.docId}
+                      title={doc.title}
+                      iconOnly
+                      className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                    />
                     <ExternalLink className="w-4 h-4 text-slate-600 hover:text-teal-400 transition-colors" />
                   </div>
                 </div>

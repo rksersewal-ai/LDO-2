@@ -11,12 +11,15 @@ import { GlassCard, Badge, Button, Input, Select } from '../components/ui/Shared
 import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { PLNumberMultiSelect } from '../components/ui/PLNumberMultiSelect';
 import { Switch } from '../components/ui/switch';
+import { useAuth } from '../lib/auth';
 import { usePLItems } from '../hooks/usePLItems';
 import { usePlLinkableDocuments, type PlLinkableDocument } from '../hooks/usePlLinkableDocuments';
 import { LoadingState } from '../components/ui/LoadingState';
 import { ErrorState } from '../components/ui/ErrorState';
 import type { PLNumber, InspectionCategory, SafetyClassification } from '../lib/types';
 import { INSPECTION_CATEGORY_LABELS, AGENCIES } from '../lib/constants';
+import { PLPreviewService, type PLPreviewPayload } from '../services/PLPreviewService';
+import { resolveDocumentPreviewPath } from '../lib/documentPreview';
 
 const STATUS_LABEL: Record<string, string> = {
   ACTIVE: 'Active',
@@ -209,6 +212,8 @@ function LinkDocumentsModal({
             return (
               <div
                 key={doc.id}
+                data-document-id={doc.id}
+                data-document-title={doc.name}
                 className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${isLinked ? 'bg-teal-900/20 border-teal-500/30' : 'bg-slate-800/30 border-slate-700/40 hover:border-slate-600/60'}`}
                 onClick={() => toggle(doc.id)}
               >
@@ -234,7 +239,7 @@ function LinkDocumentsModal({
                     </span>
                   )}
                   <button
-                    onClick={e => { e.stopPropagation(); navigate(`/documents/${doc.id}`); }}
+                    onClick={e => { e.stopPropagation(); navigate(resolveDocumentPreviewPath(doc.id)); }}
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-500 hover:text-teal-400 hover:bg-slate-700/50 transition-colors"
                     title="Open preview"
                   >
@@ -485,7 +490,8 @@ function CreatePLModal({
 
 export default function PLKnowledgeHub() {
   const navigate = useNavigate();
-  const { data: plItems, loading, error, refetch, add, update } = usePLItems();
+  const { user } = useAuth();
+  const { data: plItems, loading, error, refetch, update } = usePLItems();
   const { documents, loading: documentsLoading } = usePlLinkableDocuments();
 
   const [search, setSearch] = useState('');
@@ -558,7 +564,7 @@ export default function PLKnowledgeHub() {
 
   const handleCreate = async (data: CreatePLFormData) => {
     const toArr = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean);
-    await add({
+    const draft: PLPreviewPayload = {
       plNumber: data.plNumber,
       name: data.name,
       description: data.description,
@@ -587,8 +593,17 @@ export default function PLKnowledgeHub() {
       linkedDocumentIds: [],
       linkedWorkIds: [],
       linkedCaseIds: [],
+    };
+
+    const preview = PLPreviewService.createDraft({
+      mode: 'create',
+      baseline: null,
+      draft,
+      actor: user ?? undefined,
+      originPath: '/pl',
     });
-    toast.success(`PL record "${data.name}" created`, { description: `PL-${data.plNumber}` });
+    toast.success(`PL review draft ready`, { description: `PL-${data.plNumber}` });
+    navigate(`/pl/preview/${preview.draftId}`);
   };
 
   if (loading) return <LoadingState message="Loading PL Knowledge Hub..." />;

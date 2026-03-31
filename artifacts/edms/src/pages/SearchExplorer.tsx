@@ -10,9 +10,10 @@ import { GlassCard } from '../components/ui/Shared';
 import { useAbortController } from '../hooks/useAbortOnNavigate';
 import { useDebounce } from '../hooks/useOverloadProtection';
 import { SearchService } from '../services/SearchService';
-import type { CrossEntityResults, SearchResult } from '../services/SearchService';
+import type { CrossEntityResults, DuplicateSearchFilter, SearchResult } from '../services/SearchService';
 import { SearchHistoryService } from '../services/SearchHistoryService';
 import { LoadingState } from '../components/ui/LoadingState';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 
 const SAVED_KEY = 'edms_saved_searches';
 
@@ -69,6 +70,21 @@ function statusDot(status: string): string {
   return 'bg-slate-500';
 }
 
+function humanizeKey(value: string) {
+  return value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function reasonLabel(reason: string) {
+  switch (reason) {
+    case 'approved_assertion':
+      return 'Approved assertion';
+    case 'extracted_entity':
+      return 'Extracted entity';
+    default:
+      return humanizeKey(reason);
+  }
+}
+
 function getEntityPath(result: SearchResult): string {
   switch (result.type) {
     case 'document': return `/documents/${result.id}`;
@@ -107,9 +123,27 @@ function ResultCard({ result, query, onClick }: ResultCardProps) {
     case: 'bg-rose-500/10 border-rose-500/20',
   };
 
+  const duplicateMeta =
+    result.type === 'document' && result.duplicateStatus
+      ? result.duplicateStatus === 'DUPLICATE'
+        ? { label: 'Duplicate', className: 'border-amber-500/30 bg-amber-500/10 text-amber-300' }
+        : result.duplicateStatus === 'MASTER'
+          ? { label: 'Master copy', className: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' }
+          : null
+      : null;
+
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onClick();
+        }
+      }}
+      {...(result.type === 'document' ? getDocumentContextAttributes(result.id, result.title) : {})}
       className="w-full text-left p-4 rounded-xl bg-slate-800/30 border border-slate-700/40 hover:border-teal-500/30 hover:bg-slate-800/60 transition-all group"
     >
       <div className="flex items-start gap-3">
@@ -125,6 +159,11 @@ function ResultCard({ result, query, onClick }: ResultCardProps) {
               <span className={`flex items-center gap-1 text-[10px] font-medium ${statusColor(result.status)}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${statusDot(result.status)}`} />
                 {result.status}
+              </span>
+            )}
+            {duplicateMeta && (
+              <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${duplicateMeta.className}`}>
+                {duplicateMeta.label}
               </span>
             )}
           </div>
@@ -151,10 +190,60 @@ function ResultCard({ result, query, onClick }: ResultCardProps) {
               {highlightSnippet(result.snippet, query)}
             </p>
           )}
+          {result.type === 'document' && ((result.matchedAssertions?.length ?? 0) > 0 || (result.matchedEntities?.length ?? 0) > 0 || (result.matchReasons?.length ?? 0) > 0) && (
+            <div className="mt-2 space-y-2">
+              {(result.matchReasons?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {result.matchReasons?.map((reason) => (
+                    <span
+                      key={reason}
+                      className="rounded-full border border-teal-500/20 bg-teal-500/10 px-2 py-0.5 text-[10px] font-semibold text-teal-200"
+                    >
+                      {reasonLabel(reason)}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {(result.matchedAssertions?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {result.matchedAssertions?.slice(0, 3).map((assertion) => (
+                    <span
+                      key={`${assertion.field_key}-${assertion.normalized_value ?? assertion.value}`}
+                      className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[10px] text-indigo-100"
+                    >
+                      <span className="font-semibold">{humanizeKey(assertion.field_key)}:</span> {assertion.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {(result.matchedEntities?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {result.matchedEntities?.slice(0, 3).map((entity) => (
+                    <span
+                      key={`${entity.entity_type}-${entity.normalized_value ?? entity.value}`}
+                      className="rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] text-violet-100"
+                    >
+                      <span className="font-semibold">{humanizeKey(entity.entity_type)}:</span> {entity.value}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 shrink-0 mt-1 transition-colors" />
+        <div className="mt-1 flex items-center gap-1.5 shrink-0">
+          {result.type === 'document' && (
+            <DocumentPreviewButton
+              documentId={result.id}
+              title={result.title}
+              iconOnly
+              className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+            />
+          )}
+          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
+        </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -212,6 +301,11 @@ export default function SearchExplorer() {
   const [statusFilters, setStatusFilters] = useState<Set<string>>(new Set());
   const [dateFilter, setDateFilter] = useState<'any' | '7d' | '30d' | '90d'>('any');
   const [entityFilters, setEntityFilters] = useState<Set<string>>(new Set());
+  const [duplicateFilter, setDuplicateFilter] = useState<DuplicateSearchFilter>('include');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [hashStatusFilter, setHashStatusFilter] = useState<'' | 'present' | 'full' | 'missing'>('');
+  const [plLinkedFilter, setPlLinkedFilter] = useState<'' | 'linked' | 'unlinked'>('');
 
   const isSaved = savedSearches.some(s => s.q === debouncedQuery && s.scope === scope);
 
@@ -269,7 +363,15 @@ export default function SearchExplorer() {
     setError(null);
     const signal = resetSearchAbort();
     const s = scope === 'ALL' ? 'ALL' : scope;
-    SearchService.searchAll(debouncedQuery, s, signal)
+    SearchService.searchAll(debouncedQuery, s, signal, {
+      duplicateFilter,
+      source: sourceFilter || undefined,
+      className: classFilter || undefined,
+      hashStatus: hashStatusFilter || undefined,
+      plLinked: plLinkedFilter || undefined,
+      statusFilters: Array.from(statusFilters),
+      dateRange: dateFilter,
+    })
       .then(r => {
         setResults(r);
         setLoading(false);
@@ -288,7 +390,8 @@ export default function SearchExplorer() {
       });
 
     return () => abortSearch();
-  }, [abortSearch, debouncedQuery, resetSearchAbort, scope]);
+  }, [abortSearch, classFilter, dateFilter, debouncedQuery, duplicateFilter, hashStatusFilter, plLinkedFilter, resetSearchAbort, scope, sourceFilter, statusFilters]);
+  
 
   useEffect(() => {
     const q = debouncedQuery.trim() ? debouncedQuery : '';
@@ -319,17 +422,9 @@ export default function SearchExplorer() {
     CASES: results?.cases.length ?? 0,
   };
 
-  // Helper to check if result matches filters
+  // Entity type still filters locally because it only reshapes already-fetched buckets.
   const matchesFilters = (result: SearchResult) => {
-    if (statusFilters.size > 0 && result.status && !statusFilters.has(result.status)) return false;
     if (entityFilters.size > 0 && !entityFilters.has(result.type)) return false;
-    if (dateFilter !== 'any' && result.date) {
-      const now = new Date();
-      const resultDate = new Date(result.date);
-      const daysDiff = (now.getTime() - resultDate.getTime()) / (1000 * 60 * 60 * 24);
-      const maxDays = dateFilter === '7d' ? 7 : dateFilter === '30d' ? 30 : 90;
-      if (daysDiff > maxDays) return false;
-    }
     return true;
   };
 
@@ -346,7 +441,33 @@ export default function SearchExplorer() {
             results.cases.filter(matchesFilters).length),
   } : null;
 
-  const hasActiveFilters = statusFilters.size > 0 || dateFilter !== 'any' || entityFilters.size > 0;
+  const duplicateFacetCounts = filteredResults
+    ? filteredResults.documents.reduce(
+        (accumulator, result) => {
+          if (result.duplicateStatus === 'DUPLICATE') accumulator.duplicates += 1;
+          if (result.duplicateStatus === 'MASTER') accumulator.masters += 1;
+          if (!result.duplicateStatus || result.duplicateStatus === 'UNIQUE') accumulator.unique += 1;
+          return accumulator;
+        },
+        { duplicates: 0, masters: 0, unique: 0 }
+      )
+    : { duplicates: 0, masters: 0, unique: 0 };
+
+  const hasActiveFilters =
+    statusFilters.size > 0 ||
+    dateFilter !== 'any' ||
+    entityFilters.size > 0 ||
+    duplicateFilter !== 'include' ||
+    Boolean(sourceFilter || classFilter || hashStatusFilter || plLinkedFilter);
+
+  const documentFacets = results?.facets ?? {
+    source_system: [],
+    category: [],
+    duplicate_status: [],
+    ocr_status: [],
+    hash_status: [],
+    pl_linked: [],
+  };
 
   const hasResults = results && results.total > 0;
   const hasQuery = debouncedQuery.trim().length > 0;
@@ -457,9 +578,127 @@ export default function SearchExplorer() {
             </div>
           </div>
 
+          {/* Duplicate Filter */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Duplicate-Aware Documents</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'include' as const, label: 'Include all docs' },
+                { value: 'exclude' as const, label: 'Hide duplicates' },
+                { value: 'only' as const, label: 'Duplicates only' },
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setDuplicateFilter(option.value)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors ${
+                    duplicateFilter === option.value
+                      ? 'bg-teal-500/20 border-teal-500/40 text-teal-300'
+                      : 'bg-slate-800/40 border-slate-700/40 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Uses the backend duplicate index when available so duplicate-heavy searches stay local to PostgreSQL.
+            </p>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Source system</span>
+              <select
+                value={sourceFilter}
+                onChange={(event) => setSourceFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-700/40 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 outline-none transition-colors focus:border-teal-500/40"
+              >
+                <option value="">All sources</option>
+                {documentFacets.source_system.map((bucket) => {
+                  const value = bucket.source_system ?? bucket.value ?? '';
+                  if (!value) return null;
+                  return (
+                    <option key={value} value={value}>
+                      {value} ({bucket.count})
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Document class</span>
+              <select
+                value={classFilter}
+                onChange={(event) => setClassFilter(event.target.value)}
+                className="w-full rounded-lg border border-slate-700/40 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 outline-none transition-colors focus:border-teal-500/40"
+              >
+                <option value="">All classes</option>
+                {documentFacets.category.map((bucket) => {
+                  const value = bucket.category ?? bucket.value ?? '';
+                  if (!value) return null;
+                  return (
+                    <option key={value} value={value}>
+                      {value} ({bucket.count})
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Hash status</span>
+              <select
+                value={hashStatusFilter}
+                onChange={(event) => setHashStatusFilter(event.target.value as '' | 'present' | 'full' | 'missing')}
+                className="w-full rounded-lg border border-slate-700/40 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 outline-none transition-colors focus:border-teal-500/40"
+              >
+                <option value="">Any hash state</option>
+                {documentFacets.hash_status.map((bucket) => {
+                  const value = bucket.hash_state ?? bucket.value ?? '';
+                  if (!value) return null;
+                  return (
+                    <option key={value} value={value}>
+                      {value} ({bucket.count})
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">PL linkage</span>
+              <select
+                value={plLinkedFilter}
+                onChange={(event) => setPlLinkedFilter(event.target.value as '' | 'linked' | 'unlinked')}
+                className="w-full rounded-lg border border-slate-700/40 bg-slate-900/60 px-3 py-2 text-sm text-slate-200 outline-none transition-colors focus:border-teal-500/40"
+              >
+                <option value="">All linkage states</option>
+                {documentFacets.pl_linked.map((bucket) => {
+                  const value = bucket.value ?? '';
+                  if (!value) return null;
+                  return (
+                    <option key={value} value={value}>
+                      {value} ({bucket.count})
+                    </option>
+                  );
+                })}
+              </select>
+            </label>
+          </div>
+
           {hasActiveFilters && (
             <button
-              onClick={() => { setStatusFilters(new Set()); setDateFilter('any'); setEntityFilters(new Set()); }}
+              onClick={() => {
+                setStatusFilters(new Set());
+                setDateFilter('any');
+                setEntityFilters(new Set());
+                setDuplicateFilter('include');
+                setSourceFilter('');
+                setClassFilter('');
+                setHashStatusFilter('');
+                setPlLinkedFilter('');
+              }}
               className="text-xs text-teal-400 hover:text-teal-300 mt-2"
             >
               Clear all filters
@@ -654,6 +893,32 @@ export default function SearchExplorer() {
               {isSaved ? 'Saved' : 'Save Search'}
             </button>
           </div>
+
+          {filteredResults.documents.length > 0 && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <GlassCard className="p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Duplicate docs</p>
+                <p className="mt-2 text-2xl font-bold text-amber-300">{duplicateFacetCounts.duplicates}</p>
+                <p className="mt-1 text-xs text-slate-500">Candidates already marked as duplicate records.</p>
+              </GlassCard>
+              <GlassCard className="p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Master copies</p>
+                <p className="mt-2 text-2xl font-bold text-emerald-300">{duplicateFacetCounts.masters}</p>
+                <p className="mt-1 text-xs text-slate-500">Active masters currently backing duplicate families.</p>
+              </GlassCard>
+              <GlassCard className="p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Duplicate mode</p>
+                <p className="mt-2 text-sm font-semibold text-slate-100">
+                  {duplicateFilter === 'include'
+                    ? 'All documents'
+                    : duplicateFilter === 'exclude'
+                      ? 'Duplicates hidden'
+                      : 'Duplicates only'}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Applied directly to backend document search requests.</p>
+              </GlassCard>
+            </div>
+          )}
 
           {/* Document Results */}
           {(!scope || scope === 'ALL' || scope === 'DOCUMENTS') && (

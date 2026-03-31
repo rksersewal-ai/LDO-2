@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { PLNumberSelect } from '../components/ui/PLNumberSelect';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { PL_DATABASE } from '../lib/bomData';
@@ -444,15 +445,33 @@ function RightPanel({ doc, ocrJob, ocrStatusOverride, onNavigate, activeSection,
         {activeSection === 'related' && (
           <div className="space-y-2">
             {relatedDocs.length > 0 ? relatedDocs.map(rd => (
-              <button key={rd.id} onClick={() => onNavigate(`/documents/${rd.id}`)}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-slate-900/40 border border-white/5 hover:border-teal-500/20 hover:bg-slate-900/60 transition-all text-left">
+              <div
+                key={rd.id}
+                {...getDocumentContextAttributes(rd.id, rd.name)}
+                role="button"
+                tabIndex={0}
+                onClick={() => onNavigate(`/documents/${rd.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onNavigate(`/documents/${rd.id}`);
+                  }
+                }}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-slate-900/40 border border-white/5 hover:border-teal-500/20 hover:bg-slate-900/60 transition-all text-left cursor-pointer"
+              >
                 <FileText className="w-4 h-4 text-teal-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-slate-200 truncate">{rd.name}</p>
                   <p className="text-[10px] text-slate-500 font-mono">{rd.id}</p>
                 </div>
+                <DocumentPreviewButton
+                  documentId={rd.id}
+                  title={rd.name}
+                  iconOnly
+                  className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                />
                 <Badge variant={statusVariant(rd.status)} className="text-[9px] px-1.5 shrink-0">{rd.status}</Badge>
-              </button>
+              </div>
             )) : (
               <div className="text-center py-8 text-slate-600">
                 <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -836,6 +855,15 @@ export default function DocumentDetail() {
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/60 text-slate-300 text-xs border border-slate-700/40 hover:border-teal-500/30 transition-all">
             <Download className="w-3.5 h-3.5 text-teal-400" /> Download
           </button>
+          <DocumentPreviewButton
+            documentId={activeDoc.id}
+            title={activeDoc.name}
+            size="sm"
+            variant="ghost"
+            className="px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/60 text-slate-300 text-xs border border-slate-700/40 hover:border-teal-500/30"
+            label="Preview"
+            stopPropagation={false}
+          />
           <button onClick={() => setShowEditMeta(true)} disabled={!activeDoc}
             className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/60 text-slate-300 text-xs border border-slate-700/40 hover:border-indigo-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
             <Edit3 className="w-3.5 h-3.5 text-indigo-400" /> Edit Metadata

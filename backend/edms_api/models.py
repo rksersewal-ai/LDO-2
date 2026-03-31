@@ -8,6 +8,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from django_fsm import FSMField, transition
 import uuid
 
 class Document(models.Model):
@@ -35,6 +36,21 @@ class Document(models.Model):
         ('Failed', 'Failed'),
     ]
 
+    SOURCE_SYSTEM_CHOICES = [
+        ('UPLOAD', 'Upload'),
+        ('FILE_SHARE', 'File Share'),
+        ('NETWORK_SHARE', 'Network Share'),
+        ('SCANNER', 'Scanner'),
+        ('EMAIL', 'Email'),
+        ('IMPORT', 'Import'),
+    ]
+
+    DUPLICATE_STATUS_CHOICES = [
+        ('UNIQUE', 'Unique'),
+        ('MASTER', 'Master'),
+        ('DUPLICATE', 'Duplicate'),
+    ]
+
     id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -45,11 +61,40 @@ class Document(models.Model):
     file = models.FileField(upload_to='documents/')
     size = models.BigIntegerField(default=0)  # In bytes
     file_hash = models.CharField(max_length=64, blank=True, null=True)  # SHA-256
+    source_system = models.CharField(max_length=20, choices=SOURCE_SYSTEM_CHOICES, default='UPLOAD')
+    external_file_path = models.TextField(blank=True, null=True)
+    source_created_at = models.DateTimeField(blank=True, null=True)
+    source_modified_at = models.DateTimeField(blank=True, null=True)
+    fingerprint_3x64k = models.CharField(max_length=64, blank=True, null=True)
+    hash_algo = models.CharField(max_length=50, default='sha256')
+    hash_version = models.PositiveSmallIntegerField(default=1)
+    hash_indexed_at = models.DateTimeField(blank=True, null=True)
+    content_index = models.ForeignKey(
+        'DocumentContentIndex',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documents',
+    )
+    duplicate_status = models.CharField(max_length=20, choices=DUPLICATE_STATUS_CHOICES, default='UNIQUE')
+    duplicate_group_key = models.CharField(max_length=255, blank=True, null=True)
+    document_family_key = models.CharField(max_length=255, blank=True, null=True)
+    duplicate_of = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='duplicate_children',
+    )
+    duplicate_marked_at = models.DateTimeField(blank=True, null=True)
     
     # OCR
     ocr_status = models.CharField(max_length=20, choices=OCR_STATUS_CHOICES, default='Not Started')
     ocr_confidence = models.FloatField(default=0.0)  # 0-100
     extracted_text = models.TextField(blank=True, null=True)
+    search_text = models.TextField(blank=True, default='')
+    search_metadata = models.JSONField(default=dict, blank=True)
+    search_indexed_at = models.DateTimeField(blank=True, null=True)
     
     # Linking
     linked_pl = models.CharField(max_length=100, blank=True, null=True)  # PL reference
@@ -69,6 +114,16 @@ class Document(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['author']),
             models.Index(fields=['ocr_status']),
+            models.Index(fields=['search_indexed_at']),
+            models.Index(fields=['source_system']),
+            models.Index(fields=['source_system', 'duplicate_status']),
+            models.Index(fields=['duplicate_status']),
+            models.Index(fields=['duplicate_group_key']),
+            models.Index(fields=['document_family_key']),
+            models.Index(fields=['category']),
+            models.Index(fields=['linked_pl']),
+            models.Index(fields=['size', 'fingerprint_3x64k']),
+            models.Index(fields=['file_hash']),
         ]
     
     def __str__(self):
@@ -109,6 +164,28 @@ class DocumentVersion(models.Model):
     
     def __str__(self):
         return f"{self.document.name} v{self.revision}"
+
+
+class DocumentContentIndex(models.Model):
+    content_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    size_bytes = models.BigIntegerField()
+    fingerprint_3x64k = models.CharField(max_length=64)
+    full_hash_sha256 = models.CharField(max_length=64, blank=True, null=True)
+    hash_algo = models.CharField(max_length=50, default='sha256')
+    hash_version = models.PositiveSmallIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-last_seen_at']
+        unique_together = ['size_bytes', 'fingerprint_3x64k', 'hash_version']
+        indexes = [
+            models.Index(fields=['size_bytes', 'fingerprint_3x64k']),
+            models.Index(fields=['full_hash_sha256']),
+        ]
+
+    def __str__(self):
+        return f"{self.size_bytes}:{self.fingerprint_3x64k}"
 
 class WorkRecord(models.Model):
     STATUS_CHOICES = [
@@ -230,6 +307,13 @@ class PlItem(models.Model):
     linked_case_ids = models.JSONField(default=list, blank=True)
     manufacturer = models.CharField(max_length=255, blank=True, null=True)
     specifications = models.JSONField(default=dict, blank=True)
+    current_released_baseline = models.ForeignKey(
+        'Baseline',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='released_for_pl_items',
+    )
     
     # Audit
     last_updated = models.DateTimeField(auto_now=True)
@@ -363,6 +447,13 @@ class PlBomLine(models.Model):
         if not self.child_id:
             return
 
+        expected_uom = ''
+        if self.child_id and getattr(self.child, 'specifications', None):
+            specs = self.child.specifications or {}
+            expected_uom = str(specs.get('unit_of_measure') or specs.get('uom') or '').strip().upper()
+        if expected_uom and str(self.unit_of_measure or '').strip().upper() != expected_uom:
+            raise ValidationError({'unit_of_measure': f'Unit of measure must match child PL expected unit {expected_uom}.'})
+
         descendants = {self.child_id}
         frontier = [self.child_id]
         while frontier:
@@ -377,6 +468,284 @@ class PlBomLine(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class ChangeRequest(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('UNDER_REVIEW', 'Under Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+        ('IMPLEMENTED', 'Implemented'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
+    pl_item = models.ForeignKey(PlItem, on_delete=models.CASCADE, related_name='change_requests')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    impact_summary = models.TextField(blank=True, null=True)
+    source_baseline = models.ForeignKey(
+        'Baseline',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='source_change_requests',
+    )
+    status = FSMField(default='DRAFT', choices=STATUS_CHOICES, protected=True)
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='requested_change_requests',
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_change_requests',
+    )
+    release_notes = models.TextField(blank=True, null=True)
+    decision_notes = models.TextField(blank=True, null=True)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['pl_item', 'status']),
+            models.Index(fields=['status', 'requested_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.id} - {self.title} ({self.status})"
+
+    @transition(field=status, source='DRAFT', target='UNDER_REVIEW')
+    def submit(self):
+        return self
+
+    @transition(field=status, source='UNDER_REVIEW', target='APPROVED')
+    def approve(self):
+        return self
+
+    @transition(field=status, source='UNDER_REVIEW', target='REJECTED')
+    def reject(self):
+        return self
+
+    @transition(field=status, source='APPROVED', target='IMPLEMENTED')
+    def implement(self):
+        return self
+
+
+class ChangeNotice(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('ISSUED', 'Issued'),
+        ('APPROVED', 'Approved'),
+        ('RELEASED', 'Released'),
+        ('CLOSED', 'Closed'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
+    change_request = models.ForeignKey(ChangeRequest, on_delete=models.CASCADE, related_name='change_notices')
+    notice_number = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=255)
+    summary = models.TextField(blank=True, null=True)
+    effectivity_date = models.DateField(null=True, blank=True)
+    status = FSMField(default='DRAFT', choices=STATUS_CHOICES, protected=True)
+    issued_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='issued_change_notices',
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_change_notices',
+    )
+    released_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='released_change_notices',
+    )
+    closed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='closed_change_notices',
+    )
+    issued_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    decision_notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['change_request', 'status']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.notice_number} ({self.status})"
+
+    @transition(field=status, source='DRAFT', target='ISSUED')
+    def issue(self):
+        return self
+
+    @transition(field=status, source='ISSUED', target='APPROVED')
+    def approve(self):
+        return self
+
+    @transition(field=status, source='APPROVED', target='RELEASED')
+    def release(self):
+        return self
+
+    @transition(field=status, source='RELEASED', target='CLOSED')
+    def close(self):
+        return self
+
+
+class Baseline(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('RELEASED', 'Released'),
+        ('SUPERSEDED', 'Superseded'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
+    pl_item = models.ForeignKey(PlItem, on_delete=models.CASCADE, related_name='baselines')
+    baseline_number = models.CharField(max_length=100)
+    title = models.CharField(max_length=255)
+    summary = models.TextField(blank=True, null=True)
+    status = FSMField(default='DRAFT', choices=STATUS_CHOICES, protected=True)
+    source_change_request = models.ForeignKey(
+        ChangeRequest,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baselines',
+    )
+    source_change_notice = models.ForeignKey(
+        ChangeNotice,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baselines',
+    )
+    impact_preview = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_baselines',
+    )
+    released_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='released_baselines',
+    )
+    superseded_by = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='supersedes',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+    superseded_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ['pl_item', 'baseline_number']
+        indexes = [
+            models.Index(fields=['pl_item', 'status']),
+            models.Index(fields=['status', 'created_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.pl_item_id} {self.baseline_number} ({self.status})"
+
+    @transition(field=status, source='DRAFT', target='RELEASED')
+    def release(self):
+        return self
+
+    @transition(field=status, source='RELEASED', target='SUPERSEDED')
+    def supersede(self):
+        return self
+
+
+class BaselineItem(models.Model):
+    ITEM_TYPE_CHOICES = [
+        ('PL_ITEM', 'PL Item'),
+        ('BOM_LINE', 'BOM Line'),
+        ('DOCUMENT', 'Document'),
+    ]
+
+    id = models.CharField(max_length=50, primary_key=True, default=uuid.uuid4)
+    baseline = models.ForeignKey(Baseline, on_delete=models.CASCADE, related_name='items')
+    item_type = models.CharField(max_length=20, choices=ITEM_TYPE_CHOICES)
+    source_object_id = models.CharField(max_length=100, blank=True, null=True)
+    parent_pl = models.ForeignKey(
+        PlItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baseline_parent_items',
+    )
+    child_pl = models.ForeignKey(
+        PlItem,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baseline_child_items',
+    )
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='baseline_items',
+    )
+    document_revision = models.IntegerField(null=True, blank=True)
+    document_status = models.CharField(max_length=20, blank=True, null=True)
+    link_role = models.CharField(max_length=50, blank=True, null=True)
+    quantity = models.DecimalField(max_digits=12, decimal_places=3, null=True, blank=True)
+    unit_of_measure = models.CharField(max_length=20, blank=True, null=True)
+    find_number = models.CharField(max_length=50, blank=True, null=True)
+    line_order = models.PositiveIntegerField(default=0)
+    reference_designator = models.CharField(max_length=100, blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    snapshot_payload = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['line_order', 'created_at', 'id']
+        indexes = [
+            models.Index(fields=['baseline', 'item_type']),
+            models.Index(fields=['baseline', 'line_order']),
+            models.Index(fields=['document', 'item_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.baseline_id} {self.item_type} {self.source_object_id or self.id}"
 
 class Case(models.Model):
     STATUS_CHOICES = [
@@ -527,6 +896,7 @@ class AuditLog(models.Model):
         ('System', 'System'),
         ('OCR', 'OCR'),
         ('Approval', 'Approval'),
+        ('ConfigMgmt', 'ConfigMgmt'),
     ]
     
     SEVERITY_CHOICES = [

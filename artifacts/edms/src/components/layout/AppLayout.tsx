@@ -8,9 +8,11 @@ import { useAuth } from '../../lib/auth';
 import { useDocTabs } from '../../contexts/DocTabsContext';
 import { useRightPanel } from '../../contexts/RightPanelContext';
 import { PreferencesService } from '../../services/PreferencesService';
+import { NavigationHistoryService } from '../../services/NavigationHistoryService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import { RightClickPalette } from '../ui/RightClickPalette';
+import { getDocumentContextAttributes } from '../documents/DocumentPreviewActions';
 
 export default function AppLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,9 +41,11 @@ export default function AppLayout() {
   // Persist last visited path for session restore
   useEffect(() => {
     if (isAuthenticated && location.pathname !== '/login') {
-      PreferencesService.set({ lastVisitedPath: location.pathname });
+      const route = `${location.pathname}${location.search}`;
+      PreferencesService.set({ lastVisitedPath: route });
+      NavigationHistoryService.record(route);
     }
-  }, [location.pathname, isAuthenticated]);
+  }, [location.pathname, location.search, isAuthenticated]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (tabsContainerRef.current) {
@@ -112,6 +116,7 @@ export default function AppLayout() {
                 {tabs.map(tab => (
                   <div
                     key={tab.id}
+                    {...getDocumentContextAttributes(tab.id, tab.name)}
                     onClick={() => navigate(`/documents/${tab.id}`)}
                     className={`flex items-center gap-2 px-3 py-1.5 rounded-t-xl cursor-pointer text-xs font-medium whitespace-nowrap transition-all group border-b-2 ${
                       activeDocId === tab.id

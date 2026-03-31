@@ -3,8 +3,10 @@ from datetime import datetime
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
+from rest_framework.exceptions import ValidationError
 
 from edms_api.models import Approval, Case, WorkRecord
+from shared.permissions import PermissionService
 from shared.request_context import get_correlation_id
 from shared.services import AuditService, EventService
 
@@ -37,8 +39,12 @@ def _days_between(start, end):
 
 class WorkRecordService:
     @staticmethod
-    def queryset(params):
-        queryset = WorkRecord.objects.select_related('user_name', 'verified_by').all()
+    def queryset(params, user=None):
+        queryset = PermissionService.scope_queryset(
+            WorkRecord.objects.select_related('user_name', 'verified_by').all(),
+            user,
+            'view_workrecord',
+        )
         status_filter = params.get('status')
         if status_filter:
             queryset = queryset.filter(status=_canonical_status(status_filter))
@@ -93,6 +99,7 @@ class WorkRecordService:
             verification_date=verification_date,
             is_locked=validated_data.get('isLocked', _canonical_status(validated_data.get('status')) in ['VERIFIED', 'CLOSED']),
         )
+        PermissionService.grant_default_object_permissions(record, user)
         AuditService.log('CREATE', 'WorkRecord', user=user, entity=record.id, ip_address=request.META.get('REMOTE_ADDR'))
         EventService.publish(
             'WorkRecordLogged',
@@ -105,6 +112,7 @@ class WorkRecordService:
 
     @staticmethod
     def update(instance, validated_data, request):
+        PermissionService.require_permission(request.user, instance, 'change_workrecord')
         if 'description' in validated_data:
             instance.description = validated_data['description']
         if 'workCategory' in validated_data:
@@ -155,6 +163,7 @@ class WorkRecordService:
 
     @staticmethod
     def create_export_job(request, export_format, filters):
+        PermissionService.require_permission(request.user, WorkRecord, 'view_workrecord')
         job, _ = WorkRecordExportJob.objects.get_or_create(
             requested_by=request.user if request.user.is_authenticated else None,
             status='QUEUED',
@@ -162,6 +171,7 @@ class WorkRecordService:
             filters=filters or {},
             defaults={'correlation_id': getattr(request, 'correlation_id', '') or get_correlation_id()},
         )
+        PermissionService.grant_default_object_permissions(job, request.user, actions=('view', 'change'))
         AuditService.log('EXPORT', 'WorkRecord', user=request.user, entity=str(job.id), ip_address=request.META.get('REMOTE_ADDR'))
         EventService.publish(
             'WorkRecordExportRequested',
@@ -175,7 +185,37 @@ class WorkRecordService:
 
 class ApprovalService:
     @staticmethod
+    def queryset(user=None):
+        return PermissionService.scope_queryset(
+            Approval.objects.select_related('requested_by', 'approved_by', 'rejected_by').all(),
+            user,
+            'view_approval',
+        ).order_by('-requested_at')
+
+    @staticmethod
+    def available_actions(approval, user):
+        can_change = PermissionService.has_permission(user, approval, 'change_approval')
+        pending = approval.status == 'Pending'
+        return [
+            {
+                'key': 'approve',
+                'label': 'Approve',
+                'enabled': can_change and pending,
+                'reason': '' if can_change and pending else ('Approval has already been decided.' if not pending else 'Change permission required.'),
+            },
+            {
+                'key': 'reject',
+                'label': 'Reject',
+                'enabled': can_change and pending,
+                'reason': '' if can_change and pending else ('Approval has already been decided.' if not pending else 'Change permission required.'),
+            },
+        ]
+
+    @staticmethod
     def approve(approval, request, comment=''):
+        PermissionService.require_permission(request.user, approval, 'change_approval')
+        if approval.status != 'Pending':
+            raise ValidationError({'status': 'Only pending approvals can be approved.'})
         approval.status = 'Approved'
         approval.comment = comment
         approval.approved_by = request.user if request.user.is_authenticated else None
@@ -193,6 +233,9 @@ class ApprovalService:
 
     @staticmethod
     def reject(approval, request, reason=''):
+        PermissionService.require_permission(request.user, approval, 'change_approval')
+        if approval.status != 'Pending':
+            raise ValidationError({'status': 'Only pending approvals can be rejected.'})
         approval.status = 'Rejected'
         approval.rejection_reason = reason
         approval.rejected_by = request.user if request.user.is_authenticated else None
@@ -204,11 +247,31 @@ class ApprovalService:
 
 class CaseService:
     @staticmethod
-    def queryset():
-        return Case.objects.all().order_by('-opened_at')
+    def queryset(user=None):
+        return PermissionService.scope_queryset(
+            Case.objects.select_related('document', 'assigned_to', 'resolved_by').all(),
+            user,
+            'view_case',
+        ).order_by('-opened_at')
+
+    @staticmethod
+    def available_actions(case, user):
+        can_change = PermissionService.has_permission(user, case, 'change_case')
+        open_case = case.status not in {'Closed', 'Resolved'}
+        return [
+            {
+                'key': 'close',
+                'label': 'Close case',
+                'enabled': can_change and open_case,
+                'reason': '' if can_change and open_case else ('Case is already closed.' if not open_case else 'Change permission required.'),
+            }
+        ]
 
     @staticmethod
     def close(case, request, resolution):
+        PermissionService.require_permission(request.user, case, 'change_case')
+        if case.status in {'Closed', 'Resolved'}:
+            raise ValidationError({'status': 'Only open cases can be closed.'})
         case.status = 'Closed'
         case.resolution = resolution
         case.closed_at = timezone.now()

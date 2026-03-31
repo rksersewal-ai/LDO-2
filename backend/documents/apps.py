@@ -6,3 +6,5 @@ class DocumentsConfig(AppConfig):
     name = 'documents'
     verbose_name = 'EDMS Documents'
 
+    def ready(self):
+        from . import signals  # noqa: F401

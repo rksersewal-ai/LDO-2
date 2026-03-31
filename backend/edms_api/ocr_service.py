@@ -40,6 +40,40 @@ class OcrEngine:
         raise NotImplementedError
 
 
+class PlainTextEngine(OcrEngine):
+    """Direct text reader for text-like files."""
+
+    SUPPORTED_EXTENSIONS = {'.txt', '.md', '.csv', '.log', '.json', '.xml'}
+
+    def is_available(self) -> bool:
+        return True
+
+    def name(self) -> str:
+        return "plaintext"
+
+    def extract(self, file_path: str) -> OcrResult:
+        path = Path(file_path)
+        if path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
+            return OcrResult("", confidence=0.0, engine=self.name(), error="unsupported file type")
+
+        for encoding in ('utf-8', 'utf-8-sig', 'latin-1'):
+            try:
+                text = path.read_text(encoding=encoding)
+                return OcrResult(
+                    text=text,
+                    confidence=1.0,
+                    engine=self.name(),
+                    is_scanned=False,
+                )
+            except UnicodeDecodeError:
+                continue
+            except Exception as exc:
+                logger.error(f"Plain text extraction error: {exc}")
+                return OcrResult("", confidence=0.0, engine=self.name(), error=str(exc))
+
+        return OcrResult("", confidence=0.0, engine=self.name(), error="could not decode text file")
+
+
 class PdfTextEngine(OcrEngine):
     """Lightweight PDF text extraction (no OCR needed)"""
     
@@ -128,51 +162,51 @@ class EasyOcrEngine(OcrEngine):
             from PIL import Image
             import io
             
-            # Convert PDF page to image if needed
+            # Convert PDF pages to images if needed
             if file_path.lower().endswith('.pdf'):
                 try:
                     import pdf2image
-                    images = pdf2image.convert_from_path(file_path, first_page=1, last_page=1)
+                    images = pdf2image.convert_from_path(file_path)
                     if not images:
                         return OcrResult("", confidence=0.0, engine=self.name(),
                                        error="Could not convert PDF to image")
-                    image = images[0]
                 except ImportError:
                     logger.warning("pdf2image not installed. Cannot process PDFs with EasyOCR")
                     return OcrResult("", confidence=0.0, engine=self.name(),
                                    error="pdf2image required for PDF processing")
             else:
                 # Open image file
-                image = Image.open(file_path)
-            
-            # Convert to bytes for EasyOCR
+                images = [Image.open(file_path)]
+
+            reader = self._get_reader()
+            page_texts = []
+            all_confidences = []
             import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-                image.save(tmp.name, 'PNG')
-                temp_path = tmp.name
-            
-            try:
-                reader = self._get_reader()
-                results = reader.readtext(temp_path)
-                
-                # Extract text and confidence
-                texts = []
-                confidences = []
-                for (bbox, text, conf) in results:
-                    texts.append(text)
-                    confidences.append(conf)
-                
-                full_text = "\n".join(texts)
-                avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-                
-                return OcrResult(
-                    text=full_text,
-                    confidence=avg_confidence,
-                    engine=self.name(),
-                    is_scanned=True
-                )
-            finally:
-                os.unlink(temp_path)
+
+            for image in images:
+                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+                    image.save(tmp.name, 'PNG')
+                    temp_path = tmp.name
+
+                try:
+                    results = reader.readtext(temp_path)
+                    page_lines = []
+                    for (bbox, text, conf) in results:
+                        page_lines.append(text)
+                        all_confidences.append(conf)
+                    page_texts.append("\n".join(page_lines))
+                finally:
+                    os.unlink(temp_path)
+
+            full_text = "\n\f\n".join(text for text in page_texts if text)
+            avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
+
+            return OcrResult(
+                text=full_text,
+                confidence=avg_confidence,
+                engine=self.name(),
+                is_scanned=True
+            )
         
         except Exception as e:
             logger.error(f"EasyOCR error: {e}")
@@ -219,7 +253,7 @@ class TesseractEngine(OcrEngine):
             from PIL import Image
             import io
             
-            # Convert PDF to images if needed
+            # Convert PDF pages to images if needed
             if file_path.lower().endswith('.pdf'):
                 try:
                     import pdf2image
@@ -227,32 +261,30 @@ class TesseractEngine(OcrEngine):
                     if not images:
                         return OcrResult("", confidence=0.0, engine=self.name(),
                                        error="Could not convert PDF to image")
-                    # Process first page (can be extended for multi-page)
-                    image = images[0]
                 except ImportError:
                     logger.warning("pdf2image not installed")
                     return OcrResult("", confidence=0.0, engine=self.name(),
                                    error="pdf2image required for PDF processing")
             else:
-                image = Image.open(file_path)
-            
-            # Extract text
-            text = self.pytesseract.image_to_string(image)
-            
-            # Try to get confidence data
-            data = self.pytesseract.image_to_data(image)
-            lines = data.split('\n')[1:]  # Skip header
+                images = [Image.open(file_path)]
+
+            page_texts = []
             confidences = []
-            for line in lines:
-                parts = line.split('\t')
-                if len(parts) > 10:
-                    try:
-                        conf = float(parts[10])
-                        if conf > 0:
-                            confidences.append(conf / 100.0)
-                    except (ValueError, IndexError):
-                        pass
-            
+            for image in images:
+                page_texts.append(self.pytesseract.image_to_string(image))
+                data = self.pytesseract.image_to_data(image)
+                lines = data.split('\n')[1:]  # Skip header
+                for line in lines:
+                    parts = line.split('\t')
+                    if len(parts) > 10:
+                        try:
+                            conf = float(parts[10])
+                            if conf > 0:
+                                confidences.append(conf / 100.0)
+                        except (ValueError, IndexError):
+                            pass
+
+            text = "\n\f\n".join(page_text for page_text in page_texts if page_text)
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.5
             
             return OcrResult(
@@ -273,6 +305,7 @@ class OcrService:
     def __init__(self):
         # Initialize engines in order of preference
         self.engines = [
+            PlainTextEngine(),    # Lightest - plain text passthrough
             PdfTextEngine(),      # Lightest - direct PDF text extraction
             EasyOcrEngine(),      # Medium - lightweight OCR
             TesseractEngine(),    # Heavy - powerful fallback

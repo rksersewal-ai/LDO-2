@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { useDrag, useDrop, DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -7,12 +7,15 @@ import {
   Box, Layers, Cpu, Shield, Search, ChevronRight, ChevronDown,
   GripVertical, X, ExternalLink, FileText, ArrowLeft,
   GitBranch, Eye, AlertCircle, Hash, ChevronUp,
-  Plus, CheckCircle, Info, MoveDiagonal, Sparkles,
+  Plus, CheckCircle, MoveDiagonal, Sparkles,
 } from 'lucide-react';
 import { PRODUCTS, BOM_TREES, PL_DATABASE, searchTree, countNodes, cloneTree, findNode, removeNode } from '../lib/bomData';
 import type { BOMNode } from '../lib/bomData';
 import { GlassCard, Badge, Button, Input, Select, PageHeader } from '../components/ui/Shared';
 import { DatePicker } from '../components/ui/DatePicker';
+import { PLNumberSelect } from '../components/ui/PLNumberSelect';
+import { DocumentDetailsButton, DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
+import { usePLItems } from '../hooks/usePLItems';
 import { BomDraftService } from '../services/BomDraftService';
 
 const BOM_ITEM_TYPE = 'BOM_NODE';
@@ -499,11 +502,28 @@ function DetailPanel({ node, onClose }: { node: BOMNode; onClose: () => void }) 
             <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 mb-2">Linked Documents ({plRecord.linkedDocuments.length})</p>
             <div className="space-y-1.5">
               {plRecord.linkedDocuments.slice(0, 3).map((doc) => (
-                <div key={doc.docId} className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/40 border border-white/5">
+                <div
+                  key={doc.docId}
+                  {...getDocumentContextAttributes(doc.docId, doc.title)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/40 border border-white/5"
+                >
                   <FileText className="w-3.5 h-3.5 text-teal-500 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-slate-300 truncate">{doc.title}</p>
                     <p className="text-[9px] text-slate-500">{doc.type} · Rev {doc.revision}</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <DocumentPreviewButton
+                      documentId={doc.docId}
+                      title={doc.title}
+                      iconOnly
+                      className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                    />
+                    <DocumentDetailsButton
+                      documentId={doc.docId}
+                      iconOnly
+                      className="h-7 min-h-0 px-2 text-slate-300 hover:text-white"
+                    />
                   </div>
                   <Badge
                     variant={doc.status === 'Approved' ? 'success' : doc.status === 'In Review' ? 'warning' : 'default'}
@@ -601,25 +621,32 @@ function AddNodeModal({
     effectiveDate: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [plLookupResult, setPlLookupResult] = useState<typeof PL_DATABASE[string] | null | 'not-found'>(null);
+  const [plLookupResult, setPlLookupResult] = useState<typeof PL_DATABASE[string] | null>(null);
+  const { data: plItems, loading: plItemsLoading } = usePLItems();
 
   const parentOptions = [{ id: 'ROOT', name: 'Top Level (no parent)', type: 'root' }, ...getAllAssemblyTargets(bom)];
+  const selectedPl = useMemo(
+    () => plItems.find((item) => item.plNumber === form.plNumber) ?? null,
+    [form.plNumber, plItems]
+  );
 
-  const lookupPL = () => {
-    if (!form.plNumber.trim()) return;
-
-    const pl = PL_DATABASE[form.plNumber.trim()];
-    if (pl) {
-      setPlLookupResult(pl);
-      setForm((current) => ({
-        ...current,
-        name: pl.name,
-        nodeType: pl.type === 'assembly' ? 'assembly' : pl.type === 'sub-assembly' ? 'sub-assembly' : 'part',
-        revision: pl.revision,
-      }));
-    } else {
-      setPlLookupResult('not-found');
-    }
+  const handlePlNumberChange = (plNumber: string) => {
+    const pl = PL_DATABASE[plNumber] ?? null;
+    const matchedPl = plItems.find((item) => item.plNumber === plNumber) ?? null;
+    setPlLookupResult(pl);
+    setForm((current) => ({
+      ...current,
+      plNumber,
+      name: pl?.name ?? matchedPl?.name ?? current.name,
+      nodeType: pl
+        ? pl.type === 'assembly'
+          ? 'assembly'
+          : pl.type === 'sub-assembly'
+            ? 'sub-assembly'
+            : 'part'
+        : current.nodeType,
+      revision: pl?.revision ?? current.revision,
+    }));
   };
 
   const validate = () => {
@@ -645,7 +672,7 @@ function AddNodeModal({
       quantity: form.quantity,
       findNumber: form.findNumber || '10',
       unitOfMeasure: 'EA',
-      tags: plLookupResult && plLookupResult !== 'not-found' ? plLookupResult.tags.slice(0, 2) : [],
+      tags: plLookupResult ? plLookupResult.tags.slice(0, 2) : [],
       children: [],
     };
 
@@ -669,40 +696,35 @@ function AddNodeModal({
         <div className="space-y-4">
           <div>
             <label className="text-xs font-medium text-slate-400 mb-1.5 block">PL Number *</label>
-            <div className="flex gap-2">
-              <Input
-                value={form.plNumber}
-                onChange={(event) => { setForm((current) => ({ ...current, plNumber: event.target.value.replace(/\D/g, '').slice(0, 8) })); setPlLookupResult(null); }}
-                placeholder="e.g. 38110000"
-                className={`flex-1 font-mono ${errors.plNumber ? 'border-rose-500/50' : ''}`}
-                maxLength={8}
-              />
-              <Button variant="secondary" onClick={lookupPL} size="sm">
-                <Search className="w-3.5 h-3.5" /> Look Up PL
-              </Button>
-            </div>
+            <PLNumberSelect
+              value={form.plNumber}
+              onChange={handlePlNumberChange}
+              plItems={plItems}
+              loading={plItemsLoading}
+              placeholder="Search and select the PL to add..."
+              helperText="Choose the PL first, then place it anywhere in the hierarchy and drag it later if needed."
+              showPreview={false}
+              showViewLink={false}
+            />
             {errors.plNumber && <p className="text-[10px] text-rose-400 mt-1">{errors.plNumber}</p>}
           </div>
 
-          {plLookupResult && plLookupResult !== 'not-found' && (
+          {(plLookupResult || selectedPl) && (
             <div className="flex items-start gap-3 p-3 rounded-xl bg-teal-900/20 border border-teal-500/20">
               <CheckCircle className="w-4 h-4 text-teal-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-semibold text-teal-300">{plLookupResult.name}</p>
-                <p className="text-xs text-slate-400">{plLookupResult.department} · Rev {plLookupResult.revision} · {plLookupResult.lifecycleState}</p>
-                {plLookupResult.safetyVital && (
+                <p className="text-sm font-semibold text-teal-300">{plLookupResult?.name ?? selectedPl?.name}</p>
+                <p className="text-xs text-slate-400">
+                  {plLookupResult
+                    ? `${plLookupResult.department} · Rev ${plLookupResult.revision} · ${plLookupResult.lifecycleState}`
+                    : `${selectedPl?.controllingAgency ?? 'CLW'} · ${selectedPl?.status ?? 'ACTIVE'} record`}
+                </p>
+                {(plLookupResult?.safetyVital || selectedPl?.safetyCritical) && (
                   <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-rose-900/30 border border-rose-500/30 rounded-full text-[10px] text-rose-300">
                     <Shield className="w-2.5 h-2.5" /> Safety Vital
                   </span>
                 )}
               </div>
-            </div>
-          )}
-
-          {plLookupResult === 'not-found' && (
-            <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-900/20 border border-amber-500/20">
-              <Info className="w-4 h-4 text-amber-400 shrink-0" />
-              <p className="text-xs text-amber-300">The PL is not in the current catalog. You can still place the node now and bind it to the real backend PL record later.</p>
             </div>
           )}
 

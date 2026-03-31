@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import {
   Layers3,
@@ -48,6 +48,7 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import { useRightPanel } from '../contexts/RightPanelContext';
+import { DeduplicationService } from '../services/DeduplicationService';
 import {
   DEDUP_CLASS_OPTIONS,
   DEDUP_MIN_SIZE_OPTIONS,
@@ -61,6 +62,7 @@ import {
   type FingerprintState,
   type GroupStatus,
 } from '../lib/deduplicationMock';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 
 type RepositoryScope = 'LDO Repository';
 type CollectionScope = 'All collections' | 'Electrical Drawings' | 'Vendor Qualifications' | 'Control Specifications' | 'Maintenance Procedures';
@@ -134,6 +136,10 @@ function formatDateTime(value: string) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function humanizeToken(value: string) {
+  return value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 function summarizeList(values: string[], fallback: string, limit = 3) {
@@ -516,6 +522,8 @@ export default function DeduplicationConsole() {
   const { openPanel, closePanel } = useRightPanel();
 
   const [groups, setGroups] = useState<DuplicateGroup[]>(DUPLICATE_GROUPS);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+  const [groupSource, setGroupSource] = useState<'backend' | 'mock'>('mock');
   const [dedupMode, setDedupMode] = useState<DedupMode>('fingerprint');
   const [confirmFullHash, setConfirmFullHash] = useState(true);
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -531,6 +539,7 @@ export default function DeduplicationConsole() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingActionState>(null);
+  const [actionBusy, setActionBusy] = useState(false);
   const [jobStatus, setJobStatus] = useState<string>('No dedup jobs running.');
   const [scheduleForm, setScheduleForm] = useState({
     cadence: 'Weekly',
@@ -558,6 +567,70 @@ export default function DeduplicationConsole() {
   const [groupNotes, setGroupNotes] = useState<Record<string, string>>(() =>
     Object.fromEntries(DUPLICATE_GROUPS.map((group) => [group.id, group.notes]))
   );
+
+  const loadGroups = useCallback(async (signal?: AbortSignal) => {
+    setIsLoadingGroups(true);
+    try {
+      const result = await DeduplicationService.getCandidateGroups(signal);
+      setGroups(result.groups);
+      setGroupSource(result.source);
+      setJobStatus(result.summary);
+    } catch (error) {
+      console.warn('[DeduplicationConsole] Falling back to local groups after load failure.', error);
+      setGroups(DUPLICATE_GROUPS);
+      setGroupSource('mock');
+      setJobStatus('Using the fallback console dataset because duplicate groups could not be loaded from the backend.');
+    } finally {
+      setIsLoadingGroups(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    void loadGroups(controller.signal).catch(() => {
+      if (!cancelled) {
+        setGroupSource('mock');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [loadGroups]);
+
+  useEffect(() => {
+    setMasterSelection((current) => {
+      const next = { ...current };
+      for (const group of groups) {
+        if (!next[group.id]) next[group.id] = group.suggestedMasterId;
+      }
+      return next;
+    });
+    setDecisionSelection((current) => {
+      const next = { ...current };
+      for (const group of groups) {
+        if (!next[group.id]) {
+          next[group.id] =
+            group.status === 'exact'
+              ? 'hide_duplicates'
+              : group.status === 'pending'
+                ? 'merge_metadata'
+                : 'ignore_for_now';
+        }
+      }
+      return next;
+    });
+    setGroupNotes((current) => {
+      const next = { ...current };
+      for (const group of groups) {
+        if (!(group.id in next)) next[group.id] = group.notes;
+      }
+      return next;
+    });
+  }, [groups]);
 
   const displayedGroups = useMemo(() => {
     return groups
@@ -685,6 +758,47 @@ export default function DeduplicationConsole() {
                   <span className="font-semibold text-slate-100">Impact summary:</span> {impactSummary}
                 </div>
               </div>
+
+              {((selectedGroup.approvedAssertions?.length ?? 0) > 0 || (selectedGroup.conflictingEntities?.length ?? 0) > 0) && (
+                <div className="space-y-3 rounded-2xl border border-slate-800/70 bg-slate-950/45 p-4">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Metadata evidence</p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Duplicate grouping is reinforced by governed identifiers and extracted entities already stored on the document records.
+                    </p>
+                  </div>
+                  {(selectedGroup.approvedAssertions?.length ?? 0) > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-200">Common approved assertions</p>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedGroup.approvedAssertions?.map((assertion) => (
+                          <span
+                            key={`${assertion.fieldKey}-${assertion.values.join('|')}`}
+                            className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2.5 py-1 text-[11px] text-indigo-100"
+                          >
+                            <span className="font-semibold">{humanizeToken(assertion.fieldKey)}:</span> {assertion.values.join(', ')}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(selectedGroup.conflictingEntities?.length ?? 0) > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-semibold text-slate-200">Conflicting extracted entities</p>
+                      <div className="space-y-2">
+                        {selectedGroup.conflictingEntities?.map((entity) => (
+                          <div
+                            key={`${entity.entityType}-${entity.values.join('|')}`}
+                            className="rounded-xl border border-rose-500/20 bg-rose-500/8 px-3 py-2 text-xs text-rose-100"
+                          >
+                            <span className="font-semibold">{humanizeToken(entity.entityType)}:</span> {entity.values.join(', ')}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ),
         },
@@ -721,7 +835,11 @@ export default function DeduplicationConsole() {
                 const isMaster = (masterSelection[selectedGroup.id] ?? selectedGroup.suggestedMasterId) === doc.id;
                 const fingerprint = getFingerprintMeta(doc.fingerprintState);
                 return (
-                  <div key={doc.id} className="rounded-2xl border border-slate-800/70 bg-slate-950/45 p-3">
+                  <div
+                    key={doc.id}
+                    {...getDocumentContextAttributes(doc.id, doc.title)}
+                    className="rounded-2xl border border-slate-800/70 bg-slate-950/45 p-3"
+                  >
                     <div className="flex items-start gap-3">
                       <input
                         type="radio"
@@ -742,7 +860,15 @@ export default function DeduplicationConsole() {
                             </button>
                             <p className="mt-1 text-xs text-slate-300">{doc.title}</p>
                           </div>
-                          {isMaster && <Badge variant="success">Set as master</Badge>}
+                          <div className="flex items-center gap-2">
+                            <DocumentPreviewButton
+                              documentId={doc.id}
+                              title={doc.title}
+                              iconOnly
+                              className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                            />
+                            {isMaster && <Badge variant="success">Set as master</Badge>}
+                          </div>
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
                           <div className="rounded-xl border border-slate-800/60 bg-slate-950/55 px-3 py-2">
@@ -844,9 +970,19 @@ export default function DeduplicationConsole() {
             <Button variant="secondary" size="sm" onClick={() => setPendingAction({ type: 'mark_non_duplicate', groupId: selectedGroup.id })}>
               Mark as non-duplicate
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/documents/${selectedMaster.id}`)}>
-              Open full document view
-            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <DocumentPreviewButton
+                documentId={selectedMaster.id}
+                title={selectedMaster.title}
+                size="sm"
+                variant="ghost"
+                className="w-full"
+                label="Preview"
+              />
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/documents/${selectedMaster.id}`)}>
+                Open full document view
+              </Button>
+            </div>
           </div>
         </div>
       ),
@@ -858,10 +994,11 @@ export default function DeduplicationConsole() {
   const allVisibleGroupIds = displayedGroups.map((group) => group.id);
   const allVisibleSelected = allVisibleGroupIds.length > 0 && allVisibleGroupIds.every((groupId) => bulkSelectedGroupIds.includes(groupId));
 
-  const runDedupNow = () => {
+  const runDedupNow = async () => {
     const descriptor = dedupMode === 'fingerprint' ? 'metadata + fingerprint' : 'metadata only';
-    setJobStatus(`Dedup run queued using ${descriptor} across ${displayedGroups.length} visible groups.`);
-    toast.success('Dedup run queued', { description: `Using ${descriptor} mode with current scope and filters.` });
+    setJobStatus(`Refreshing duplicate groups using ${descriptor} across the current scope.`);
+    await loadGroups();
+    toast.success('Dedup groups refreshed', { description: `Using ${descriptor} mode with current scope and filters.` });
   };
 
   const exportReport = () => {
@@ -880,104 +1017,144 @@ export default function DeduplicationConsole() {
     );
   };
 
-  const handleConfirmAction = () => {
+  const handleConfirmAction = async () => {
     if (!pendingAction) return;
+    setActionBusy(true);
 
-    if (pendingAction.type === 'scan_missing_hashes') {
-      const pendingCount = groups.reduce(
-        (sum, group) => sum + group.documents.filter((doc) => doc.fingerprintState === 'missing').length,
-        0
-      );
-      setJobStatus(`Background hash scan queued for ${pendingCount} documents missing sparse fingerprints.`);
-      toast.success('Fingerprint scan queued', { description: `${pendingCount} documents will be processed in the background.` });
-    }
-
-    if (pendingAction.type === 'apply_decision') {
-      const group = groups.find((item) => item.id === pendingAction.groupId);
-      if (group) {
-        const masterId = masterSelection[group.id] ?? group.suggestedMasterId;
-        const decision = decisionSelection[group.id];
-        setGroups((current) =>
-          current.map((item) =>
-            item.id === group.id
-              ? {
-                  ...item,
-                  notes: groupNotes[group.id] ?? item.notes,
-                  decisionLog: [
-                    {
-                      at: new Date().toISOString(),
-                      actor: 'edms.admin',
-                      action:
-                        decision === 'hide_duplicates'
-                          ? 'Dedup applied'
-                          : decision === 'merge_metadata'
-                            ? 'Metadata merged'
-                            : 'Ignored',
-                      note:
-                        decision === 'hide_duplicates'
-                          ? `Kept ${masterId} as master and queued ${Math.max(item.documents.length - 1, 1)} duplicates for hide/supersede.`
-                          : decision === 'merge_metadata'
-                            ? `Merged duplicate metadata into ${masterId} and retained its existing links.`
-                            : 'Excluded this group from the active review queue while preserving audit visibility.',
-                    },
-                    ...item.decisionLog,
-                  ],
-                }
-              : item
-          )
+    try {
+      if (pendingAction.type === 'scan_missing_hashes') {
+        const pendingCount = groups.reduce(
+          (sum, group) => sum + group.documents.filter((doc) => doc.fingerprintState === 'missing').length,
+          0
         );
-        toast.success('Dedup decision queued', { description: `${group.id} will be processed without blocking the console.` });
+        await DeduplicationService.queueMissingHashes();
+        setJobStatus(`Background hash scan queued for ${pendingCount} documents missing sparse fingerprints.`);
+        toast.success('Fingerprint scan queued', { description: `${pendingCount} documents will be processed in the background.` });
       }
-    }
 
-    if (pendingAction.type === 'mark_non_duplicate') {
-      setGroups((current) =>
-        current.map((item) =>
-          item.id === pendingAction.groupId
-            ? {
-                ...item,
-                notes: `${groupNotes[item.id] ?? item.notes}\nMarked as non-duplicate by admin review.`,
-                decisionLog: [
-                  {
-                    at: new Date().toISOString(),
-                    actor: 'edms.admin',
-                    action: 'Marked non-duplicate',
-                    note: 'Group removed from active dedup queue while preserving audit history.',
-                  },
-                  ...item.decisionLog,
-                ],
-              }
-            : item
-        )
-      );
-      toast.success('Group marked as non-duplicate');
-      setSelectedGroupId(null);
-    }
+      if (pendingAction.type === 'apply_decision') {
+        const group = groups.find((item) => item.id === pendingAction.groupId);
+        if (group) {
+          const masterId = masterSelection[group.id] ?? group.suggestedMasterId;
+          const decision = decisionSelection[group.id];
+          if (groupSource === 'mock') {
+            setGroups((current) =>
+              current.map((item) =>
+                item.id === group.id
+                  ? {
+                      ...item,
+                      notes: groupNotes[group.id] ?? item.notes,
+                      decisionLog: [
+                        {
+                          at: new Date().toISOString(),
+                          actor: 'edms.admin',
+                          action:
+                            decision === 'hide_duplicates'
+                              ? 'Dedup applied'
+                              : decision === 'merge_metadata'
+                                ? 'Metadata merged'
+                                : 'Ignored',
+                          note:
+                            decision === 'hide_duplicates'
+                              ? `Kept ${masterId} as master and queued ${Math.max(item.documents.length - 1, 1)} duplicates for hide/supersede.`
+                              : decision === 'merge_metadata'
+                                ? `Merged duplicate metadata into ${masterId} and retained its existing links.`
+                                : 'Excluded this group from the active review queue while preserving audit visibility.',
+                        },
+                        ...item.decisionLog,
+                      ],
+                    }
+                  : item
+              )
+            );
+            toast.success('Dedup decision queued', { description: `${group.id} was updated in the fallback console dataset.` });
+          } else {
+            await DeduplicationService.applyDecision(group.id, {
+              decision,
+              masterDocumentId: masterId,
+              notes: groupNotes[group.id] ?? group.notes,
+            });
+            await loadGroups();
+            toast.success('Dedup decision queued', { description: `${group.id} was submitted to the backend decision flow.` });
+          }
+        }
+      }
 
-    if (pendingAction.type === 'bulk_ignore') {
-      setGroups((current) =>
-        current.map((item) =>
-          bulkSelectedGroupIds.includes(item.id)
-            ? {
-                ...item,
-                decisionLog: [
-                  {
-                    at: new Date().toISOString(),
-                    actor: 'edms.admin',
-                    action: 'Bulk ignored',
-                    note: 'Group deprioritized from the active dedup queue via bulk action.',
-                  },
-                  ...item.decisionLog,
-                ],
-              }
-            : item
-        )
-      );
-      toast.success('Selected groups ignored', { description: `${bulkSelectedGroupIds.length} groups moved out of the active queue.` });
-      setBulkSelectedGroupIds([]);
-    }
+      if (pendingAction.type === 'mark_non_duplicate') {
+        if (groupSource === 'mock') {
+          setGroups((current) =>
+            current.map((item) =>
+              item.id === pendingAction.groupId
+                ? {
+                    ...item,
+                    notes: `${groupNotes[item.id] ?? item.notes}\nMarked as non-duplicate by admin review.`,
+                    decisionLog: [
+                      {
+                        at: new Date().toISOString(),
+                        actor: 'edms.admin',
+                        action: 'Marked non-duplicate',
+                        note: 'Group removed from active dedup queue while preserving audit history.',
+                      },
+                      ...item.decisionLog,
+                    ],
+                  }
+                : item
+            )
+          );
+        } else {
+          await DeduplicationService.applyDecision(pendingAction.groupId, {
+            decision: 'ignore_for_now',
+            notes: `${groupNotes[pendingAction.groupId] ?? ''}\nMarked as non-duplicate by admin review.`,
+          });
+          await loadGroups();
+        }
+        toast.success('Group marked as non-duplicate');
+        setSelectedGroupId(null);
+      }
 
-    setPendingAction(null);
+      if (pendingAction.type === 'bulk_ignore') {
+        if (groupSource === 'mock') {
+          setGroups((current) =>
+            current.map((item) =>
+              bulkSelectedGroupIds.includes(item.id)
+                ? {
+                    ...item,
+                    decisionLog: [
+                      {
+                        at: new Date().toISOString(),
+                        actor: 'edms.admin',
+                        action: 'Bulk ignored',
+                        note: 'Group deprioritized from the active dedup queue via bulk action.',
+                      },
+                      ...item.decisionLog,
+                    ],
+                  }
+                : item
+            )
+          );
+        } else {
+          await Promise.all(
+            bulkSelectedGroupIds.map((groupId) =>
+              DeduplicationService.applyDecision(groupId, {
+                decision: 'ignore_for_now',
+                notes: 'Group deprioritized from the active dedup queue via bulk action.',
+              })
+            )
+          );
+          await loadGroups();
+        }
+        toast.success('Selected groups ignored', { description: `${bulkSelectedGroupIds.length} groups moved out of the active queue.` });
+        setBulkSelectedGroupIds([]);
+      }
+
+      setPendingAction(null);
+    } catch (error) {
+      toast.error('Dedup action failed', {
+        description: error instanceof Error ? error.message : 'The backend rejected the dedup action.',
+      });
+    } finally {
+      setActionBusy(false);
+    }
   };
 
   const pendingDialogCopy = (() => {
@@ -1158,8 +1335,13 @@ export default function DeduplicationConsole() {
             <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">Filter row</p>
             <p className="mt-1 text-sm text-slate-400">Narrow candidate groups without leaving the console. Filters are applied explicitly to mirror backend query behavior.</p>
           </div>
-          <div className="rounded-full border border-teal-500/20 bg-teal-500/8 px-3 py-1.5 text-xs text-teal-100">
-            {jobStatus}
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={groupSource === 'backend' ? 'success' : 'info'}>
+              {groupSource === 'backend' ? 'API-backed groups' : 'Fallback dataset'}
+            </Badge>
+            <div className="rounded-full border border-teal-500/20 bg-teal-500/8 px-3 py-1.5 text-xs text-teal-100">
+              {isLoadingGroups ? 'Loading duplicate groups…' : jobStatus}
+            </div>
           </div>
         </div>
 
@@ -1330,6 +1512,8 @@ export default function DeduplicationConsole() {
                       return (
                         <tr
                           key={doc.id}
+                          data-document-id={doc.id}
+                          data-document-title={doc.title}
                           onClick={() => setSelectedGroupId(group.id)}
                           className={`cursor-pointer border-b border-slate-900/70 transition-colors ${selected ? 'bg-teal-500/7' : 'hover:bg-slate-900/45'}`}
                         >
@@ -1569,11 +1753,11 @@ export default function DeduplicationConsole() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border border-slate-700/60 bg-slate-900/60 text-slate-300 hover:bg-slate-900/80">
+            <AlertDialogCancel className="border border-slate-700/60 bg-slate-900/60 text-slate-300 hover:bg-slate-900/80" disabled={actionBusy}>
               Cancel
             </AlertDialogCancel>
-            <AlertDialogAction className="bg-teal-500/15 text-teal-100 hover:bg-teal-500/25" onClick={handleConfirmAction}>
-              {pendingDialogCopy?.actionLabel}
+            <AlertDialogAction className="bg-teal-500/15 text-teal-100 hover:bg-teal-500/25" onClick={handleConfirmAction} disabled={actionBusy}>
+              {actionBusy ? 'Processing...' : pendingDialogCopy?.actionLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -4,6 +4,8 @@ from pathlib import Path
 from .settings_api import (
     ADDITIONAL_INSTALLED_APPS,
     ADDITIONAL_MIDDLEWARE,
+    ANONYMOUS_USER_NAME,
+    AUTHENTICATION_BACKENDS,
     CORS_ALLOWED_ORIGINS,
     CORS_ALLOW_CREDENTIALS,
     CORS_EXPOSE_HEADERS,
@@ -37,6 +39,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     *ADDITIONAL_INSTALLED_APPS,
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
+]
+ANONYMOUS_USER_NAME = None
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -119,6 +127,8 @@ CORS_ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
 CORS_EXPOSE_HEADERS = CORS_EXPOSE_HEADERS
 CORS_ALLOW_CREDENTIALS = CORS_ALLOW_CREDENTIALS
 CSRF_TRUSTED_ORIGINS = CSRF_TRUSTED_ORIGINS
+AUTHENTICATION_BACKENDS = AUTHENTICATION_BACKENDS
+ANONYMOUS_USER_NAME = ANONYMOUS_USER_NAME
 
 LOGGING = dict(API_LOGGING)
 LOGGING['filters']['request_context'] = {'()': 'shared.logging.RequestContextFilter'}
@@ -142,4 +152,21 @@ EDMS_RUNTIME = {
     'celery_result_backend': os.getenv('CELERY_RESULT_BACKEND', os.getenv('REDIS_URL', 'redis://localhost:6379/0')),
     'object_storage_bucket': os.getenv('EDMS_OBJECT_STORAGE_BUCKET', ''),
     'object_storage_endpoint': os.getenv('EDMS_OBJECT_STORAGE_ENDPOINT', ''),
+    'hash_backfill_interval_minutes': int(os.getenv('EDMS_HASH_BACKFILL_INTERVAL_MINUTES', '0')),
+    'hash_backfill_batch_size': int(os.getenv('EDMS_HASH_BACKFILL_BATCH_SIZE', '500')),
+    'hash_backfill_force_full_hash': os.getenv('EDMS_HASH_BACKFILL_FORCE_FULL_HASH', 'false').lower() == 'true',
 }
+
+EDMS_HASH_BACKFILL_INTERVAL_MINUTES = EDMS_RUNTIME['hash_backfill_interval_minutes']
+EDMS_HASH_BACKFILL_BATCH_SIZE = EDMS_RUNTIME['hash_backfill_batch_size']
+EDMS_HASH_BACKFILL_FORCE_FULL_HASH = EDMS_RUNTIME['hash_backfill_force_full_hash']
+
+CELERY_BROKER_URL = EDMS_RUNTIME['celery_broker_url']
+CELERY_RESULT_BACKEND = EDMS_RUNTIME['celery_result_backend']
+CELERY_TASK_ALWAYS_EAGER = os.getenv('CELERY_TASK_ALWAYS_EAGER', 'false').lower() == 'true'
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_TASK_TRACK_STARTED = True
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'

@@ -1,8 +1,11 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,8 +14,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from edms_api.throttles import HealthRateThrottle, LoginRateThrottle
 from edms_api.models import AuditLog
 
-from .serializers import AuditLogSerializer
-from .services import AuditService, DashboardService, SearchService
+from .serializers import AuditLogSerializer, ReportJobCreateSerializer, ReportJobSerializer, WorkflowActionSerializer
+from .services import AuditService, DashboardService, InboxService, ReportJobService, SearchService, WorkflowActionService
 
 
 def resolve_user_role(user):
@@ -85,8 +88,19 @@ class SearchView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        raw_status_filters = request.query_params.getlist('status')
+        if not raw_status_filters:
+            raw_status = request.query_params.get('status', '')
+            raw_status_filters = [part.strip() for part in raw_status.split(',') if part.strip()]
+
         query = request.query_params.get('q', '').strip()
         scope = request.query_params.get('scope', 'ALL')
+        duplicate_filter = request.query_params.get('duplicates', 'include')
+        source_filter = request.query_params.get('source')
+        class_filter = request.query_params.get('class')
+        hash_status = request.query_params.get('hash_status')
+        pl_linked = request.query_params.get('pl_linked')
+        date_range = request.query_params.get('date_range') or request.query_params.get('date_window')
         if len(query) < 2:
             return Response({'detail': 'Query too short'}, status=status.HTTP_400_BAD_REQUEST)
         AuditService.log(
@@ -94,10 +108,32 @@ class SearchView(APIView):
             'System',
             user=request.user,
             entity=query,
-            details={'scope': scope},
+            details={
+                'scope': scope,
+                'duplicates': duplicate_filter,
+                'source': source_filter,
+                'class': class_filter,
+                'hash_status': hash_status,
+                'pl_linked': pl_linked,
+                'status': raw_status_filters,
+                'date_range': date_range,
+            },
             ip_address=request.META.get('REMOTE_ADDR'),
         )
-        return Response(SearchService.search(query, scope))
+        return Response(
+            SearchService.search(
+                query,
+                scope,
+                duplicate_filter,
+                user=request.user,
+                source_filter=source_filter,
+                class_filter=class_filter,
+                hash_status=hash_status,
+                pl_linked=pl_linked,
+                status_filters=raw_status_filters,
+                date_range=date_range,
+            )
+        )
 
 
 class SearchHistoryView(APIView):
@@ -105,6 +141,90 @@ class SearchHistoryView(APIView):
 
     def get(self, request):
         return Response({'searches': SearchService.history_for_user(request.user)})
+
+
+class InboxView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({'items': InboxService.items_for_user(request.user)})
+
+
+class WorkflowItemActionView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, item_id):
+        serializer = WorkflowActionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            result = WorkflowActionService.act(
+                item_id,
+                action=serializer.validated_data['action'],
+                user=request.user,
+                notes=serializer.validated_data.get('notes', ''),
+                comment=serializer.validated_data.get('comment', ''),
+                reason=serializer.validated_data.get('reason', ''),
+                bypass_reason=serializer.validated_data.get('bypass_reason', ''),
+                effectivity_date=serializer.validated_data.get('effectivity_date'),
+                request=request,
+            )
+        except ObjectDoesNotExist as exc:
+            return Response({'detail': str(exc)}, status=status.HTTP_404_NOT_FOUND)
+        except ValueError as exc:
+            raise ValidationError({'action': [str(exc)]}) from exc
+        return Response(
+            {
+                'item_id': result['item_id'],
+                'status': result['status'],
+                'result': result['result'],
+                'target': result['target'],
+                'payload': result['payload'],
+            }
+        )
+
+
+class ReportJobListCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        jobs = ReportJobService.queryset(
+            request.user,
+            status_filter=request.query_params.get('status'),
+            report_type=request.query_params.get('report_type'),
+            export_format=request.query_params.get('export_format') or request.query_params.get('file_format'),
+        )
+        return Response({'results': ReportJobSerializer(jobs[:100], many=True).data, 'total': jobs.count()})
+
+    def post(self, request):
+        serializer = ReportJobCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        job = ReportJobService.create(
+            report_type=serializer.validated_data['report_type'],
+            export_format=serializer.validated_data.get('format', 'xlsx'),
+            filters=serializer.validated_data.get('filters', {}),
+            parameters=serializer.validated_data.get('parameters', {}),
+            user=request.user,
+        )
+        return Response(ReportJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
+
+
+class ReportJobDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, job_id):
+        job = get_object_or_404(ReportJobService.queryset(request.user), pk=job_id)
+        return Response(ReportJobSerializer(job).data)
+
+
+class ReportJobRetryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, job_id):
+        job = get_object_or_404(ReportJobService.queryset(request.user), pk=job_id)
+        if job.status != 'FAILED':
+            return Response({'detail': 'Only failed report jobs can be retried.'}, status=status.HTTP_400_BAD_REQUEST)
+        job = ReportJobService.retry(job, user=request.user)
+        return Response(ReportJobSerializer(job).data, status=status.HTTP_202_ACCEPTED)
 
 
 class HealthStatusView(APIView):

@@ -17,3 +17,4 @@ INFO 2026-03-28 17:59:24,846 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&
 INFO 2026-03-28 17:59:25,717 corr=- tenant=- plant=- "GET /api/pl-items/?page=1&page_size=500 HTTP/1.1" 200 454116
 INFO 2026-03-28 18:00:51,355 corr=- tenant=- plant=- "OPTIONS /api/auth/logout/ HTTP/1.1" 200 0
 INFO 2026-03-28 18:00:51,457 corr=- tenant=- plant=- "POST /api/auth/logout/ HTTP/1.1" 200 36
+INFO 2026-03-28 18:10:07,266 corr=- tenant=- plant=- "OPTIONS /api/v1/auth/login/ HTTP/1.1" 200 164

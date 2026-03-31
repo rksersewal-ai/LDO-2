@@ -14,11 +14,13 @@ const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const DocumentHub = lazy(() => import('./pages/DocumentHub'));
 const DocumentDetail = lazy(() => import('./pages/DocumentDetail'));
+const DocumentPreviewPage = lazy(() => import('./pages/DocumentPreviewPage'));
 const BOMExplorer = lazy(() => import('./pages/BOMExplorer'));
 const BOMCreate = lazy(() => import('./pages/BOMCreate'));
 const BOMProductView = lazy(() => import('./pages/BOMProductView'));
 const PLKnowledgeHub = lazy(() => import('./pages/PLKnowledgeHub'));
 const PLDetail = lazy(() => import('./pages/PLDetail'));
+const PLPreviewPage = lazy(() => import('./pages/PLPreviewPage'));
 const WorkLedger = lazy(() => import('./pages/WorkLedger'));
 const LedgerReports = lazy(() => import('./pages/LedgerReports'));
 const Cases = lazy(() => import('./pages/Cases'));
@@ -40,6 +42,7 @@ const SearchExplorer = lazy(() => import('./pages/SearchExplorer'));
 const AlertRules = lazy(() => import('./pages/AlertRules'));
 const DocumentTemplates = lazy(() => import('./pages/DocumentTemplates'));
 const SystemHealth = lazy(() => import('./pages/SystemHealth'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 function RouteFallback() {
   return (
@@ -77,16 +80,19 @@ const router = createBrowserRouter([
       { path: 'documents', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={DocumentHub} /></ProtectedRoute> },
       { path: 'documents/ingest', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={DocumentIngestion} /></ProtectedRoute> },
       { path: 'documents/:id', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={DocumentDetail} /></ProtectedRoute> },
+      { path: 'documents/:id/preview', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={DocumentPreviewPage} /></ProtectedRoute> },
       { path: 'bom', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={BOMExplorer} /></ProtectedRoute> },
       { path: 'bom/new', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={BOMCreate} /></ProtectedRoute> },
       { path: 'bom/:productId', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={BOMProductView} /></ProtectedRoute> },
       { path: 'pl', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={PLKnowledgeHub} /></ProtectedRoute> },
+      { path: 'pl/preview/:draftId', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={PLPreviewPage} /></ProtectedRoute> },
       { path: 'pl/:id', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={PLDetail} /></ProtectedRoute> },
       { path: 'ledger', element: <ProtectedRoute allowedRoles={[...ENGINEER_UP]}><LazyView Component={WorkLedger} /></ProtectedRoute> },
       { path: 'ledger-reports', element: <ProtectedRoute allowedRoles={[...ADMIN_SUPERVISOR]}><LazyView Component={LedgerReports} /></ProtectedRoute> },
       { path: 'cases', element: <ProtectedRoute allowedRoles={[...REVIEWER_UP]}><LazyView Component={Cases} /></ProtectedRoute> },
       { path: 'approvals', element: <ProtectedRoute allowedRoles={[...REVIEWER_UP]}><LazyView Component={Approvals} /></ProtectedRoute> },
       { path: 'profile', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={ProfilePage} /></ProtectedRoute> },
+      { path: 'notifications', element: <ProtectedRoute allowedRoles={[...ALL_ROLES]}><LazyView Component={NotificationsPage} /></ProtectedRoute> },
       { path: 'reports', element: <ProtectedRoute allowedRoles={[...ADMIN_SUPERVISOR]}><LazyView Component={Reports} /></ProtectedRoute> },
       { path: 'reports/:reportId', element: <ProtectedRoute allowedRoles={[...ADMIN_SUPERVISOR]}><LazyView Component={ReportTablePage} /></ProtectedRoute> },
       { path: 'alerts', element: <ProtectedRoute allowedRoles={[...REVIEWER_UP]}><LazyView Component={AlertRules} /></ProtectedRoute> },

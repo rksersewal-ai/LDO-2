@@ -6,6 +6,7 @@ import { MOCK_DOCUMENTS, MOCK_AUDIT_LOG } from '../lib/mock';
 import { MOCK_APPROVALS, MOCK_OCR_JOBS, MOCK_NOTIFICATIONS } from '../lib/mockExtended';
 import { useAuth } from '../lib/auth';
 import type { UserRole } from '../lib/auth';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 import {
   FileText, CheckSquare, ServerCog, AlertCircle, ArrowRight,
   Activity, FolderOpen, Component, Briefcase, ShieldAlert, Bell, ChevronRight,
@@ -33,7 +34,7 @@ export default function Dashboard() {
     { icon: FileText, label: 'Total Documents', value: MOCK_DOCUMENTS.length, sub: '3 active PL records', color: 'text-teal-400', bg: 'bg-teal-500/10', path: '/documents', roles: undefined },
     { icon: CheckSquare, label: 'Pending Approvals', value: pendingApprovals, sub: `${MOCK_APPROVALS.length} total requests`, color: 'text-amber-400', bg: 'bg-amber-500/10', path: '/approvals', roles: ['admin', 'supervisor', 'engineer', 'reviewer'] as UserRole[] },
     { icon: ServerCog, label: 'OCR Jobs', value: MOCK_OCR_JOBS.length, sub: `${ocrFailed} failed, ${ocrProcessing} running`, color: 'text-blue-400', bg: 'bg-blue-500/10', path: '/ocr', roles: ['admin'] as UserRole[] },
-    { icon: Bell, label: 'Unread Alerts', value: unread, sub: 'Notifications & system alerts', color: 'text-rose-400', bg: 'bg-rose-500/10', path: '/approvals', roles: undefined },
+    { icon: Bell, label: 'Unread Alerts', value: unread, sub: 'Notifications & system alerts', color: 'text-rose-400', bg: 'bg-rose-500/10', path: '/notifications', roles: undefined },
   ];
 
   const kpiCards = allKpiCards.filter(card => !card.roles || hasPermission(card.roles));
@@ -178,6 +179,7 @@ export default function Dashboard() {
               {MOCK_DOCUMENTS.slice(0, 5).map(doc => (
               <div
                 key={doc.id}
+                {...getDocumentContextAttributes(doc.id, doc.name)}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800/40 cursor-pointer transition-colors group"
                 onClick={() => navigate(`/documents/${doc.id}`)}
               >
@@ -191,6 +193,12 @@ export default function Dashboard() {
                   <span className="text-xs text-slate-500 font-mono">{doc.id}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <DocumentPreviewButton
+                    documentId={doc.id}
+                    title={doc.name}
+                    iconOnly
+                    className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                  />
                   <Badge variant={
                     doc.status === 'Approved' ? 'success' :
                     doc.status === 'In Review' ? 'warning' :

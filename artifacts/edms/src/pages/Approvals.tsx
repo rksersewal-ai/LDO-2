@@ -3,6 +3,7 @@ import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_APPROVALS } from '../lib/mockExtended';
 import { CheckSquare, X, FileText, Clock, AlertCircle, CheckCircle, XCircle, ArrowRight } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 
 const statusVariant = (s: string) => {
   if (s === 'Approved') return 'success' as const;
@@ -160,14 +161,25 @@ export default function Approvals() {
             {selectedApproval.linkedDoc && (
               <div className="mb-4">
                 <p className="text-xs text-slate-500 mb-2">Linked Document</p>
-                <button
-                  onClick={() => navigate(`/documents/${selectedApproval.linkedDoc}`)}
-                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/60 w-full text-left transition-colors"
+                <div
+                  {...getDocumentContextAttributes(selectedApproval.linkedDoc, selectedApproval.title)}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/60 w-full transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-teal-400" />
-                  <span className="text-sm font-mono text-teal-400">{selectedApproval.linkedDoc}</span>
-                  <ArrowRight className="w-3 h-3 text-slate-600 ml-auto" />
-                </button>
+                  <button
+                    onClick={() => navigate(`/documents/${selectedApproval.linkedDoc}`)}
+                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                  >
+                    <FileText className="w-4 h-4 text-teal-400" />
+                    <span className="text-sm font-mono text-teal-400">{selectedApproval.linkedDoc}</span>
+                    <ArrowRight className="w-3 h-3 text-slate-600 ml-auto" />
+                  </button>
+                  <DocumentPreviewButton
+                    documentId={selectedApproval.linkedDoc}
+                    title={selectedApproval.title}
+                    iconOnly
+                    className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                  />
+                </div>
               </div>
             )}
             {selectedApproval.status === 'Pending' && (

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { GlassCard, Button } from '../components/ui/Shared';
 import { SafeSection } from '../components/ui/SafeSection';
 import { WorkLedgerService, calculateDaysTaken } from '../services/WorkLedgerService';
+import { ExportImportService } from '../services/ExportImportService';
 import { FileBarChart, Download, TrendingUp, AlertCircle, Clock, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -95,6 +97,24 @@ export default function LedgerReports() {
     { label: 'Avg Completion', value: avgDays ? `${avgDays}d` : '—', icon: <Clock className="w-4 h-4 text-blue-400" />, color: 'text-blue-300' },
   ];
 
+  const handleExport = () => {
+    const rows: Array<Array<string | number>> = [
+      ['Total Records', analytics.totalRecords, 'Current dataset'],
+      ['On-Time Rate', `${analytics.onTimeRate}%`, 'Operational KPI'],
+      ['Overdue Count', analytics.overdueCount, 'Active backlog'],
+      ['Average Completion', avgDays ? `${avgDays} days` : '—', 'Closed records'],
+      ...avgDaysData.map((entry) => [entry.name, `${entry.avg} days`, `Target ${entry.target} days`]),
+    ];
+
+    ExportImportService.exportGenericTableExcel(
+      'Work Ledger Report',
+      ['Metric', 'Value', 'Context'],
+      rows,
+      'work-ledger-report'
+    );
+    toast.success('Work ledger report exported');
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-end justify-between">
@@ -102,7 +122,7 @@ export default function LedgerReports() {
           <h1 className="text-3xl font-bold text-white mb-2">Work Ledger Reports</h1>
           <p className="text-slate-400 text-sm">Analytics and operational reporting for work records.</p>
         </div>
-        <Button variant="secondary"><Download className="w-4 h-4" /> Export</Button>
+        <Button variant="secondary" onClick={handleExport}><Download className="w-4 h-4" /> Export</Button>
       </div>
 
       {/* Summary stat strip */}

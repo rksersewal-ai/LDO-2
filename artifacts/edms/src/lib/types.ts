@@ -80,6 +80,33 @@ export interface Document {
   updatedAt: string;
 }
 
+export interface DocumentMetadataAssertion {
+  id: string;
+  field_key: string;
+  value: string;
+  normalized_value?: string | null;
+  source?: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DocumentOcrEntity {
+  id: string;
+  entity_type: string;
+  entity_value: string;
+  normalized_value?: string | null;
+  confidence?: number | null;
+  method?: string;
+  source_engine?: string;
+  source_page?: number | null;
+  review_status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  review_notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface EngineeringChange {
   id: string;
   ecNumber: string;
@@ -241,9 +268,44 @@ export interface SearchResult {
   matchField?: string;
   snippet?: string;
   date?: string;
+  duplicateStatus?: string;
+  duplicateGroupKey?: string;
+  fingerprintState?: 'missing' | 'present' | 'full';
+  linkedPl?: string;
+  matchReasons?: string[];
+  matchedAssertions?: Array<{
+    field_key: string;
+    value: string;
+    normalized_value?: string;
+  }>;
+  matchedEntities?: Array<{
+    entity_type: string;
+    value: string;
+    normalized_value?: string;
+    review_status?: string;
+  }>;
 }
 
 export type SearchScope = 'ALL' | 'DOCUMENTS' | 'PL' | 'WORK' | 'CASES';
+
+export interface SearchFacetBucket {
+  value?: string | null;
+  hash_state?: string | null;
+  source_system?: string | null;
+  category?: string | null;
+  duplicate_status?: string | null;
+  ocr_status?: string | null;
+  count: number;
+}
+
+export interface SearchDocumentFacets {
+  source_system: SearchFacetBucket[];
+  category: SearchFacetBucket[];
+  duplicate_status: SearchFacetBucket[];
+  ocr_status: SearchFacetBucket[];
+  hash_status: SearchFacetBucket[];
+  pl_linked: SearchFacetBucket[];
+}
 
 export interface SearchBucketsResponse {
   documents: any[];
@@ -251,6 +313,20 @@ export interface SearchBucketsResponse {
   pl_items: any[];
   cases: any[];
   total: number;
+  facets?: {
+    documents: SearchDocumentFacets;
+  };
+}
+
+export interface AppInboxItem {
+  id: string;
+  type: string;
+  title: string;
+  subtitle?: string;
+  status?: string;
+  target?: string;
+  created_at?: string;
+  payload?: Record<string, unknown>;
 }
 
 export interface KPIStatus {

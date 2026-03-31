@@ -12,6 +12,7 @@ import { WorkLedgerService, getTargetDays, checkDuplicates, getKPIStatus } from 
 import { ExportImportService } from '../services/ExportImportService';
 import { WORK_TYPE_DEFINITIONS, SECTION_TYPES, CONCERNED_OFFICERS } from '../lib/constants';
 import type { PLNumber, WorkRecord, WorkCategory } from '../lib/types';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 import {
   Plus, FileSearch, Briefcase, ChevronRight, X,
   FileText, AlertTriangle, CheckCircle,
@@ -486,12 +487,23 @@ function RecordDetail({ record, onVerify, onClose, canVerify }: { record: WorkRe
           </button>
         )}
         {record.documentRef && (
-          <button
-            onClick={() => navigate(`/documents/${record.documentRef}`)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-teal-500/10 border border-teal-500/30 rounded-lg text-xs text-teal-300 hover:bg-teal-500/15 transition-colors"
+          <div
+            {...getDocumentContextAttributes(record.documentRef, record.documentRef)}
+            className="flex items-center gap-1.5 rounded-lg border border-teal-500/30 bg-teal-500/10 px-1.5 py-1"
           >
-            <FileText className="w-3 h-3" /> {record.documentRef}
-          </button>
+            <button
+              onClick={() => navigate(`/documents/${record.documentRef}`)}
+              className="flex items-center gap-1.5 px-1 text-xs text-teal-300 hover:bg-teal-500/15 transition-colors rounded-md"
+            >
+              <FileText className="w-3 h-3" /> {record.documentRef}
+            </button>
+            <DocumentPreviewButton
+              documentId={record.documentRef}
+              title={record.documentRef}
+              iconOnly
+              className="h-7 min-h-0 px-2 text-slate-200 hover:text-white"
+            />
+          </div>
         )}
       </div>
 

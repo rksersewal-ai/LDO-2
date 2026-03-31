@@ -5,6 +5,10 @@ Register models for admin interface
 
 from django.contrib import admin
 from .models import (
+    Baseline,
+    BaselineItem,
+    ChangeNotice,
+    ChangeRequest,
     Approval,
     AuditLog,
     Case,
@@ -74,6 +78,38 @@ class PlBomLineAdmin(admin.ModelAdmin):
     list_filter = ('unit_of_measure',)
     search_fields = ('parent__id', 'child__id', 'find_number')
     readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(ChangeRequest)
+class ChangeRequestAdmin(admin.ModelAdmin):
+    list_display = ('id', 'pl_item', 'title', 'status', 'requested_by', 'requested_at')
+    list_filter = ('status', 'requested_at')
+    search_fields = ('id', 'pl_item__id', 'title')
+    readonly_fields = ('id', 'requested_at', 'reviewed_at', 'updated_at')
+
+
+@admin.register(ChangeNotice)
+class ChangeNoticeAdmin(admin.ModelAdmin):
+    list_display = ('notice_number', 'change_request', 'title', 'status', 'issued_by', 'released_at')
+    list_filter = ('status', 'released_at')
+    search_fields = ('notice_number', 'change_request__id', 'title')
+    readonly_fields = ('id', 'issued_at', 'approved_at', 'released_at', 'closed_at', 'updated_at')
+
+
+@admin.register(Baseline)
+class BaselineAdmin(admin.ModelAdmin):
+    list_display = ('baseline_number', 'pl_item', 'title', 'status', 'released_by', 'released_at')
+    list_filter = ('status', 'released_at')
+    search_fields = ('baseline_number', 'pl_item__id', 'title')
+    readonly_fields = ('id', 'created_at', 'released_at', 'superseded_at', 'updated_at')
+
+
+@admin.register(BaselineItem)
+class BaselineItemAdmin(admin.ModelAdmin):
+    list_display = ('baseline', 'item_type', 'line_order', 'source_object_id')
+    list_filter = ('item_type',)
+    search_fields = ('baseline__baseline_number', 'source_object_id')
+    readonly_fields = ('id', 'created_at')
 
 @admin.register(Case)
 class CaseAdmin(admin.ModelAdmin):

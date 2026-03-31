@@ -1,17 +1,17 @@
-import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Upload, X, FileText, File, FileImage, AlertCircle,
   CheckCircle2, ChevronRight, GitBranch, Loader2, ArrowLeft,
   Scan, Hash, ToggleRight,
 } from 'lucide-react';
-import { MOCK_DOCUMENTS } from '../lib/mock';
 import { GlassCard, Badge, Button, Input, Select, PageHeader } from '../components/ui/Shared';
 import { PLNumberSelect } from '../components/ui/PLNumberSelect';
 import { Switch } from '../components/ui/switch';
 import { usePLItems } from '../hooks/usePLItems';
 import { toast } from 'sonner';
+import apiClient from '../services/ApiClient';
 
 const DOC_TYPES = ['Drawing', 'Specification', 'Test Report', 'Certificate', 'Procedure', 'CAD Model', 'Datasheet'] as const;
 const CATEGORIES = ['Electrical Schema', 'Specification', 'CAD Output', 'Test Report', 'Certificate', 'Calibration Log', 'Procedure', 'Maintenance Manual', 'Financial / Yield'] as const;
@@ -21,6 +21,17 @@ interface UploadedFile {
   size: number;
   type: string;
   lastModified: number;
+}
+
+interface TemplateDraftState {
+  templateId: string;
+  templateName: string;
+  templateCategory: string;
+  templateDescription: string;
+  docTypeHint: string;
+  categoryHint: string;
+  tags: string[];
+  formValues: Record<string, string>;
 }
 
 function formatFileSize(bytes: number): string {
@@ -48,14 +59,20 @@ function FileIcon({ name, className = "w-5 h-5" }: { name: string; className?: s
 
 export default function DocumentIngestion() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dropRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { data: plItems, loading: plItemsLoading } = usePLItems();
 
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [templateDraft, setTemplateDraft] = useState<TemplateDraftState | null>(() => {
+    const state = location.state as { templateDraft?: TemplateDraftState } | null;
+    return state?.templateDraft ?? null;
+  });
 
   // Form state
   const [docName, setDocName] = useState('');
@@ -65,11 +82,23 @@ export default function DocumentIngestion() {
   const [plNumber, setPlNumber] = useState('');
   const [ocrEnabled, setOcrEnabled] = useState(true);
 
+  useEffect(() => {
+    if (!templateDraft) {
+      return;
+    }
+
+    setDocName((current) => current || templateDraft.templateName);
+    setCategory((current) => current || templateDraft.categoryHint || '');
+    setDocType((current) => current || templateDraft.docTypeHint || '');
+    setRevision((current) => current || 'A.0');
+  }, [templateDraft]);
+
   const handleFileDrop = useCallback((file: File) => {
     if (file.size > 50 * 1024 * 1024) {
       toast.error('File too large. Maximum 50 MB allowed.');
       return;
     }
+    setSelectedFile(file);
     setUploadedFile({ name: file.name, size: file.size, type: file.type, lastModified: file.lastModified });
     if (!docName) {
       setDocName(file.name.replace(/\.[^.]+$/, ''));
@@ -103,7 +132,7 @@ export default function DocumentIngestion() {
 
   function validate(): boolean {
     const errs: Record<string, string> = {};
-    if (!uploadedFile) errs.file = 'Please select a file to upload';
+    if (!selectedFile || !uploadedFile) errs.file = 'Please select a file to upload';
     if (!docName.trim()) errs.docName = 'Document name is required';
     if (!docType) errs.docType = 'Please select a document type';
     if (!revision.trim()) errs.revision = 'Revision is required (e.g. A.0)';
@@ -117,35 +146,54 @@ export default function DocumentIngestion() {
 
   async function handleSubmit() {
     if (!validate()) return;
+    if (!selectedFile) return;
     setIsSubmitting(true);
-    await new Promise(r => setTimeout(r, 1200));
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('name', docName.trim());
+      formData.append('category', category);
+      formData.append('doc_type', docType);
+      formData.append('revision_label', revision.trim());
+      formData.append('ocr_requested', String(ocrEnabled));
+      formData.append('source_system', 'UPLOAD');
+      if (plNumber) {
+        formData.append('linked_pl', plNumber);
+      }
+      const description = templateDraft?.templateDescription?.trim();
+      if (description) {
+        formData.append('description', description);
+      }
+      const tags = Array.from(new Set([docType, category, ...(templateDraft?.tags ?? [])].filter(Boolean)));
+      formData.append('tags', JSON.stringify(tags));
+      if (templateDraft?.templateId) {
+        formData.append('template_id', templateDraft.templateId);
+      }
+      if (templateDraft?.formValues) {
+        formData.append('template_fields', JSON.stringify(templateDraft.formValues));
+      }
 
-    const now = new Date();
-    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const yearSuffix = String(Math.floor(Math.random() * 9000) + 1000);
-    const newDoc = {
-      id: `DOC-${now.getFullYear()}-${yearSuffix}`,
-      name: docName.trim(),
-      type: docType,
-      size: uploadedFile ? formatFileSize(uploadedFile.size) : '0 B',
-      revision: revision.trim(),
-      status: 'In Review' as const,
-      author: 'Current User',
-      owner: 'Uploads',
-      date: dateStr,
-      linkedPL: plNumber ? `PL-${plNumber}` : 'N/A',
-      ocrStatus: ocrEnabled ? 'Processing' : 'Not Required',
-      ocrConfidence: null,
-      category,
-      lifecycle: 'Draft',
-      pages: 1,
-      tags: [docType, category],
-    };
-    MOCK_DOCUMENTS.unshift(newDoc as typeof MOCK_DOCUMENTS[0]);
-
-    setIsSubmitting(false);
-    toast.success(`Document "${docName}" ingested successfully`, { description: ocrEnabled ? 'OCR processing queued' : undefined });
-    navigate('/documents');
+      const result = await apiClient.ingestDocument(formData);
+      const createdDocument = result?.document;
+      toast.success(`Document "${docName}" ingested successfully`, {
+        description: ocrEnabled
+          ? 'Indexing started and OCR processing was queued.'
+          : 'Indexing started successfully.',
+      });
+      if (createdDocument?.id) {
+        navigate(`/documents/${createdDocument.id}/preview`);
+        return;
+      }
+      navigate('/documents');
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        'Document ingest failed. Please review the form and try again.';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const ext = uploadedFile ? uploadedFile.name.split('.').pop()?.toUpperCase() ?? '' : '';
@@ -174,6 +222,37 @@ export default function DocumentIngestion() {
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-5">
         {/* Left: File upload zone */}
         <div className="space-y-4">
+          {templateDraft && (
+            <GlassCard className="p-4 border-teal-500/20 bg-teal-950/20">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-teal-300 mb-1">Template Context</p>
+                  <h3 className="text-sm font-semibold text-white">{templateDraft.templateName}</h3>
+                  <p className="text-xs text-slate-400">{templateDraft.templateCategory} template values will stay attached while you complete ingestion.</p>
+                  <p className="mt-2 text-xs text-slate-500 max-w-2xl">{templateDraft.templateDescription}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setTemplateDraft(null)}>
+                  <X className="w-3.5 h-3.5" /> Clear
+                </Button>
+              </div>
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                {Object.entries(templateDraft.formValues).map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-white/6 bg-slate-950/40 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-widest text-slate-500">{label}</p>
+                    <p className="text-xs text-slate-200 mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {templateDraft.tags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-teal-500/20 bg-teal-500/10 px-2 py-0.5 text-[10px] font-medium text-teal-200">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
           <GlassCard className="p-5">
             <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
               <Upload className="w-4 h-4 text-teal-500" /> File Upload
@@ -236,7 +315,14 @@ export default function DocumentIngestion() {
                       </div>
                     </div>
                     <button
-                      onClick={e => { e.stopPropagation(); setUploadedFile(null); }}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setUploadedFile(null);
+                        setSelectedFile(null);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.value = '';
+                        }
+                      }}
                       className="shrink-0 p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700/60 transition-colors"
                     >
                       <X className="w-4 h-4" />

@@ -5,6 +5,7 @@ import {
   RefreshCw, Download, Clock, Zap, TrendingUp, BarChart3,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'sonner';
 
 const generateMetricHistory = (base: number, variance: number) =>
   Array.from({ length: 20 }, (_, i) => ({
@@ -39,10 +40,29 @@ export default function SystemHealth() {
   const [diskData] = useState(() => generateMetricHistory(61, 3));
   const [refreshTime, setRefreshTime] = useState(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [backups, setBackups] = useState(BACKUPS);
 
   const refresh = () => {
     setIsRefreshing(true);
     setTimeout(() => { setRefreshTime(new Date()); setIsRefreshing(false); }, 800);
+  };
+
+  const triggerBackup = () => {
+    const requestedAt = new Date();
+    const backupRecord = {
+      label: `Manual Backup Request`,
+      time: requestedAt.toLocaleString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      size: 'Pending',
+      status: 'pending',
+    };
+    setBackups((current) => [backupRecord, ...current.slice(0, 2)]);
+    toast.success('Backup queued', { description: 'A manual backup request has been added to the operations queue.' });
   };
 
   const currentCPU = Math.round(cpuData[cpuData.length - 1].value);
@@ -136,10 +156,10 @@ export default function SystemHealth() {
         <GlassCard className="overflow-hidden">
           <div className="px-5 py-4 border-b border-white/6 flex items-center justify-between">
             <div className="flex items-center gap-2"><Database className="w-4 h-4 text-blue-400" /><h3 className="text-sm font-semibold text-white">Backup Status</h3></div>
-            <Button size="sm" variant="ghost" className="text-xs flex items-center gap-1"><Download className="w-3 h-3" /> Trigger Backup</Button>
+            <Button size="sm" variant="ghost" className="text-xs flex items-center gap-1" onClick={triggerBackup}><Download className="w-3 h-3" /> Trigger Backup</Button>
           </div>
           <div className="divide-y divide-white/[0.04]">
-            {BACKUPS.map(b => (
+            {backups.map(b => (
               <div key={b.label} className="flex items-center gap-4 px-5 py-3">
                 <div className={`w-2 h-2 rounded-full ${b.status === 'success' ? 'bg-emerald-500' : 'bg-slate-600'} shrink-0`} />
                 <div className="flex-1">

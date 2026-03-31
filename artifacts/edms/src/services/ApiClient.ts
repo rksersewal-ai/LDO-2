@@ -13,6 +13,7 @@
 
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
 import type {
+  AppInboxItem,
   ApiListResponse,
   ApiItemResponse,
   ApiMutationResponse,
@@ -327,6 +328,16 @@ export class ApiClient {
         typeof response?.total === 'number'
           ? response.total
           : 0,
+      facets: {
+        documents: {
+          source_system: Array.isArray(response?.facets?.documents?.source_system) ? response.facets.documents.source_system : [],
+          category: Array.isArray(response?.facets?.documents?.category) ? response.facets.documents.category : [],
+          duplicate_status: Array.isArray(response?.facets?.documents?.duplicate_status) ? response.facets.documents.duplicate_status : [],
+          ocr_status: Array.isArray(response?.facets?.documents?.ocr_status) ? response.facets.documents.ocr_status : [],
+          hash_status: Array.isArray(response?.facets?.documents?.hash_status) ? response.facets.documents.hash_status : [],
+          pl_linked: Array.isArray(response?.facets?.documents?.pl_linked) ? response.facets.documents.pl_linked : [],
+        },
+      },
     };
   }
 
@@ -454,8 +465,65 @@ export class ApiClient {
     return response.data;
   }
 
+  async getDocumentAssertions(id: string, options: RequestOptions = {}) {
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/documents/${id}/assertions/`, { signal: options.signal }),
+      'GET'
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async getDocumentEntities(id: string, options: RequestOptions = {}) {
+    const response = await this.executeWithRetry(
+      () => this.client.get(`/documents/${id}/entities/`, { signal: options.signal }),
+      'GET'
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async approveDocumentEntity(id: string, entityId: string, payload?: { notes?: string }) {
+    const response = await this.client.post(`/documents/${id}/entities/${entityId}/approve/`, payload ?? {});
+    return response.data;
+  }
+
+  async rejectDocumentEntity(id: string, entityId: string, payload?: { notes?: string }) {
+    const response = await this.client.post(`/documents/${id}/entities/${entityId}/reject/`, payload ?? {});
+    return response.data;
+  }
+
+  async promoteDocumentEntityToAssertion(
+    id: string,
+    entityId: string,
+    payload: { field_key: string; notes?: string }
+  ) {
+    const response = await this.client.post(`/documents/${id}/entities/${entityId}/promote/`, payload);
+    return response.data;
+  }
+
+  async approveDocumentAssertion(id: string, assertionId: string, payload?: { notes?: string }) {
+    const response = await this.client.post(`/documents/${id}/assertions/${assertionId}/approve/`, payload ?? {});
+    return response.data;
+  }
+
+  async rejectDocumentAssertion(id: string, assertionId: string, payload?: { notes?: string }) {
+    const response = await this.client.post(`/documents/${id}/assertions/${assertionId}/reject/`, payload ?? {});
+    return response.data;
+  }
+
+  async reindexDocumentMetadata(id: string) {
+    const response = await this.client.post(`/documents/${id}/reindex-metadata/`);
+    return response.data;
+  }
+
   async createDocument(data: FormData) {
     const response = await this.client.post('/documents/', data, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async ingestDocument(data: FormData) {
+    const response = await this.client.post('/documents/ingest/', data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return response.data;
@@ -796,11 +864,29 @@ export class ApiClient {
   async search(
     query: string,
     scope?: SearchScope,
-    options: RequestOptions = {}
+    options: RequestOptions & {
+      duplicates?: 'include' | 'exclude' | 'only';
+      source?: string;
+      className?: string;
+      hashStatus?: 'present' | 'full' | 'missing' | '';
+      plLinked?: 'linked' | 'unlinked' | '';
+      status?: string[];
+      dateRange?: 'any' | '7d' | '30d' | '90d' | '';
+    } = {}
   ): Promise<SearchBucketsResponse> {
     const response = await this.executeWithRetry(
       () => this.client.get('/search/', {
-        params: { q: query, scope },
+        params: {
+          q: query,
+          scope,
+          duplicates: options.duplicates,
+          ...(options.source ? { source: options.source } : {}),
+          ...(options.className ? { class: options.className } : {}),
+          ...(options.hashStatus ? { hash_status: options.hashStatus } : {}),
+          ...(options.plLinked ? { pl_linked: options.plLinked } : {}),
+          ...(options.status && options.status.length > 0 ? { status: options.status.join(',') } : {}),
+          ...(options.dateRange && options.dateRange !== 'any' ? { date_range: options.dateRange } : {}),
+        },
         signal: options.signal,
       }),
       'GET'
@@ -814,6 +900,57 @@ export class ApiClient {
    */
   async getSearchHistory() {
     const response = await this.client.get('/search/history/');
+    return response.data;
+  }
+
+  async getInbox(options: RequestOptions = {}): Promise<{ items: AppInboxItem[] }> {
+    const response = await this.executeWithRetry(
+      () => this.client.get('/inbox/', { signal: options.signal }),
+      'GET'
+    );
+    return {
+      items: Array.isArray(response.data?.items) ? response.data.items : [],
+    };
+  }
+
+  async actOnWorkflowItem(
+    itemId: string,
+    payload: {
+      action: string;
+      notes?: string;
+      comment?: string;
+      reason?: string;
+      bypass_reason?: string;
+      effectivity_date?: string;
+    }
+  ) {
+    const response = await this.client.post(`/workflow-items/${encodeURIComponent(itemId)}/act/`, payload);
+    return response.data;
+  }
+
+  async getDeduplicationGroups(
+    params?: Record<string, string | number | boolean | undefined>,
+    options: RequestOptions = {}
+  ) {
+    const response = await this.executeWithRetry(
+      () => this.client.get('/deduplication/groups/', { params, signal: options.signal }),
+      'GET'
+    );
+    return Array.isArray(response.data) ? response.data : [];
+  }
+
+  async applyDeduplicationDecision(groupKey: string, payload: { decision: 'MERGE' | 'IGNORE'; master_document_id?: string; notes?: string }) {
+    const response = await this.client.post(`/deduplication/groups/${encodeURIComponent(groupKey)}/decision/`, payload);
+    return response.data;
+  }
+
+  async ignoreDeduplicationGroup(groupKey: string, payload?: { notes?: string }) {
+    const response = await this.client.post(`/deduplication/groups/${encodeURIComponent(groupKey)}/ignore/`, payload ?? {});
+    return response.data;
+  }
+
+  async createHashBackfillJob(payload?: { source?: string; batch_size?: number; parameters?: Record<string, unknown> }) {
+    const response = await this.client.post('/indexing/hash-backfill-jobs/', payload ?? {});
     return response.data;
   }
 

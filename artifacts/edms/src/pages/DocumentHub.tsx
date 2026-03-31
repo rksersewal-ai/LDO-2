@@ -5,6 +5,7 @@ import { SafeSection } from '../components/ui/SafeSection';
 import { useAbortOnNavigate } from '../hooks/useAbortOnNavigate';
 import { MOCK_DOCUMENTS } from '../lib/mock';
 import { ExportImportService } from '../services/ExportImportService';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 import {
   FileText, Search, Upload, Download, Eye,
   Grid, List, ChevronRight, FileImage, File,
@@ -401,6 +402,7 @@ export default function DocumentHub() {
                   return (
                     <tr
                       key={doc.id}
+                      {...getDocumentContextAttributes(doc.id, doc.name)}
                       className={`hover:bg-slate-800/40 cursor-pointer transition-colors group ${isSelected ? 'bg-teal-500/5' : ''}`}
                       onClick={() => navigate(`/documents/${doc.id}${search ? `?q=${encodeURIComponent(search)}` : ''}`)}
                     >
@@ -453,7 +455,15 @@ export default function DocumentHub() {
                       )}
                       {visibleCols.has('date') && <td className="py-3 text-slate-500 text-xs">{doc.date}</td>}
                       <td className="py-3 pr-3">
-                        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
+                        <div className="flex items-center justify-end gap-1.5">
+                          <DocumentPreviewButton
+                            documentId={doc.id}
+                            title={doc.name}
+                            iconOnly
+                            className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                          />
+                          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-teal-400 transition-colors" />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -486,6 +496,7 @@ export default function DocumentHub() {
               return (
                 <div
                   key={doc.id}
+                  {...getDocumentContextAttributes(doc.id, doc.name)}
                   className={`p-4 rounded-xl border cursor-pointer transition-all group hover:shadow-lg ${
                     isSelected
                       ? 'bg-teal-500/8 border-teal-500/35 hover:border-teal-400/50'
@@ -532,7 +543,15 @@ export default function DocumentHub() {
 
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between">
                     <Badge variant={ocrVariant(doc.ocrStatus)} className="text-[10px]">{doc.ocrStatus}</Badge>
-                    <span className="text-[10px] text-slate-600">{doc.date}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-600">{doc.date}</span>
+                      <DocumentPreviewButton
+                        documentId={doc.id}
+                        title={doc.name}
+                        iconOnly
+                        className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                      />
+                    </div>
                   </div>
                 </div>
               );

@@ -18,10 +18,12 @@ export interface DocumentChangeAlert {
   previousDocumentStatus?: string;
   previousDocumentType?: string;
   previousRevision?: string;
+  documentFamilyKey?: string;
   uploadedAt?: string;
   changeSummary?: string;
   resolutionNotes?: string;
   bypassReason?: string;
+  resolvedAt?: string;
   message: string;
 }
 
@@ -44,10 +46,12 @@ export const DocumentChangeAlertService = {
       previousDocumentStatus: review.previous_document_status ?? undefined,
       previousDocumentType: review.previous_document_type ?? undefined,
       previousRevision: review.previous_revision != null ? String(review.previous_revision) : undefined,
+      documentFamilyKey: review.document_family_key ?? undefined,
       uploadedAt: review.created_at ?? undefined,
       changeSummary: review.change_summary ?? undefined,
       resolutionNotes: review.resolution_notes ?? undefined,
       bypassReason: review.bypass_reason ?? undefined,
+      resolvedAt: review.resolved_at ?? undefined,
       message:
         review.change_summary
         || `Latest revision ${String(review.latest_revision ?? 'N/A')} needs supervisor review before replacing rev ${String(review.previous_revision ?? 'N/A')}.`,

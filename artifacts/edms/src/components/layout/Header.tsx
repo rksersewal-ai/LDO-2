@@ -3,11 +3,14 @@ import { Search, Bell, User, Type, LogOut, Minus, Plus, RotateCcw, Sun, Moon, Al
 import { useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../lib/auth';
 import { NotificationPanel } from './NotificationPanel';
-import { MOCK_NOTIFICATIONS } from '../../lib/mockExtended';
 import { CommandPalette } from '../ui/CommandPalette';
 import { useTheme } from '../../contexts/ThemeContext';
 import { PreferencesService, type UserPreferences } from '../../services/PreferencesService';
 import { useDocumentChangeAlerts } from '../../hooks/useDocumentChangeAlerts';
+import { useAppInbox } from '../../hooks/useAppInbox';
+import { InboxService } from '../../services/InboxService';
+import type { AppInboxItem } from '../../lib/types';
+import type { InboxAction } from '../../lib/inboxActions';
 
 export function Header() {
   const location = useLocation();
@@ -15,6 +18,7 @@ export function Header() {
   const { user, logout, hasPermission } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { alerts: documentChangeAlerts, approveAlert, bypassAlert } = useDocumentChangeAlerts();
+  const { items: inboxItems, source: inboxSource, refresh: refreshInbox } = useAppInbox();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showTextControls, setShowTextControls] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
@@ -22,11 +26,13 @@ export function Header() {
   const [commandOpen, setCommandOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [now, setNow] = useState(() => new Date());
+  const [busyInboxActionId, setBusyInboxActionId] = useState<string | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
 
   const paths = location.pathname.split('/').filter(Boolean);
   const breadcrumbs = ['Home', ...paths.map(p => p.charAt(0).toUpperCase() + p.slice(1))];
-  const unreadCount = MOCK_NOTIFICATIONS.filter(n => !n.read).length + documentChangeAlerts.length;
+  const standardInboxItems = inboxItems.filter((item) => item.type !== 'supervisor_review');
+  const unreadCount = standardInboxItems.length + documentChangeAlerts.length;
 
   // Breadcrumb navigation helper
   const getBreadcrumbPath = (index: number): string => {
@@ -59,6 +65,18 @@ export function Header() {
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  const handleInboxWorkflowAction = async (notification: AppInboxItem, action: InboxAction) => {
+    setBusyInboxActionId(`${notification.id}:${action.key}`);
+    try {
+      await InboxService.actOnItem(notification.id, action.payload);
+      await refreshInbox();
+    } catch (error) {
+      console.error('[Header] Failed inbox workflow action', error);
+    } finally {
+      setBusyInboxActionId(null);
+    }
+  };
 
   const floatingToggleClass = (active: boolean, tone: 'teal' | 'rose' = 'teal') => {
     if (active) {
@@ -226,12 +244,16 @@ export function Header() {
               </button>
               {showNotifications && (
                 <div>
-                  <NotificationPanel
-                    onClose={() => setShowNotifications(false)}
-                    documentChangeAlerts={documentChangeAlerts}
-                    onApproveAlert={approveAlert}
-                    onBypassAlert={bypassAlert}
-                  />
+                <NotificationPanel
+                  onClose={() => setShowNotifications(false)}
+                  inboxItems={standardInboxItems}
+                  documentChangeAlerts={documentChangeAlerts}
+                  onApproveAlert={approveAlert}
+                  onBypassAlert={bypassAlert}
+                  onWorkflowAction={handleInboxWorkflowAction}
+                  actionable={inboxSource === 'backend'}
+                  busyItemId={busyInboxActionId}
+                />
                 </div>
               )}
             </div>

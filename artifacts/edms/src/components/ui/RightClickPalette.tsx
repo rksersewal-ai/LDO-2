@@ -1,30 +1,44 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import {
+  ArrowLeft,
   ArrowRight,
   Briefcase,
   Command,
   Component,
+  Eye,
   FileSearch,
+  FileText,
   Hash,
+  History,
   RefreshCcw,
 } from 'lucide-react';
 import { useAuth } from '../../lib/auth';
 import { CommandPalette } from './CommandPalette';
+import { resolveDocumentPreviewPath } from '../../lib/documentPreview';
+import { DocumentPreviewService } from '../../services/DocumentPreviewService';
+import { NavigationHistoryService } from '../../services/NavigationHistoryService';
 
 interface PaletteAction {
   id: string;
+  group: 'context' | 'navigation' | 'workspace' | 'tools';
   label: string;
   description: string;
   path?: string;
   icon: ComponentType<{ className?: string }>;
   roles?: string[];
+  disabled?: boolean;
   action?: () => void;
 }
 
 interface PalettePosition {
   x: number;
   y: number;
+}
+
+interface ContextDocumentInfo {
+  id: string;
+  title: string;
 }
 
 const PALETTE_WIDTH = 320;
@@ -49,10 +63,60 @@ export function RightClickPalette() {
   const [open, setOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [position, setPosition] = useState<PalettePosition>({ x: 24, y: 96 });
+  const [contextDocument, setContextDocument] = useState<ContextDocumentInfo | null>(null);
+
+  const currentPath = `${location.pathname}${location.search}`;
+  const previousPath = NavigationHistoryService.getPreviousPath(currentPath);
+  const recentPreview = DocumentPreviewService.getRecentPreview();
 
   const actions = useMemo<PaletteAction[]>(() => [
+    ...(contextDocument ? [
+      {
+        id: 'preview-current-document',
+        group: 'context' as const,
+        label: 'Preview this document',
+        description: contextDocument.title,
+        path: resolveDocumentPreviewPath(contextDocument.id),
+        icon: Eye,
+      },
+      {
+        id: 'open-current-document',
+        group: 'context' as const,
+        label: 'Open document details',
+        description: `Open ${contextDocument.id} in the full document workspace`,
+        path: `/documents/${contextDocument.id}`,
+        icon: FileText,
+      },
+      {
+        id: 'preview-current-document-tab',
+        group: 'context' as const,
+        label: 'Open preview in new tab',
+        description: `Detach ${contextDocument.id} into a separate browser tab`,
+        icon: FileSearch,
+        action: () => window.open(resolveDocumentPreviewPath(contextDocument.id), '_blank', 'noopener,noreferrer'),
+      },
+    ] : []),
+    {
+      id: 'back',
+      group: 'navigation' as const,
+      label: 'Go back to previous page',
+      description: previousPath ? `Return to ${previousPath}` : 'No previous page captured in this session yet',
+      path: previousPath || undefined,
+      icon: ArrowLeft,
+      disabled: !previousPath,
+    },
+    {
+      id: 'recent-preview',
+      group: 'navigation' as const,
+      label: 'Open recent document preview',
+      description: recentPreview ? `Reopen ${recentPreview.title}` : 'No recent preview window has been opened yet',
+      path: recentPreview ? resolveDocumentPreviewPath(recentPreview.documentId) : undefined,
+      icon: Eye,
+      disabled: !recentPreview,
+    },
     {
       id: 'search',
+      group: 'workspace' as const,
       label: 'Open search explorer',
       description: 'Jump into indexed document and PL search',
       path: '/search',
@@ -60,6 +124,7 @@ export function RightClickPalette() {
     },
     {
       id: 'pl',
+      group: 'workspace' as const,
       label: 'Open PL knowledge hub',
       description: 'Browse and manage PL-controlled items',
       path: '/pl',
@@ -68,6 +133,7 @@ export function RightClickPalette() {
     },
     {
       id: 'ledger',
+      group: 'workspace' as const,
       label: 'Log work activity',
       description: 'Go to the work ledger and create a new entry',
       path: '/ledger',
@@ -76,6 +142,7 @@ export function RightClickPalette() {
     },
     {
       id: 'bom',
+      group: 'workspace' as const,
       label: 'Create BOM workspace',
       description: 'Start a new BOM draft from the guided creation page',
       path: '/bom/new',
@@ -84,6 +151,7 @@ export function RightClickPalette() {
     },
     {
       id: 'refresh',
+      group: 'tools' as const,
       label: 'Refresh current view',
       description: 'Reload the active route and data surface',
       icon: RefreshCcw,
@@ -91,16 +159,38 @@ export function RightClickPalette() {
     },
     {
       id: 'command',
+      group: 'tools' as const,
       label: 'Open full command palette',
       description: 'Use keyboard-style navigation from the mouse',
       icon: Command,
       action: () => setCommandOpen(true),
     },
-  ].filter(action => !action.roles || hasPermission(action.roles as any)), [hasPermission]);
+    {
+      id: 'history',
+      group: 'navigation' as const,
+      label: 'Open notifications inbox',
+      description: 'Resume recent workflow actions and alerts',
+      path: '/notifications',
+      icon: History,
+    },
+  ].filter(action => !action.roles || hasPermission(action.roles as any)), [contextDocument, hasPermission, previousPath, recentPreview]);
+
+  const groupedActions = useMemo(() => {
+    return {
+      context: actions.filter((action) => action.group === 'context'),
+      navigation: actions.filter((action) => action.group === 'navigation'),
+      workspace: actions.filter((action) => action.group === 'workspace'),
+      tools: actions.filter((action) => action.group === 'tools'),
+    };
+  }, [actions]);
 
   useEffect(() => {
     const handleContextMenu = (event: MouseEvent) => {
-      if (event.shiftKey || isInteractiveTarget(event.target)) {
+      const targetDocument = event.target instanceof HTMLElement
+        ? event.target.closest<HTMLElement>('[data-document-id]')
+        : null;
+
+      if (event.shiftKey || (isInteractiveTarget(event.target) && !targetDocument)) {
         return;
       }
 
@@ -114,10 +204,21 @@ export function RightClickPalette() {
         x: Math.max(PALETTE_MARGIN, nextX),
         y: Math.max(88, nextY),
       });
+      setContextDocument(
+        targetDocument?.dataset.documentId
+          ? {
+              id: targetDocument.dataset.documentId,
+              title: targetDocument.dataset.documentTitle || targetDocument.dataset.documentId,
+            }
+          : null
+      );
       setOpen(true);
     };
 
-    const handleDismiss = () => setOpen(false);
+    const handleDismiss = () => {
+      setOpen(false);
+      setContextDocument(null);
+    };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -141,7 +242,11 @@ export function RightClickPalette() {
   }, []);
 
   const runAction = (action: PaletteAction) => {
+    if (action.disabled) {
+      return;
+    }
     setOpen(false);
+    setContextDocument(null);
 
     if (action.action) {
       action.action();
@@ -156,6 +261,43 @@ export function RightClickPalette() {
     if (action.path) {
       navigate(action.path);
     }
+  };
+
+  const renderAction = (action: PaletteAction) => {
+    const Icon = action.icon;
+    return (
+      <button
+        key={action.id}
+        onClick={() => runAction(action)}
+        disabled={action.disabled}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-cyan-400/8 disabled:cursor-not-allowed disabled:opacity-45"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/6 text-cyan-300">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-slate-100">{action.label}</div>
+          <div className="truncate text-[11px] text-slate-500">{action.description}</div>
+        </div>
+        <ArrowRight className="h-3.5 w-3.5 text-slate-600" />
+      </button>
+    );
+  };
+
+  const renderSection = (label: string, group: PaletteAction['group']) => {
+    const sectionActions = groupedActions[group];
+    if (!sectionActions.length) {
+      return null;
+    }
+
+    return (
+      <div className="px-2 py-1">
+        <div className="px-2 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+          {label}
+        </div>
+        <div className="space-y-1">{sectionActions.map(renderAction)}</div>
+      </div>
+    );
   };
 
   return (
@@ -177,26 +319,15 @@ export function RightClickPalette() {
             </p>
           </div>
 
-          <div className="p-2">
-            {actions.map(action => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.id}
-                  onClick={() => runAction(action)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-cyan-400/8"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-400/15 bg-cyan-400/6 text-cyan-300">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-slate-100">{action.label}</div>
-                    <div className="truncate text-[11px] text-slate-500">{action.description}</div>
-                  </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-slate-600" />
-                </button>
-              );
-            })}
+          <div className="max-h-[420px] overflow-y-auto py-2">
+            {renderSection('Document', 'context')}
+            {renderSection('Navigation', 'navigation')}
+            {renderSection('Workspace', 'workspace')}
+            {renderSection('Tools', 'tools')}
+          </div>
+
+          <div className="border-t border-white/6 px-4 py-3 text-[11px] text-slate-500">
+            Built for quick mouse travel: jump back, reopen previews, or continue a workflow without expanding the sidebar.
           </div>
         </div>
       )}

@@ -110,10 +110,13 @@ CSRF_TRUSTED_ORIGINS = [
 # ─────────────────────────────────────────────────────────────────────────────
 
 ADDITIONAL_INSTALLED_APPS = [
+    'django.contrib.postgres',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
+    'django_celery_beat',
+    'guardian',
     'edms_api',
     'shared',
     'documents',
@@ -131,6 +134,13 @@ ADDITIONAL_MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'shared.middleware.RequestContextMiddleware',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'guardian.backends.ObjectPermissionBackend',
+]
+
+ANONYMOUS_USER_NAME = None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Database Configuration Example

@@ -22,6 +22,7 @@ import { MOCK_DOCUMENTS } from '../lib/mock';
 import type { CaseRecord } from '../lib/types';
 import { usePLItems } from '../hooks/usePLItems';
 import { CaseService } from '../services/CaseService';
+import { DocumentPreviewButton, getDocumentContextAttributes } from '../components/documents/DocumentPreviewActions';
 
 type DisplayStatus = 'Open' | 'In Progress' | 'Closed';
 type DisplaySeverity = 'Low' | 'Medium' | 'High' | 'Critical';
@@ -158,6 +159,21 @@ export default function Cases() {
       setSelectedCaseId(match.id);
     }
   }, [cases, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get('new') !== '1') {
+      return;
+    }
+
+    setNewCaseForm((current) => ({
+      ...current,
+      plNumber: searchParams.get('pl') ?? current.plNumber,
+      title: searchParams.get('title') ?? current.title,
+      description: searchParams.get('description') ?? current.description,
+      assignee: searchParams.get('assignee') ?? current.assignee,
+    }));
+    setNewCaseOpen(true);
+  }, [searchParams]);
 
   useEffect(() => {
     persistComments(commentsByCase);
@@ -370,7 +386,11 @@ export default function Cases() {
                 {linkedDocs.length > 0 ? (
                   <div className="space-y-2">
                     {linkedDocs.map((document) => (
-                      <div key={document.id} className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/50">
+                      <div
+                        key={document.id}
+                        {...getDocumentContextAttributes(document.id, document.name)}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/30 border border-slate-700/50"
+                      >
                         <button
                           className="flex flex-1 items-center gap-3 text-left hover:text-teal-300 transition-colors"
                           onClick={() => navigate(`/documents/${document.id}`)}
@@ -381,6 +401,12 @@ export default function Cases() {
                             <p className="text-xs text-slate-400 truncate">{document.name}</p>
                           </div>
                         </button>
+                        <DocumentPreviewButton
+                          documentId={document.id}
+                          title={document.name}
+                          iconOnly
+                          className="h-8 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                        />
                         <Button variant="ghost" size="sm" onClick={() => handleUnlinkDocument(document.id)}>
                           <X className="w-3.5 h-3.5" />
                         </Button>
@@ -548,9 +574,18 @@ export default function Cases() {
               />
               <div className="max-h-[360px] space-y-2 overflow-y-auto pr-1">
                 {filteredDocuments.length > 0 ? filteredDocuments.map((document) => (
-                  <button
+                  <div
                     key={document.id}
+                    {...getDocumentContextAttributes(document.id, document.name)}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleLinkDocument(document.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        handleLinkDocument(document.id);
+                      }
+                    }}
                     className="w-full rounded-xl border border-slate-700/50 bg-slate-900/50 px-4 py-3 text-left transition-colors hover:border-teal-500/40 hover:bg-slate-900"
                   >
                     <div className="flex items-center justify-between gap-3">
@@ -558,12 +593,20 @@ export default function Cases() {
                         <p className="text-sm font-medium text-white">{document.name}</p>
                         <p className="mt-1 text-[11px] font-mono text-teal-400">{document.id}</p>
                       </div>
-                      <Badge variant="info">{document.type}</Badge>
+                      <div className="flex items-center gap-2">
+                        <DocumentPreviewButton
+                          documentId={document.id}
+                          title={document.name}
+                          iconOnly
+                          className="h-7 min-h-0 px-2 text-slate-300 hover:text-teal-200"
+                        />
+                        <Badge variant="info">{document.type}</Badge>
+                      </div>
                     </div>
                     <p className="mt-2 text-xs text-slate-500">
                       Linked PL: {document.linkedPL} · Revision {document.revision}
                     </p>
-                  </button>
+                  </div>
                 )) : (
                   <p className="rounded-xl border border-white/6 bg-slate-950/35 px-4 py-5 text-sm text-slate-500">
                     No matching documents available to link.

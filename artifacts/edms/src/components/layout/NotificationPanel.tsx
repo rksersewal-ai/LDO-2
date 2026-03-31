@@ -1,7 +1,11 @@
-import { Bell, CheckSquare, ServerCog, AlertCircle, Briefcase, X, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Bell, CheckSquare, ServerCog, AlertCircle, Briefcase, X, ExternalLink, AlertTriangle, GitBranch, GitCommitHorizontal, Eye, MoreHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { MOCK_NOTIFICATIONS } from '../../lib/mockExtended';
 import type { DocumentChangeAlert } from '../../services/DocumentChangeAlertService';
+import { resolveNotificationActionLabel, resolveNotificationPath } from '../../lib/notificationRouting';
+import type { AppInboxItem } from '../../lib/types';
+import { getWorkflowActions, type InboxAction } from '../../lib/inboxActions';
+import { resolveDocumentPreviewPath, resolveNotificationPreviewDocumentId } from '../../lib/documentPreview';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
 
 const typeIcon = (type: string) => {
   if (type === 'approval') return <CheckSquare className="w-4 h-4 text-amber-400" />;
@@ -9,47 +13,47 @@ const typeIcon = (type: string) => {
   if (type === 'case') return <AlertCircle className="w-4 h-4 text-rose-400" />;
   if (type === 'work') return <Briefcase className="w-4 h-4 text-teal-400" />;
   if (type === 'design-change') return <AlertTriangle className="w-4 h-4 text-amber-300" />;
+  if (type === 'dedup_review') return <AlertTriangle className="w-4 h-4 text-violet-300" />;
+  if (type === 'indexing_failure') return <ServerCog className="w-4 h-4 text-rose-300" />;
+  if (type === 'change_request') return <GitBranch className="w-4 h-4 text-cyan-300" />;
+  if (type === 'change_notice') return <GitCommitHorizontal className="w-4 h-4 text-indigo-300" />;
   return <Bell className="w-4 h-4 text-slate-400" />;
 };
 
 export function NotificationPanel({
   onClose,
+  inboxItems = [],
   documentChangeAlerts = [],
   onApproveAlert,
   onBypassAlert,
+  onWorkflowAction,
+  actionable = false,
+  busyItemId = null,
 }: {
   onClose: () => void;
+  inboxItems?: AppInboxItem[];
   documentChangeAlerts?: DocumentChangeAlert[];
   onApproveAlert?: (alertId: string, notes?: string) => Promise<void> | void;
   onBypassAlert?: (alertId: string, payload?: { notes?: string; bypassReason?: string }) => Promise<void> | void;
+  onWorkflowAction?: (notification: AppInboxItem, action: InboxAction) => Promise<void> | void;
+  actionable?: boolean;
+  busyItemId?: string | null;
 }) {
   const navigate = useNavigate();
-  const unread = MOCK_NOTIFICATIONS.filter(n => !n.read).length + documentChangeAlerts.length;
+  const unread = inboxItems.length + documentChangeAlerts.length;
 
   const openDocumentAlert = (alert: DocumentChangeAlert) => {
     navigate(`/pl/${alert.plId}?tab=crossrefs&doc=${alert.documentId}`);
     onClose();
   };
 
-  const resolveNotificationPath = (notification: (typeof MOCK_NOTIFICATIONS)[number]) => {
-    switch (notification.type) {
-      case 'approval':
-        return notification.entity ? `/approvals?id=${encodeURIComponent(notification.entity)}` : '/approvals';
-      case 'ocr':
-        return notification.entity ? `/ocr?document=${encodeURIComponent(notification.entity)}` : '/ocr';
-      case 'case':
-        return notification.entity ? `/cases?id=${encodeURIComponent(notification.entity)}` : '/cases';
-      case 'work':
-        return notification.entity ? `/ledger?id=${encodeURIComponent(notification.entity)}` : '/ledger';
-      case 'system':
-        return '/health';
-      default:
-        return '/';
-    }
+  const openNotification = (notification: AppInboxItem) => {
+    navigate(resolveNotificationPath(notification));
+    onClose();
   };
 
-  const openNotification = (notification: (typeof MOCK_NOTIFICATIONS)[number]) => {
-    navigate(resolveNotificationPath(notification));
+  const openPreview = (documentId: string) => {
+    navigate(resolveDocumentPreviewPath(documentId));
     onClose();
   };
 
@@ -97,6 +101,16 @@ export function NotificationPanel({
                   <button
                     onClick={(event) => {
                       event.stopPropagation();
+                      openPreview(alert.documentId);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-200 hover:border-sky-400/40 hover:bg-sky-500/14 transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    Preview
+                  </button>
+                  <button
+                    onClick={(event) => {
+                      event.stopPropagation();
                       openDocumentAlert(alert);
                     }}
                     className="inline-flex items-center gap-1 rounded-lg border border-teal-500/25 bg-teal-500/10 px-2.5 py-1 text-[10px] font-semibold text-teal-200 hover:border-teal-400/40 hover:bg-teal-500/14 transition-colors"
@@ -104,55 +118,120 @@ export function NotificationPanel({
                     <ExternalLink className="w-3 h-3" />
                     Open PL
                   </button>
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void onApproveAlert?.(alert.id, 'Approved from header notification');
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/14 transition-colors"
-                  >
-                    Approve update
-                  </button>
-                  <button
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void onBypassAlert?.(alert.id, { bypassReason: 'Bypassed from header notification' });
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-rose-500/25 bg-rose-500/10 px-2.5 py-1 text-[10px] font-semibold text-rose-200 hover:border-rose-400/40 hover:bg-rose-500/14 transition-colors"
-                  >
-                    Bypass
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`Review actions for PL ${alert.plNumber}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/14 transition-colors"
+                      >
+                        <MoreHorizontal className="w-3 h-3" />
+                        Review
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 border border-slate-700/60 bg-slate-950 text-slate-200">
+                      <DropdownMenuItem
+                        className="focus:bg-slate-800"
+                        onSelect={() => void onApproveAlert?.(alert.id, 'Approved from header notification')}
+                      >
+                        Approve update
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="focus:bg-slate-800 text-rose-200 focus:text-rose-100"
+                        onSelect={() => void onBypassAlert?.(alert.id, { bypassReason: 'Bypassed from header notification' })}
+                      >
+                        Bypass update
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {MOCK_NOTIFICATIONS.map(n => (
+        {inboxItems.map((n) => {
+          const actions = actionable ? getWorkflowActions(n) : [];
+          const previewDocumentId = resolveNotificationPreviewDocumentId(n);
+          return (
           <div
             key={n.id}
             onClick={() => openNotification(n)}
-            className={`flex items-start gap-3 px-5 py-4 border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer transition-colors ${!n.read ? 'bg-teal-950/20' : ''}`}
+            className="flex items-start gap-3 px-5 py-4 border-b border-slate-800/50 hover:bg-slate-800/30 cursor-pointer transition-colors"
           >
             <div className="mt-0.5 shrink-0">{typeIcon(n.type)}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="text-xs font-semibold text-slate-200">{n.title}</span>
-                {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />}
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shrink-0" />
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">{n.message}</p>
-              <span className="text-[10px] text-slate-600 mt-1 block">{n.time}</span>
+              <p className="text-xs text-slate-400 leading-relaxed">{n.subtitle || 'Actionable workflow item waiting in the queue.'}</p>
+              <span className="text-[10px] text-slate-600 mt-1 block">{n.created_at || 'Now'}</span>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {previewDocumentId && (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openPreview(previewDocumentId);
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg border border-sky-500/25 bg-sky-500/10 px-2.5 py-1 text-[10px] font-semibold text-sky-200 transition-colors hover:border-sky-400/40 hover:bg-sky-500/14"
+                  >
+                    <Eye className="w-3 h-3" />
+                    Preview
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openNotification(n);
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-teal-500/20 bg-teal-500/8 px-2.5 py-1 text-[10px] font-semibold text-teal-200 transition-colors hover:border-teal-400/40 hover:bg-teal-500/14"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  {resolveNotificationActionLabel(n)}
+                </button>
+                {actions.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label={`Workflow actions for ${n.title}`}
+                        onClick={(event) => event.stopPropagation()}
+                        className="inline-flex items-center gap-1 rounded-lg border border-teal-500/20 bg-teal-500/8 px-2.5 py-1 text-[10px] font-semibold text-teal-200 transition-colors hover:border-teal-400/40 hover:bg-teal-500/14"
+                      >
+                        <MoreHorizontal className="w-3 h-3" />
+                        Actions
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 border border-slate-700/60 bg-slate-950 text-slate-200">
+                      {actions.map((action) => (
+                        <DropdownMenuItem
+                          key={action.key}
+                          disabled={busyItemId === `${n.id}:${action.key}`}
+                          className={`focus:bg-slate-800 ${action.variant === 'danger' ? 'text-rose-200 focus:text-rose-100' : ''}`}
+                          onSelect={() => void onWorkflowAction?.(n, action)}
+                        >
+                          {busyItemId === `${n.id}:${action.key}` ? 'Working...' : action.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
             <div className="shrink-0 self-center text-slate-600">
               <ExternalLink className="w-3.5 h-3.5" />
             </div>
           </div>
-        ))}
+        )})}
       </div>
       <div className="px-5 py-3 border-t border-slate-700/50">
         <button
           onClick={() => {
-            navigate('/approvals');
+            navigate('/notifications');
             onClose();
           }}
           className="text-xs text-teal-400 hover:text-teal-300 transition-colors flex items-center gap-1"

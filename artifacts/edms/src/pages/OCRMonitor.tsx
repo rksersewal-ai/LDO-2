@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { GlassCard, Badge, Button } from '../components/ui/Shared';
 import { MOCK_OCR_JOBS } from '../lib/mockExtended';
 import { ServerCog, RefreshCw, FileText, X, CheckCircle, Clock, XCircle, SkipForward, AlertCircle } from 'lucide-react';
 import { useSearchParams } from 'react-router';
+import { toast } from 'sonner';
+import apiClient from '../services/ApiClient';
 
 interface OcrJobRecord {
   id: string;
@@ -34,12 +36,50 @@ export default function OCRMonitor() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filter, setFilter] = useState<string>('All');
   const [selectedJob, setSelectedJob] = useState<OcrJobRecord | null>(null);
-  const [jobs, setJobs] = useState<OcrJobRecord[]>([...MOCK_OCR_JOBS]);
+  const [jobs, setJobs] = useState<OcrJobRecord[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const mapJob = useCallback((job: any): OcrJobRecord => ({
+    id: String(job.id),
+    document: String(job.document_id || job.document || ''),
+    filename: String(job.document_name || job.filename || job.document_id || 'Unknown document'),
+    status: String(job.status || 'Queued'),
+    confidence: typeof job.confidence === 'number' ? Math.round(job.confidence * (job.confidence <= 1 ? 100 : 1)) : null,
+    pages: Number(job.page_count || 0),
+    startTime: job.started_at || null,
+    endTime: job.completed_at || null,
+    extractedRefs: Number(job.entity_count || 0),
+    failureReason: job.error_message || undefined,
+  }), []);
+
+  const fetchJobs = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const response = await apiClient.getOcrJobs({
+        page: 1,
+        pageSize: 100,
+        filters: filter === 'All' ? {} : { status: filter },
+      });
+      setJobs(response.items.map(mapJob));
+    } catch (error) {
+      console.warn('Falling back to mock OCR jobs', error);
+      const fallback = filter === 'All' ? [...MOCK_OCR_JOBS] : MOCK_OCR_JOBS.filter((job) => job.status === filter);
+      setJobs(fallback);
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
+    }
+  }, [filter, mapJob]);
 
   const filtered = filter === 'All' ? jobs : jobs.filter(j => j.status === filter);
   const completed = jobs.filter(j => j.status === 'Completed').length;
   const failed = jobs.filter(j => j.status === 'Failed').length;
   const processing = jobs.filter(j => j.status === 'Processing').length;
+
+  useEffect(() => {
+    void fetchJobs();
+  }, [fetchJobs]);
 
   useEffect(() => {
     const requestedJobId = searchParams.get('id');
@@ -64,8 +104,25 @@ export default function OCRMonitor() {
   };
 
   const handleRetry = (id: string) => {
-    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: 'Processing', confidence: null } : j));
-    updateSelectedJob(null);
+    const target = jobs.find((job) => job.id === id);
+    if (!target) {
+      return;
+    }
+    void apiClient.startOcrJob(target.document)
+      .then(async () => {
+        toast.success('OCR job restarted', { description: `Document ${target.document} was re-queued.` });
+        updateSelectedJob(null);
+        await fetchJobs();
+      })
+      .catch((error: any) => {
+        const message = error?.response?.data?.detail || 'Unable to restart OCR job.';
+        toast.error(message);
+      });
+  };
+
+  const handleRefresh = async () => {
+    await fetchJobs();
+    toast.success('OCR jobs refreshed', { description: 'Current pipeline state has been reloaded.' });
   };
 
   return (
@@ -110,7 +167,9 @@ export default function OCRMonitor() {
                 </button>
               ))}
             </div>
-            <Button variant="secondary" className="ml-auto"><RefreshCw className="w-4 h-4" /> Refresh</Button>
+            <Button variant="secondary" className="ml-auto" onClick={() => void handleRefresh()}>
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
+            </Button>
           </div>
 
           <div className="overflow-x-auto">
@@ -127,6 +186,13 @@ export default function OCRMonitor() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/30">
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                      No OCR jobs match the current filter.
+                    </td>
+                  </tr>
+                )}
                 {filtered.map(job => (
                   <tr
                     key={job.id}

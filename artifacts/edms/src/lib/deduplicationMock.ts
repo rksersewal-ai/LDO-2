@@ -59,6 +59,14 @@ export interface DuplicateGroup {
   risks: string[];
   notes: string;
   decisionLog: DedupDecisionLogEntry[];
+  approvedAssertions?: Array<{
+    fieldKey: string;
+    values: string[];
+  }>;
+  conflictingEntities?: Array<{
+    entityType: string;
+    values: string[];
+  }>;
 }
 
 export const DEDUP_CLASS_OPTIONS = [
