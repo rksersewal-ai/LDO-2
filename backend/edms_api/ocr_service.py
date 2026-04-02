@@ -159,44 +159,27 @@ class EasyOcrEngine(OcrEngine):
                            error="easyocr not available")
         
         try:
-            from PIL import Image
-            import io
+            import numpy as np
             
-            # Convert PDF pages to images if needed
-            if file_path.lower().endswith('.pdf'):
-                try:
-                    import pdf2image
-                    images = pdf2image.convert_from_path(file_path)
-                    if not images:
-                        return OcrResult("", confidence=0.0, engine=self.name(),
-                                       error="Could not convert PDF to image")
-                except ImportError:
-                    logger.warning("pdf2image not installed. Cannot process PDFs with EasyOCR")
-                    return OcrResult("", confidence=0.0, engine=self.name(),
-                                   error="pdf2image required for PDF processing")
-            else:
-                # Open image file
-                images = [Image.open(file_path)]
+            try:
+                images = _load_images(file_path, "EasyOCR")
+            except ValueError as e:
+                return OcrResult("", confidence=0.0, engine=self.name(), error=str(e))
 
             reader = self._get_reader()
             page_texts = []
             all_confidences = []
-            import tempfile
 
             for image in images:
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-                    image.save(tmp.name, 'PNG')
-                    temp_path = tmp.name
+                # pass images directly as numpy arrays to reader.readtext() to avoid temp files
+                img_array = np.array(image)
+                results = reader.readtext(img_array)
 
-                try:
-                    results = reader.readtext(temp_path)
-                    page_lines = []
-                    for (bbox, text, conf) in results:
-                        page_lines.append(text)
-                        all_confidences.append(conf)
-                    page_texts.append("\n".join(page_lines))
-                finally:
-                    os.unlink(temp_path)
+                page_lines = []
+                for (bbox, text, conf) in results:
+                    page_lines.append(text)
+                    all_confidences.append(conf)
+                page_texts.append("\n".join(page_lines))
 
             full_text = "\n\f\n".join(text for text in page_texts if text)
             avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
@@ -250,23 +233,10 @@ class TesseractEngine(OcrEngine):
                            error="Tesseract not available")
         
         try:
-            from PIL import Image
-            import io
-            
-            # Convert PDF pages to images if needed
-            if file_path.lower().endswith('.pdf'):
-                try:
-                    import pdf2image
-                    images = pdf2image.convert_from_path(file_path)
-                    if not images:
-                        return OcrResult("", confidence=0.0, engine=self.name(),
-                                       error="Could not convert PDF to image")
-                except ImportError:
-                    logger.warning("pdf2image not installed")
-                    return OcrResult("", confidence=0.0, engine=self.name(),
-                                   error="pdf2image required for PDF processing")
-            else:
-                images = [Image.open(file_path)]
+            try:
+                images = _load_images(file_path, "Tesseract")
+            except ValueError as e:
+                return OcrResult("", confidence=0.0, engine=self.name(), error=str(e))
 
             page_texts = []
             confidences = []
@@ -297,6 +267,24 @@ class TesseractEngine(OcrEngine):
         except Exception as e:
             logger.error(f"Tesseract error: {e}")
             return OcrResult("", confidence=0.0, engine=self.name(), error=str(e))
+
+
+
+def _load_images(file_path: str, engine_name: str) -> list:
+    from PIL import Image
+
+    if file_path.lower().endswith('.pdf'):
+        try:
+            import pdf2image
+            images = pdf2image.convert_from_path(file_path)
+            if not images:
+                raise ValueError("Could not convert PDF to image")
+            return images
+        except ImportError:
+            logger.warning(f"pdf2image not installed. Cannot process PDFs with {engine_name}")
+            raise ValueError("pdf2image required for PDF processing")
+    else:
+        return [Image.open(file_path)]
 
 
 class OcrService:
