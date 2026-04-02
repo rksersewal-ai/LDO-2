@@ -3,9 +3,11 @@ import tempfile
 import time
 import json
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.test import override_settings
@@ -36,6 +38,7 @@ from shared.models import DomainEvent, ReportJob
 from shared.permissions import PermissionService
 from shared.services import ReportJobService
 from work.models import WorkRecordExportJob
+from config_mgmt.services import BomService
 
 
 class ModularApiSmokeTests(APITestCase):
@@ -936,6 +939,18 @@ class ModularApiSmokeTests(APITestCase):
         payload = json.loads(task.kwargs)
         self.assertEqual(payload['batch_size'], 123)
         self.assertTrue(payload['force_full_hash'])
+
+    def test_bom_service_update_raises_validation_error_on_save(self):
+        serializer = MagicMock()
+        serializer.instance.parent = self.pl_item
+        serializer.save.side_effect = DjangoValidationError({'field': ['Invalid value']})
+
+        request = MagicMock()
+        request.user = self.user
+        request.META = {}
+
+        with self.assertRaises(ValidationError):
+            BomService.update(serializer, request)
 
     def test_bom_compare_reports_added_line_between_baselines(self):
         child = PlItem.objects.create(id='87654321', name='Child PL', description='Child item')
