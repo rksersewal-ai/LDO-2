@@ -3,10 +3,10 @@ Multi-engine OCR Service with Fallback Strategy
 Lightweight extractors first → Tesseract for scanned PDFs → Error handling
 """
 
+from pathlib import Path
 import logging
 import os
 from typing import Dict, Optional, Tuple
-from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +42,22 @@ class OcrEngine:
     def _get_images_from_file(self, file_path: str) -> Tuple[list, Optional[OcrResult]]:
         """Helper to get images from a file path, converting PDFs if necessary."""
         from PIL import Image
+
         if file_path.lower().endswith('.pdf'):
             try:
                 import pdf2image
+
                 images = pdf2image.convert_from_path(file_path)
                 if not images:
                     return [], OcrResult("", confidence=0.0, engine=self.name(),
                                        error="Could not convert PDF to image")
                 return images, None
             except ImportError:
-                import logging
-                logging.getLogger(__name__).warning(f"pdf2image not installed. Cannot process PDFs with {self.name()}")
+                logger.warning(f"pdf2image not installed. Cannot process PDFs with {self.name()}")
                 return [], OcrResult("", confidence=0.0, engine=self.name(),
                                    error="pdf2image required for PDF processing")
-        else:
-            return [Image.open(file_path)], None
+
+        return [Image.open(file_path)], None
 
 
 
@@ -71,7 +72,7 @@ class PlainTextEngine(OcrEngine):
     def name(self) -> str:
         return "plaintext"
 
-    def _try_decode(self, path: Path) -> Optional[str]:
+    def _read_text(self, path: Path) -> Optional[str]:
         """Try reading the file with common encodings."""
         for encoding in ('utf-8', 'utf-8-sig', 'latin-1'):
             try:
@@ -86,7 +87,7 @@ class PlainTextEngine(OcrEngine):
             return OcrResult("", confidence=0.0, engine=self.name(), error="unsupported file type")
 
         try:
-            text = self._try_decode(path)
+            text = self._read_text(path)
             if text is not None:
                 return OcrResult(
                     text=text,
@@ -118,6 +119,14 @@ class PdfTextEngine(OcrEngine):
     
     def name(self) -> str:
         return "pdfplumber"
+
+    def _extract_text_from_pdf(self, file_path: str) -> str:
+        with self.pdfplumber.open(file_path) as pdf:
+            return "\n".join(
+                page_text
+                for page in pdf.pages
+                if (page_text := page.extract_text())
+            )
     
     def extract(self, file_path: str) -> OcrResult:
         """Extract text directly from PDF (no OCR)"""
@@ -126,22 +135,16 @@ class PdfTextEngine(OcrEngine):
                            error="pdfplumber not available")
         
         try:
-            text_chunks = []
-            with self.pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text_chunks.append(page_text)
-            
-            full_text = "\n".join(text_chunks)
-            
+            full_text = self._extract_text_from_pdf(file_path)
             if not full_text.strip():
-                # PDF is likely scanned (no extractable text)
-                return OcrResult("", confidence=0.0, engine=self.name(),
-                               is_scanned=True,
-                               error="PDF appears to be scanned, needs OCR")
+                return OcrResult(
+                    "",
+                    confidence=0.0,
+                    engine=self.name(),
+                    is_scanned=True,
+                    error="PDF appears to be scanned, needs OCR",
+                )
 
-            # Text was directly extractable
             return OcrResult(
                 text=full_text,
                 confidence=0.95,  # High confidence for direct extraction
@@ -178,6 +181,12 @@ class EasyOcrEngine(OcrEngine):
         if self.reader is None:
             self.reader = self.easyocr.Reader(['en'], gpu=False)
         return self.reader
+
+    def _extract_from_image(self, reader, image) -> Tuple[str, list[float]]:
+        import numpy as np
+
+        results = reader.readtext(np.array(image))
+        return "\n".join(text for (_, text, _) in results), [conf for (_, _, conf) in results]
     
     def extract(self, file_path: str) -> OcrResult:
         """Extract text from image using EasyOCR"""
@@ -186,8 +195,6 @@ class EasyOcrEngine(OcrEngine):
                            error="easyocr not available")
         
         try:
-            import numpy as np
-            
             images, error_result = self._get_images_from_file(file_path)
             if error_result:
                 return error_result
@@ -197,12 +204,9 @@ class EasyOcrEngine(OcrEngine):
             all_confidences = []
 
             for image in images:
-                # Pass image directly as numpy array to avoid temp file IO
-                img_array = np.array(image)
-                results = reader.readtext(img_array)
-
-                page_texts.append("\n".join(text for (_, text, conf) in results))
-                all_confidences.extend(conf for (_, _, conf) in results)
+                page_text, confidences = self._extract_from_image(reader, image)
+                page_texts.append(page_text)
+                all_confidences.extend(confidences)
 
             full_text = "\n\f\n".join(text for text in page_texts if text)
             avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
@@ -267,6 +271,11 @@ class TesseractEngine(OcrEngine):
                     pass
         return confidences
 
+    def _extract_from_image(self, image) -> Tuple[str, list[float]]:
+        page_text = self.pytesseract.image_to_string(image)
+        data = self.pytesseract.image_to_data(image)
+        return page_text, self._extract_confidences(data)
+
     def extract(self, file_path: str) -> OcrResult:
         """Extract text using Tesseract"""
         if not self.is_available():
@@ -281,9 +290,9 @@ class TesseractEngine(OcrEngine):
             page_texts = []
             confidences = []
             for image in images:
-                page_texts.append(self.pytesseract.image_to_string(image))
-                data = self.pytesseract.image_to_data(image)
-                confidences.extend(self._extract_confidences(data))
+                page_text, image_confidences = self._extract_from_image(image)
+                page_texts.append(page_text)
+                confidences.extend(image_confidences)
 
             text = "\n\f\n".join(page_text for page_text in page_texts if page_text)
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.5

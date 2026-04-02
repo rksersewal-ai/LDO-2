@@ -3,20 +3,19 @@ import tempfile
 import time
 import json
 from datetime import timedelta
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from rest_framework.test import APITestCase
 
 from documents.indexing import DocumentIndexOrchestrator
-from unittest.mock import patch
 from documents.models import CrawlJob, DocumentMetadataAssertion, DocumentOcrEntity, DuplicateDecision, IndexedSource, IndexedSourceFileState
 from documents.services import CrawlJobService, IndexedSourceService
 from documents.tasks import run_indexed_source_crawl
@@ -34,6 +33,7 @@ from edms_api.models import (
     SupervisorDocumentReview,
     WorkRecord,
 )
+from edms_api.ocr_service import OcrResult, extract_text as ocr_extract_text
 from shared.models import DomainEvent, ReportJob
 from shared.permissions import PermissionService
 from shared.services import ReportJobService
@@ -1108,3 +1108,41 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(crawl_response.status_code, 200)
         self.assertEqual(crawl_response.data['total'], 1)
         self.assertEqual(crawl_response.data['results'][0]['id'], str(crawl_job.id))
+
+
+class ExtractTextUtilityTests(SimpleTestCase):
+    @patch('edms_api.ocr_service.get_ocr_service')
+    def test_extract_text_success(self, mock_get_service):
+        mock_service = MagicMock()
+        mock_service.extract_text.return_value = OcrResult(
+            text='extracted text',
+            confidence=0.95,
+            engine='test_engine',
+        )
+        mock_get_service.return_value = mock_service
+
+        text, confidence, engine, error = ocr_extract_text('dummy/path.pdf')
+
+        mock_service.extract_text.assert_called_once_with('dummy/path.pdf')
+        self.assertEqual(text, 'extracted text')
+        self.assertEqual(confidence, 0.95)
+        self.assertEqual(engine, 'test_engine')
+        self.assertIsNone(error)
+
+    @patch('edms_api.ocr_service.get_ocr_service')
+    def test_extract_text_error(self, mock_get_service):
+        mock_service = MagicMock()
+        mock_service.extract_text.return_value = OcrResult(
+            text='',
+            confidence=0.0,
+            engine='test_engine',
+            error='some error',
+        )
+        mock_get_service.return_value = mock_service
+
+        text, confidence, engine, error = ocr_extract_text('dummy/path.pdf')
+
+        self.assertEqual(text, '')
+        self.assertEqual(confidence, 0.0)
+        self.assertEqual(engine, 'test_engine')
+        self.assertEqual(error, 'some error')
