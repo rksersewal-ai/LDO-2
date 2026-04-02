@@ -1,0 +1,3 @@
+## 2026-04-02 - N+1 Queries in list aggregations
+**Learning:** `InboxService.items_for_user()` in the Django backend executes individual database queries (`.first()`) inside loops iterating over standard querysets (like `approvals` and `dedup_records`), generating up to 40+ redundant database round trips for a user's dashboard view.
+**Action:** Always inspect loops iterating through querysets for `.first()`, `.get()`, or foreign key access. Pre-collect needed ID lists and execute bulk-fetching (`filter(pk__in=ids)`) mapped to dictionaries to achieve O(1) query performance prior to list iteration.

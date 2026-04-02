@@ -869,11 +869,26 @@ class InboxService:
             .order_by('-created_at')[:20]
         )
 
+        # ⚡ Bolt: Prevent N+1 queries by bulk-fetching document previews for approvals and dedup records
+        document_ids_to_fetch = set()
+        for approval in approvals:
+            if approval.entity_type == 'document':
+                document_ids_to_fetch.add(approval.entity_id)
+
+        for decision in dedup_records:
+            if not decision.master_document and decision.candidate_documents:
+                document_ids_to_fetch.add(decision.candidate_documents[0])
+
+        preview_documents_by_id = {}
+        if document_ids_to_fetch:
+            for doc in Document.objects.filter(pk__in=document_ids_to_fetch).only('id', 'name'):
+                preview_documents_by_id[doc.id] = doc
+
         items: list[dict] = []
         for approval in approvals:
             preview_document = None
             if approval.entity_type == 'document':
-                preview_document = Document.objects.filter(pk=approval.entity_id).only('id', 'name').first()
+                preview_document = preview_documents_by_id.get(approval.entity_id)
             items.append(
                 {
                     'id': f'approval:{approval.id}',
@@ -914,7 +929,7 @@ class InboxService:
             preview_document = decision.master_document
             if not preview_document and decision.candidate_documents:
                 candidate_id = decision.candidate_documents[0]
-                preview_document = Document.objects.filter(pk=candidate_id).only('id', 'name').first()
+                preview_document = preview_documents_by_id.get(candidate_id)
             items.append(
                 {
                     'id': f'dedup:{decision.id}',
