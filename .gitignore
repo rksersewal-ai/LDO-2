@@ -62,3 +62,5 @@ __pycache__/
 attached_assets/
 venv/
 __pycache__/
+backend/venv/
+venv/
