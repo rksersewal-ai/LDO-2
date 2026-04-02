@@ -51,27 +51,34 @@ class PlainTextEngine(OcrEngine):
     def name(self) -> str:
         return "plaintext"
 
+    def _read_text(self, path: Path) -> Optional[str]:
+        """Attempt to read text using fallback encodings."""
+        for encoding in ('utf-8', 'utf-8-sig', 'latin-1'):
+            try:
+                return path.read_text(encoding=encoding)
+            except UnicodeDecodeError:
+                continue
+        return None
+
     def extract(self, file_path: str) -> OcrResult:
         path = Path(file_path)
         if path.suffix.lower() not in self.SUPPORTED_EXTENSIONS:
             return OcrResult("", confidence=0.0, engine=self.name(), error="unsupported file type")
 
-        for encoding in ('utf-8', 'utf-8-sig', 'latin-1'):
-            try:
-                text = path.read_text(encoding=encoding)
-                return OcrResult(
-                    text=text,
-                    confidence=1.0,
-                    engine=self.name(),
-                    is_scanned=False,
-                )
-            except UnicodeDecodeError:
-                continue
-            except Exception as exc:
-                logger.error(f"Plain text extraction error: {exc}")
-                return OcrResult("", confidence=0.0, engine=self.name(), error=str(exc))
+        try:
+            text = self._read_text(path)
+            if text is None:
+                return OcrResult("", confidence=0.0, engine=self.name(), error="could not decode text file")
 
-        return OcrResult("", confidence=0.0, engine=self.name(), error="could not decode text file")
+            return OcrResult(
+                text=text,
+                confidence=1.0,
+                engine=self.name(),
+                is_scanned=False,
+            )
+        except Exception as exc:
+            logger.error(f"Plain text extraction error: {exc}")
+            return OcrResult("", confidence=0.0, engine=self.name(), error=str(exc))
 
 
 class PdfTextEngine(OcrEngine):
