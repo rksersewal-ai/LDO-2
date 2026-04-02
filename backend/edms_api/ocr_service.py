@@ -58,16 +58,6 @@ class OcrEngine:
                 logger.warning(f"pdf2image not installed. Cannot process PDFs with {self.name()}")
                 raise ImportError("pdf2image required for PDF processing")
         else:
-            return [Image.open(file_path)]
-                    return [], OcrResult("", confidence=0.0, engine=self.name(),
-                                       error="Could not convert PDF to image")
-                return images, None
-            except ImportError:
-                import logging
-                logging.getLogger(__name__).warning("pdf2image not installed")
-                return [], OcrResult("", confidence=0.0, engine=self.name(),
-                                   error="pdf2image required for PDF processing")
-        else:
             return [Image.open(file_path)], None
 
 
