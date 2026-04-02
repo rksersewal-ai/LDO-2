@@ -99,7 +99,15 @@ class PlainTextEngine(OcrEngine):
             logger.error(f"Plain text extraction error: {exc}")
             return OcrResult("", confidence=0.0, engine=self.name(), error=str(exc))
 
-        return OcrResult("", confidence=0.0, engine=self.name(), error="could not decode text file")
+            return OcrResult(
+                text=text,
+                confidence=1.0,
+                engine=self.name(),
+                is_scanned=False,
+            )
+        except Exception as exc:
+            logger.error(f"Plain text extraction error: {exc}")
+            return OcrResult("", confidence=0.0, engine=self.name(), error=str(exc))
 
 
 class PdfTextEngine(OcrEngine):
