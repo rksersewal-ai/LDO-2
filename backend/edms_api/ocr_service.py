@@ -181,22 +181,17 @@ class EasyOcrEngine(OcrEngine):
             reader = self._get_reader()
             page_texts = []
             all_confidences = []
-            import tempfile
+            import numpy as np
 
             for image in images:
-                with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
-                    image.save(tmp.name, 'PNG')
-                    temp_path = tmp.name
+                img_np = np.array(image)
 
-                try:
-                    results = reader.readtext(temp_path)
-                    page_lines = []
-                    for (bbox, text, conf) in results:
-                        page_lines.append(text)
-                        all_confidences.append(conf)
-                    page_texts.append("\n".join(page_lines))
-                finally:
-                    os.unlink(temp_path)
+                results = reader.readtext(img_np)
+                page_lines = []
+                for (bbox, text, conf) in results:
+                    page_lines.append(text)
+                    all_confidences.append(conf)
+                page_texts.append("\n".join(page_lines))
 
             full_text = "\n\f\n".join(text for text in page_texts if text)
             avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.0
