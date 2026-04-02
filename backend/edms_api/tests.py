@@ -380,40 +380,44 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(change_notice_item['payload']['preview_document_id'], self.document.id)
         self.assertEqual(dedup_item['payload']['preview_document_id'], self.document.id)
 
-    def test_supervisor_document_review_created_and_approved(self):
+    def _create_documents_and_review(self, doc_prefix, doc_name):
         previous = Document.objects.create(
-            id='DOC-T-OLD',
-            name='Brake Drawing Pack',
+            id=f'{doc_prefix}-OLD',
+            name=doc_name,
             description='Older revision',
             type='PDF',
             status='Approved',
             revision=1,
             category='Drawing',
             linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('old.txt', b'old'),
+            file=SimpleUploadedFile(f'{doc_prefix.lower()}_old.txt', b'old'),
         )
         PlDocumentLink.objects.create(pl_item=self.pl_item, document=previous, link_role='GENERAL')
 
         latest = Document.objects.create(
-            id='DOC-T-NEW',
-            name='Brake Drawing Pack',
+            id=f'{doc_prefix}-NEW',
+            name=doc_name,
             description='Latest revision',
             type='PDF',
             status='In Review',
             revision=2,
             category='Drawing',
             linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('new.txt', b'new'),
+            file=SimpleUploadedFile(f'{doc_prefix.lower()}_new.txt', b'new'),
         )
 
         response = self.client.post(
-            '/api/v1/pl-items/12345678/documents/link/',
+            f'/api/v1/pl-items/{self.pl_item.id}/documents/link/',
             {'document_id': latest.id, 'link_role': 'GENERAL'},
             format='json',
         )
         self.assertEqual(response.status_code, 201)
 
         review = SupervisorDocumentReview.objects.get(pl_item=self.pl_item, latest_document=latest, status='PENDING')
+        return previous, latest, review
+
+    def test_supervisor_document_review_created_and_approved(self):
+        previous, latest, review = self._create_documents_and_review('DOC-T', 'Brake Drawing Pack')
 
         list_response = self.client.get('/api/v1/supervisor-document-reviews/')
         self.assertEqual(list_response.status_code, 200)
@@ -445,36 +449,7 @@ class ModularApiSmokeTests(APITestCase):
         )
 
     def test_supervisor_document_review_can_be_bypassed(self):
-        previous = Document.objects.create(
-            id='DOC-T-OL2',
-            name='Cooling Layout Sheet',
-            description='Older revision',
-            type='PDF',
-            status='Approved',
-            revision=1,
-            category='Drawing',
-            linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('old2.txt', b'old2'),
-        )
-        PlDocumentLink.objects.create(pl_item=self.pl_item, document=previous, link_role='GENERAL')
-
-        latest = Document.objects.create(
-            id='DOC-T-NE2',
-            name='Cooling Layout Sheet',
-            description='Latest revision',
-            type='PDF',
-            status='In Review',
-            revision=2,
-            category='Drawing',
-            linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('new2.txt', b'new2'),
-        )
-        self.client.post(
-            '/api/v1/pl-items/12345678/documents/link/',
-            {'document_id': latest.id, 'link_role': 'GENERAL'},
-            format='json',
-        )
-        review = SupervisorDocumentReview.objects.get(pl_item=self.pl_item, latest_document=latest, status='PENDING')
+        _, _, review = self._create_documents_and_review('DOC-T-2', 'Cooling Layout Sheet')
 
         bypass_response = self.client.post(
             f'/api/v1/supervisor-document-reviews/{review.id}/bypass/',

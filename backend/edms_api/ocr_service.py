@@ -52,13 +52,6 @@ class OcrEngine:
                 import pdf2image
                 images = pdf2image.convert_from_path(file_path)
                 if not images:
-                    raise ValueError("Could not convert PDF to image")
-                return images
-            except ImportError:
-                logger.warning(f"pdf2image not installed. Cannot process PDFs with {self.name()}")
-                raise ImportError("pdf2image required for PDF processing")
-        else:
-            return [Image.open(file_path)]
                     return [], OcrResult("", confidence=0.0, engine=self.name(),
                                        error="Could not convert PDF to image")
                 return images, None
@@ -192,9 +185,6 @@ class EasyOcrEngine(OcrEngine):
         
         try:
             import numpy as np
-            images = self._get_images(file_path)
-            import io
-            
             images, error_result = self._get_images_from_file(file_path)
             if error_result:
                 return error_result
@@ -284,9 +274,6 @@ class TesseractEngine(OcrEngine):
                            error="Tesseract not available")
         
         try:
-            images = self._get_images(file_path)
-            import io
-            
             images, error_result = self._get_images_from_file(file_path)
             if error_result:
                 return error_result
