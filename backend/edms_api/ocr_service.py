@@ -277,6 +277,25 @@ class TesseractEngine(OcrEngine):
     
     def name(self) -> str:
         return "tesseract"
+
+    def _extract_from_image(self, image) -> Tuple[str, list]:
+        """Extract text and confidences from a single image"""
+        page_text = self.pytesseract.image_to_string(image)
+        data = self.pytesseract.image_to_data(image)
+        lines = data.split('\n')[1:]  # Skip header
+
+        confidences = []
+        for line in lines:
+            parts = line.split('\t')
+            if len(parts) > 10:
+                try:
+                    conf = float(parts[10])
+                    if conf > 0:
+                        confidences.append(conf / 100.0)
+                except (ValueError, IndexError):
+                    pass
+
+        return page_text, confidences
     
     def _extract_confidences(self, data: str) -> list[float]:
         """Parse Tesseract data string to extract confidence values"""
@@ -314,14 +333,14 @@ class TesseractEngine(OcrEngine):
                 return error_result
 
             page_texts = []
-            confidences = []
+            all_confidences = []
             for image in images:
                 page_text, image_confidences = self._extract_from_image(image)
                 page_texts.append(page_text)
                 confidences.extend(image_confidences)
 
             text = "\n\f\n".join(page_text for page_text in page_texts if page_text)
-            avg_confidence = sum(confidences) / len(confidences) if confidences else 0.5
+            avg_confidence = sum(all_confidences) / len(all_confidences) if all_confidences else 0.5
             
             return OcrResult(
                 text=text,
