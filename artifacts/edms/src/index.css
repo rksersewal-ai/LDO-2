@@ -1,0 +1,487 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+}
+
+:root {
+  --background: 222 47% 5%;
+  --foreground: 213 31% 87%;
+  --border: 215 28% 17%;
+  --card: 220 38% 8%;
+  --card-foreground: 213 31% 87%;
+  --card-border: 215 28% 15%;
+  --sidebar: 220 42% 7%;
+  --sidebar-foreground: 213 31% 87%;
+  --sidebar-border: 215 28% 15%;
+  --sidebar-primary: 172 76% 40%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 172 60% 20%;
+  --sidebar-accent-foreground: 172 76% 80%;
+  --sidebar-ring: 172 76% 50%;
+  --popover: 220 38% 8%;
+  --popover-foreground: 213 31% 87%;
+  --popover-border: 215 28% 15%;
+  --primary: 172 76% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 28% 14%;
+  --secondary-foreground: 213 31% 87%;
+  --muted: 220 28% 12%;
+  --muted-foreground: 215 20% 55%;
+  --accent: 172 60% 20%;
+  --accent-foreground: 172 76% 80%;
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 215 28% 17%;
+  --ring: 172 76% 40%;
+  --radius: 0.75rem;
+
+  --color-teal-primary: #14b8a6;
+  --color-teal-glow: rgba(20, 184, 166, 0.15);
+  --color-glass: rgba(15, 23, 42, 0.6);
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Typography Scale — Normalized across all pages
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  /* App/Page Title: Used on dashboard, main headings */
+  --font-size-app-title: 32px;
+  --line-height-app-title: 40px;
+  
+  /* Page Title: Used on page headers (Work Ledger, DocumentHub, etc) */
+  --font-size-page-title: 28px;
+  --line-height-page-title: 36px;
+  
+  /* Section Title: Used for grouped content (KPI Stats, Recent Items, etc) */
+  --font-size-section-title: 20px;
+  --line-height-section-title: 28px;
+  
+  /* Subsection Title: Used for card headers, filter groups */
+  --font-size-subsection-title: 16px;
+  --line-height-subsection-title: 24px;
+  
+  /* Body: Default text, descriptions, table content */
+  --font-size-body: 14px;
+  --line-height-body: 20px;
+  
+  /* Label: Form labels, card metadata, small text */
+  --font-size-label: 13px;
+  --line-height-label: 18px;
+  
+  /* Caption: Timestamps, hints, fine print */
+  --font-size-caption: 12px;
+  --line-height-caption: 16px;
+  
+  /* Micro: Only for timestamps, tags, badges, helper text */
+  --font-size-micro: 11px;
+  --line-height-micro: 14px;
+  
+  /* Mono (Data): For IDs, code, tabular numbers */
+  --font-size-mono-data: 13px;
+  --line-height-mono-data: 18px;
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     Spacing Scale — Consistent gap and padding across all pages
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 40px;
+  --spacing-5xl: 48px;
+  
+  /* ─────────────────────────────────────────────────────────────────────────
+     Component Sizing — Consistent control heights and densities
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  /* Dense table rows (e.g., WorkLedger, AuditLog) */
+  --height-table-row-dense: 36px;
+  
+  /* Normal table rows (e.g., DocumentHub grid items) */
+  --height-table-row: 44px;
+  
+  /* Form controls (buttons, inputs, selects) */
+  --height-control: 36px;
+  
+  /* Prominent action button (primary actions) */
+  --height-action-button: 40px;
+  
+  /* Control padding (horizontal) */
+  --padding-control-h: 12px;
+  --padding-control-v: 8px;
+}
+
+/* Light theme overrides */
+.light-theme {
+  --background: 210 20% 97%;
+  --foreground: 220 40% 12%;
+  --border: 210 20% 82%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 40% 12%;
+  --card-border: 210 20% 85%;
+  --sidebar: 210 20% 93%;
+  --sidebar-foreground: 220 40% 12%;
+  --sidebar-border: 210 20% 80%;
+  --sidebar-primary: 172 76% 35%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 172 40% 88%;
+  --sidebar-accent-foreground: 172 60% 25%;
+  --primary: 172 76% 36%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 90%;
+  --secondary-foreground: 220 40% 20%;
+  --muted: 210 20% 93%;
+  --muted-foreground: 215 20% 45%;
+  --input: 210 20% 82%;
+  --ring: 172 76% 40%;
+  --color-glass: rgba(255, 255, 255, 0.65);
+}
+
+.light-theme body {
+  background-color: hsl(210, 20%, 96%);
+  color: hsl(220, 40%, 12%);
+}
+
+.light-theme .glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.light-theme .glass-card-teal {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(20, 184, 166, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.07);
+}
+
+/* Light theme text color overrides using data-attribute */
+.light-theme [class*="text-slate-100"],
+.light-theme [class*="text-slate-200"],
+.light-theme [class*="text-white"] { color: hsl(220, 40%, 12%); }
+.light-theme [class*="text-slate-300"],
+.light-theme [class*="text-slate-400"] { color: hsl(220, 20%, 35%); }
+.light-theme [class*="text-slate-500"],
+.light-theme [class*="text-slate-600"] { color: hsl(220, 15%, 55%); }
+
+.light-theme [class*="bg-slate-950"],
+.light-theme [class*="bg-slate-900"] { background-color: rgba(255,255,255,0.6) !important; }
+.light-theme [class*="bg-slate-800"] { background-color: rgba(0,0,0,0.05) !important; }
+
+.light-theme ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.05); }
+.light-theme ::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.3); }
+
+.app-shell-bg {
+  position: relative;
+  background:
+    radial-gradient(circle at 14% 16%, rgba(56, 189, 248, 0.12), transparent 26%),
+    radial-gradient(circle at 86% 18%, rgba(45, 212, 191, 0.1), transparent 24%),
+    radial-gradient(circle at 72% 80%, rgba(96, 165, 250, 0.08), transparent 22%),
+    linear-gradient(135deg, #06111a 0%, #091520 34%, #0c1822 56%, #08121b 100%);
+}
+
+.app-shell-bg::before,
+.app-shell-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.app-shell-bg::before {
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.055) 1px, transparent 1px),
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  opacity: 0.66;
+}
+
+.app-shell-bg::after {
+  background:
+    radial-gradient(circle at 22% 72%, rgba(45, 212, 191, 0.14) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 74% 34%, rgba(56, 189, 248, 0.14) 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 58% 22%, rgba(148, 163, 184, 0.14) 0 1.25px, transparent 2.5px),
+    radial-gradient(circle at 40% 54%, rgba(20, 184, 166, 0.09) 0 1px, transparent 2.2px),
+    linear-gradient(rgba(34, 211, 238, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.018) 1px, transparent 1px);
+  background-size: auto, auto, auto, auto, 224px 224px, 224px 224px;
+  background-position: center, center, center, center, 48px 48px, 48px 48px;
+  opacity: 0.26;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+    box-sizing: border-box;
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-size: var(--app-font-size, 14px);
+    line-height: 1.5;
+  }
+  :focus-visible {
+    outline: 2px solid rgba(20, 184, 166, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  code, .font-mono, [class*="font-mono"] {
+    font-family: var(--font-mono);
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+  ::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(20, 184, 166, 0.4); }
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(20, 184, 166, 0.2); border-radius: 4px; }
+
+  .glass-card {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(12, 19, 32, 0.64));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    box-shadow: 0 18px 50px rgba(5, 10, 20, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glass-card-teal {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.74), rgba(12, 19, 32, 0.64));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(20, 184, 166, 0.2);
+    box-shadow: 0 18px 50px rgba(5, 10, 20, 0.34), 0 0 0 1px rgba(20, 184, 166, 0.06);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  .pill-filter {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold tracking-[0.01em] transition-all duration-150 cursor-pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .pill-filter-active {
+    @apply border-teal-400/45 bg-teal-500/15 text-teal-200;
+    box-shadow: 0 12px 28px rgba(20, 184, 166, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .pill-filter-inactive {
+    @apply border-slate-700/60 bg-slate-900/55 text-slate-400 hover:border-slate-500/85 hover:bg-slate-800/70 hover:text-slate-200;
+  }
+
+  .pill-filter:focus-visible {
+    outline: 2px solid rgba(45, 212, 191, 0.4);
+    outline-offset: 2px;
+  }
+
+  /* ──────────────────────────────────────────────────────────────────────────
+     Typography Utilities — Replaces hardcoded text-xs, text-sm, etc.
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  .text-app-title {
+    font-size: var(--font-size-app-title);
+    line-height: var(--line-height-app-title);
+  }
+  
+  .text-page-title {
+    font-size: var(--font-size-page-title);
+    line-height: var(--line-height-page-title);
+  }
+  
+  .text-section-title {
+    font-size: var(--font-size-section-title);
+    line-height: var(--line-height-section-title);
+  }
+  
+  .text-subsection-title {
+    font-size: var(--font-size-subsection-title);
+    line-height: var(--line-height-subsection-title);
+  }
+  
+  .text-body {
+    font-size: var(--font-size-body);
+    line-height: var(--line-height-body);
+  }
+  
+  .text-label {
+    font-size: var(--font-size-label);
+    line-height: var(--line-height-label);
+  }
+  
+  .text-caption {
+    font-size: var(--font-size-caption);
+    line-height: var(--line-height-caption);
+  }
+  
+  .text-micro {
+    font-size: var(--font-size-micro);
+    line-height: var(--line-height-micro);
+  }
+  
+  .text-mono-data {
+    font-size: var(--font-size-mono-data);
+    line-height: var(--line-height-mono-data);
+    font-family: var(--font-mono);
+  }
+
+  /* ──────────────────────────────────────────────────────────────────────────
+     Spacing Utilities — Replaces hardcoded p-4, gap-2, etc.
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  .gap-xs { gap: var(--spacing-xs); }
+  .gap-sm { gap: var(--spacing-sm); }
+  .gap-md { gap: var(--spacing-md); }
+  .gap-lg { gap: var(--spacing-lg); }
+  .gap-xl { gap: var(--spacing-xl); }
+  .gap-2xl { gap: var(--spacing-2xl); }
+  .gap-3xl { gap: var(--spacing-3xl); }
+  .gap-4xl { gap: var(--spacing-4xl); }
+  .gap-5xl { gap: var(--spacing-5xl); }
+  
+  .p-xs { padding: var(--spacing-xs); }
+  .p-sm { padding: var(--spacing-sm); }
+  .p-md { padding: var(--spacing-md); }
+  .p-lg { padding: var(--spacing-lg); }
+  .p-xl { padding: var(--spacing-xl); }
+  .p-2xl { padding: var(--spacing-2xl); }
+  .p-3xl { padding: var(--spacing-3xl); }
+  .p-4xl { padding: var(--spacing-4xl); }
+  .p-5xl { padding: var(--spacing-5xl); }
+  
+  .px-xs { padding-left: var(--spacing-xs); padding-right: var(--spacing-xs); }
+  .px-sm { padding-left: var(--spacing-sm); padding-right: var(--spacing-sm); }
+  .px-md { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
+  .px-lg { padding-left: var(--spacing-lg); padding-right: var(--spacing-lg); }
+  .px-xl { padding-left: var(--spacing-xl); padding-right: var(--spacing-xl); }
+  .px-2xl { padding-left: var(--spacing-2xl); padding-right: var(--spacing-2xl); }
+  .px-3xl { padding-left: var(--spacing-3xl); padding-right: var(--spacing-3xl); }
+  
+  .py-xs { padding-top: var(--spacing-xs); padding-bottom: var(--spacing-xs); }
+  .py-sm { padding-top: var(--spacing-sm); padding-bottom: var(--spacing-sm); }
+  .py-md { padding-top: var(--spacing-md); padding-bottom: var(--spacing-md); }
+  .py-lg { padding-top: var(--spacing-lg); padding-bottom: var(--spacing-lg); }
+  .py-xl { padding-top: var(--spacing-xl); padding-bottom: var(--spacing-xl); }
+  .py-2xl { padding-top: var(--spacing-2xl); padding-bottom: var(--spacing-2xl); }
+  .py-3xl { padding-top: var(--spacing-3xl); padding-bottom: var(--spacing-3xl); }
+  
+  .m-xs { margin: var(--spacing-xs); }
+  .m-sm { margin: var(--spacing-sm); }
+  .m-md { margin: var(--spacing-md); }
+  .m-lg { margin: var(--spacing-lg); }
+  .m-xl { margin: var(--spacing-xl); }
+  .m-2xl { margin: var(--spacing-2xl); }
+  .m-3xl { margin: var(--spacing-3xl); }
+  
+  .mb-xs { margin-bottom: var(--spacing-xs); }
+  .mb-sm { margin-bottom: var(--spacing-sm); }
+  .mb-md { margin-bottom: var(--spacing-md); }
+  .mb-lg { margin-bottom: var(--spacing-lg); }
+  .mb-xl { margin-bottom: var(--spacing-xl); }
+  .mb-2xl { margin-bottom: var(--spacing-2xl); }
+  .mb-3xl { margin-bottom: var(--spacing-3xl); }
+  
+  /* ──────────────────────────────────────────────────────────────────────────
+     Component Height Utilities
+     ────────────────────────────────────────────────────────────────────────── */
+  
+  .h-table-row-dense { height: var(--height-table-row-dense); }
+  .h-table-row { height: var(--height-table-row); }
+  .h-control { height: var(--height-control); }
+  .h-action-button { height: var(--height-action-button); }
+
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .animate-marquee {
+    animation: marquee 24s linear infinite;
+    white-space: nowrap;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes slide-in-right {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  .slide-in-right {
+    animation: slide-in-right 0.2s ease-out forwards;
+  }
+
+  /* Button sizing utilities for consistent control heights per guidelines */
+  .btn-size-sm {
+    @apply h-9 px-3 py-2 text-xs;
+  }
+  .btn-size-md {
+    @apply h-10 px-4 py-2.5 text-sm;
+  }
+  .btn-size-lg {
+    @apply h-12 px-5 py-3 text-sm;
+  }
+
+  /* Form control sizing utilities */
+  .form-control {
+    @apply h-10 px-3 py-2.5 text-sm;
+  }
+
+  .work-ledger-select {
+    background: linear-gradient(180deg, rgba(7, 23, 34, 0.95), rgba(9, 31, 42, 0.92));
+    border-color: rgba(45, 212, 191, 0.24);
+    color: rgb(226 232 240);
+    box-shadow: inset 0 1px 0 rgba(125, 211, 252, 0.06);
+  }
+
+  .work-ledger-select option {
+    background: #0c1d28;
+    color: rgb(226 232 240);
+  }
+
+  /* Hide scrollbars while keeping functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

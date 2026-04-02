@@ -1,0 +1,202 @@
+import { useMemo, useState } from 'react';
+import { Settings as SettingsIcon, Save, CheckCircle, ChevronRight, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { GlassCard, Button, Input } from '../components/ui/Shared';
+import { Switch } from '../components/ui/switch';
+import { PreferencesService } from '../services/PreferencesService';
+import { SystemSettingsService, type SystemSettingsState } from '../services/SystemSettingsService';
+import { useTheme } from '../contexts/ThemeContext';
+
+type SettingsKey = keyof SystemSettingsState;
+
+type SettingGroup = {
+  label: string;
+  settings: Array<{
+    key: SettingsKey;
+    label: string;
+    type: 'select' | 'toggle' | 'input';
+    options?: string[];
+  }>;
+};
+
+const settingGroups: SettingGroup[] = [
+  {
+    label: 'UI & Display',
+    settings: [
+      { key: 'theme', label: 'Theme Mode', type: 'select', options: ['Dark (Default)', 'Light', 'System'] },
+      { key: 'density', label: 'Table Row Density', type: 'select', options: ['Comfortable', 'Compact', 'Spacious'] },
+      { key: 'animations', label: 'Enable Animations', type: 'toggle' },
+    ]
+  },
+  {
+    label: 'OCR Engine',
+    settings: [
+      { key: 'ocr_auto', label: 'Auto-run OCR on Upload', type: 'toggle' },
+      { key: 'ocr_confidence', label: 'Minimum Confidence Threshold (%)', type: 'input' },
+      { key: 'ocr_retries', label: 'Max Auto-Retries on Failure', type: 'select', options: ['0', '1', '2', '3'] },
+    ]
+  },
+  {
+    label: 'Document Defaults',
+    settings: [
+      { key: 'default_status', label: 'Default New Document Status', type: 'select', options: ['Draft', 'Pending Review'] },
+      { key: 'obsolete_visible', label: 'Show Obsolete Documents by Default', type: 'toggle' },
+      { key: 'revision_format', label: 'Revision Numbering Format', type: 'select', options: ['A.1, A.2, B.0...', '1.0, 1.1, 2.0...'] },
+    ]
+  },
+  {
+    label: 'System & Operational',
+    settings: [
+      { key: 'session_timeout', label: 'Session Timeout (minutes)', type: 'input' },
+      { key: 'audit_retention', label: 'Audit Log Retention (days)', type: 'input' },
+      { key: 'max_upload', label: 'Max Upload Size (MB)', type: 'input' },
+    ]
+  },
+];
+
+function getInitialValues(): SystemSettingsState {
+  const prefs = PreferencesService.get();
+  const system = SystemSettingsService.get();
+
+  return {
+    ...system,
+    theme:
+      prefs.theme === 'dark'
+        ? 'Dark (Default)'
+        : prefs.theme === 'light'
+          ? 'Light'
+          : 'System',
+    density: prefs.compactTables ? 'Compact' : system.density,
+    animations: !prefs.reduceMotion,
+  };
+}
+
+export default function Settings() {
+  const { setTheme } = useTheme();
+  const [activeGroup, setActiveGroup] = useState<string>(settingGroups[0].label);
+  const [saved, setSaved] = useState(false);
+  const [values, setValues] = useState<SystemSettingsState>(() => getInitialValues());
+
+  const currentGroup = useMemo(
+    () => settingGroups.find((group) => group.label === activeGroup),
+    [activeGroup]
+  );
+
+  const setValue = (key: SettingsKey, nextValue: string | boolean) => {
+    setValues((current) => ({ ...current, [key]: nextValue }));
+  };
+
+  const handleSave = () => {
+    const nextThemePreference = values.theme === 'Dark (Default)' ? 'dark' : values.theme === 'Light' ? 'light' : 'system';
+    SystemSettingsService.set(values);
+    PreferencesService.set({
+      theme: nextThemePreference,
+      compactTables: values.density === 'Compact',
+      reduceMotion: !values.animations,
+    });
+    if (values.theme === 'System') {
+      const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      setTheme(prefersLight ? 'light' : 'dark');
+    } else {
+      setTheme(nextThemePreference as 'dark' | 'light');
+    }
+
+    setSaved(true);
+    toast.success('Settings saved', { description: 'Local workspace preferences have been updated.' });
+    window.setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleReset = () => {
+    const next = getInitialValues();
+    setValues(next);
+    toast.info('Unsaved changes cleared');
+  };
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
+          <p className="text-slate-400 text-sm">System configuration and workspace preferences.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={handleReset}>
+            <RotateCcw className="w-4 h-4" /> Reset Changes
+          </Button>
+          <Button onClick={handleSave} className={saved ? 'from-teal-700 to-emerald-700' : ''}>
+            {saved ? <><CheckCircle className="w-4 h-4" /> Saved!</> : <><Save className="w-4 h-4" /> Save Changes</>}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <GlassCard className="p-4 self-start">
+          <nav className="space-y-1">
+            {settingGroups.map((group) => (
+              <button
+                key={group.label}
+                onClick={() => setActiveGroup(group.label)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-colors text-left ${
+                  activeGroup === group.label
+                    ? 'bg-teal-500/15 text-teal-300 border border-teal-500/25'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                }`}
+              >
+                <span className="font-medium">{group.label}</span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${activeGroup === group.label ? 'text-teal-400 rotate-90' : ''}`} />
+              </button>
+            ))}
+          </nav>
+        </GlassCard>
+
+        <div className="lg:col-span-3">
+          <GlassCard className="p-6">
+            <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
+              <SettingsIcon className="w-5 h-5 text-teal-400" />{activeGroup}
+            </h2>
+            <div className="space-y-5">
+              {currentGroup?.settings.map((setting) => {
+                const settingKey = setting.key as SettingsKey;
+                const settingValue = values[settingKey];
+                return (
+                  <div key={setting.key} className="flex items-center justify-between gap-4 py-3 border-b border-slate-800/50 last:border-0">
+                    <div className="max-w-md">
+                      <p className="text-sm font-medium text-slate-200">{setting.label}</p>
+                    </div>
+                    <div className="min-w-[180px]">
+                      {setting.type === 'toggle' && (
+                        <div className="flex justify-end">
+                          <Switch
+                            checked={Boolean(settingValue)}
+                            onCheckedChange={(checked) => setValue(settingKey, checked)}
+                            aria-label={setting.label}
+                          />
+                        </div>
+                      )}
+                      {setting.type === 'select' && (
+                        <select
+                          className="bg-slate-950/50 border border-teal-500/20 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-teal-500/40 w-full"
+                          value={String(settingValue)}
+                          onChange={(event) => setValue(settingKey, event.target.value)}
+                        >
+                          {setting.options?.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      )}
+                      {setting.type === 'input' && (
+                        <Input
+                          className="w-full text-right"
+                          value={String(settingValue)}
+                          onChange={(event) => setValue(settingKey, event.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        </div>
+      </div>
+    </div>
+  );
+}
