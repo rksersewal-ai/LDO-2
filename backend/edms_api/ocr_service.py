@@ -52,13 +52,6 @@ class OcrEngine:
                 import pdf2image
                 images = pdf2image.convert_from_path(file_path)
                 if not images:
-                    raise ValueError("Could not convert PDF to image")
-                return images
-            except ImportError:
-                logger.warning(f"pdf2image not installed. Cannot process PDFs with {self.name()}")
-                raise ImportError("pdf2image required for PDF processing")
-        else:
-            return [Image.open(file_path)]
                     return [], OcrResult("", confidence=0.0, engine=self.name(),
                                        error="Could not convert PDF to image")
                 return images, None
