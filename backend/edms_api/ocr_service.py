@@ -92,6 +92,14 @@ class PdfTextEngine(OcrEngine):
     def name(self) -> str:
         return "pdfplumber"
     
+    def _extract_text_from_pdf(self, file_path: str) -> str:
+        """Helper to extract text chunks from a PDF file."""
+        with self.pdfplumber.open(file_path) as pdf:
+            return "\n".join(
+                page_text for page in pdf.pages
+                if (page_text := page.extract_text())
+            )
+
     def extract(self, file_path: str) -> OcrResult:
         """Extract text directly from PDF (no OCR)"""
         if not self.is_available():
@@ -99,14 +107,7 @@ class PdfTextEngine(OcrEngine):
                            error="pdfplumber not available")
         
         try:
-            text_chunks = []
-            with self.pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text_chunks.append(page_text)
-            
-            full_text = "\n".join(text_chunks)
+            full_text = self._extract_text_from_pdf(file_path)
             
             if full_text.strip():
                 # Text was directly extractable
@@ -116,11 +117,11 @@ class PdfTextEngine(OcrEngine):
                     engine=self.name(),
                     is_scanned=False
                 )
-            else:
-                # PDF is likely scanned (no extractable text)
-                return OcrResult("", confidence=0.0, engine=self.name(),
-                               is_scanned=True,
-                               error="PDF appears to be scanned, needs OCR")
+
+            # PDF is likely scanned (no extractable text)
+            return OcrResult("", confidence=0.0, engine=self.name(),
+                           is_scanned=True,
+                           error="PDF appears to be scanned, needs OCR")
         
         except Exception as e:
             logger.error(f"pdfplumber error: {e}")
