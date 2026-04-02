@@ -92,6 +92,16 @@ class PdfTextEngine(OcrEngine):
     def name(self) -> str:
         return "pdfplumber"
     
+    def _extract_pdf_text(self, file_path: str) -> str:
+        """Helper to extract raw text chunks from a PDF file."""
+        text_chunks = []
+        with self.pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text_chunks.append(page_text)
+        return "\n".join(text_chunks)
+
     def extract(self, file_path: str) -> OcrResult:
         """Extract text directly from PDF (no OCR)"""
         if not self.is_available():
@@ -99,28 +109,21 @@ class PdfTextEngine(OcrEngine):
                            error="pdfplumber not available")
         
         try:
-            text_chunks = []
-            with self.pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages:
-                    page_text = page.extract_text()
-                    if page_text:
-                        text_chunks.append(page_text)
+            full_text = self._extract_pdf_text(file_path)
             
-            full_text = "\n".join(text_chunks)
-            
-            if full_text.strip():
-                # Text was directly extractable
-                return OcrResult(
-                    text=full_text,
-                    confidence=0.95,  # High confidence for direct extraction
-                    engine=self.name(),
-                    is_scanned=False
-                )
-            else:
+            if not full_text.strip():
                 # PDF is likely scanned (no extractable text)
                 return OcrResult("", confidence=0.0, engine=self.name(),
                                is_scanned=True,
                                error="PDF appears to be scanned, needs OCR")
+
+            # Text was directly extractable
+            return OcrResult(
+                text=full_text,
+                confidence=0.95,  # High confidence for direct extraction
+                engine=self.name(),
+                is_scanned=False
+            )
         
         except Exception as e:
             logger.error(f"pdfplumber error: {e}")
