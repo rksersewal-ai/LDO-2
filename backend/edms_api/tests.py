@@ -3,12 +3,14 @@ import tempfile
 import time
 import json
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import override_settings
+from django.test import SimpleTestCase, override_settings
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
 from rest_framework.test import APITestCase
@@ -31,10 +33,12 @@ from edms_api.models import (
     SupervisorDocumentReview,
     WorkRecord,
 )
+from edms_api.ocr_service import OcrResult, extract_text as ocr_extract_text
 from shared.models import DomainEvent, ReportJob
 from shared.permissions import PermissionService
 from shared.services import ReportJobService
 from work.models import WorkRecordExportJob
+from config_mgmt.services import BomService
 
 
 class ModularApiSmokeTests(APITestCase):
@@ -226,6 +230,34 @@ class ModularApiSmokeTests(APITestCase):
             ).exists()
         )
 
+    @patch('documents.tasks.index_single_document.delay')
+    @patch('documents.indexing.DocumentIndexOrchestrator.index_document')
+    def test_uploading_new_document_version_indexing_fallback(self, mock_index_document, mock_delay):
+        document = Document.objects.create(
+            id='DOC-FALLBACK-001',
+            name='Version Fallback Document',
+            description='Test fallback on exception',
+            type='Other',
+            status='Draft',
+            category='Specification',
+            linked_pl=self.pl_item.id,
+            file=SimpleUploadedFile('version-1.txt', b'Initial version content'),
+        )
+
+        mock_delay.side_effect = Exception("Celery is down")
+
+        version_response = self.client.post(
+            f'/api/v1/documents/{document.id}/versions/',
+            {'file': SimpleUploadedFile('version-2.txt', b'New version content')},
+        )
+        self.assertEqual(version_response.status_code, 201)
+
+        document.refresh_from_db()
+        self.assertEqual(document.revision, 2)
+
+        mock_delay.assert_called_once_with(str(document.id))
+        mock_index_document.assert_any_call(document, force_hashes=True)
+
     def test_create_work_record_and_export_job(self):
         response = self.client.post(
             '/api/v1/work-records/',
@@ -384,40 +416,46 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(change_notice_item['payload']['preview_document_id'], self.document.id)
         self.assertEqual(dedup_item['payload']['preview_document_id'], self.document.id)
 
-    def test_supervisor_document_review_created_and_approved(self):
+    def _setup_supervisor_review(self, old_id, new_id, name, old_filename, new_filename, old_content, new_content):
         previous = Document.objects.create(
-            id='DOC-T-OLD',
-            name='Brake Drawing Pack',
+            id=old_id,
+            name=name,
             description='Older revision',
             type='PDF',
             status='Approved',
             revision=1,
             category='Drawing',
             linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('old.txt', b'old'),
+            file=SimpleUploadedFile(old_filename, old_content),
         )
         PlDocumentLink.objects.create(pl_item=self.pl_item, document=previous, link_role='GENERAL')
 
         latest = Document.objects.create(
-            id='DOC-T-NEW',
-            name='Brake Drawing Pack',
+            id=new_id,
+            name=name,
             description='Latest revision',
             type='PDF',
             status='In Review',
             revision=2,
             category='Drawing',
             linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('new.txt', b'new'),
+            file=SimpleUploadedFile(new_filename, new_content),
         )
 
         response = self.client.post(
-            '/api/v1/pl-items/12345678/documents/link/',
+            f'/api/v1/pl-items/{self.pl_item.id}/documents/link/',
             {'document_id': latest.id, 'link_role': 'GENERAL'},
             format='json',
         )
         self.assertEqual(response.status_code, 201)
 
         review = SupervisorDocumentReview.objects.get(pl_item=self.pl_item, latest_document=latest, status='PENDING')
+        return previous, latest, review
+
+    def test_supervisor_document_review_created_and_approved(self):
+        previous, latest, review = self._setup_supervisor_review(
+            'DOC-T-OLD', 'DOC-T-NEW', 'Brake Drawing Pack', 'old.txt', 'new.txt', b'old', b'new'
+        )
 
         list_response = self.client.get('/api/v1/supervisor-document-reviews/')
         self.assertEqual(list_response.status_code, 200)
@@ -449,36 +487,9 @@ class ModularApiSmokeTests(APITestCase):
         )
 
     def test_supervisor_document_review_can_be_bypassed(self):
-        previous = Document.objects.create(
-            id='DOC-T-OL2',
-            name='Cooling Layout Sheet',
-            description='Older revision',
-            type='PDF',
-            status='Approved',
-            revision=1,
-            category='Drawing',
-            linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('old2.txt', b'old2'),
+        previous, latest, review = self._setup_supervisor_review(
+            'DOC-T-OL2', 'DOC-T-NE2', 'Cooling Layout Sheet', 'old2.txt', 'new2.txt', b'old2', b'new2'
         )
-        PlDocumentLink.objects.create(pl_item=self.pl_item, document=previous, link_role='GENERAL')
-
-        latest = Document.objects.create(
-            id='DOC-T-NE2',
-            name='Cooling Layout Sheet',
-            description='Latest revision',
-            type='PDF',
-            status='In Review',
-            revision=2,
-            category='Drawing',
-            linked_pl=self.pl_item.id,
-            file=SimpleUploadedFile('new2.txt', b'new2'),
-        )
-        self.client.post(
-            '/api/v1/pl-items/12345678/documents/link/',
-            {'document_id': latest.id, 'link_role': 'GENERAL'},
-            format='json',
-        )
-        review = SupervisorDocumentReview.objects.get(pl_item=self.pl_item, latest_document=latest, status='PENDING')
 
         bypass_response = self.client.post(
             f'/api/v1/supervisor-document-reviews/{review.id}/bypass/',
@@ -849,9 +860,10 @@ class ModularApiSmokeTests(APITestCase):
             watch_enabled=False,
         )
 
-        with patch('documents.services._DocumentIndexingBatchService.index_path', side_effect=RuntimeError('boom')):
-            job = CrawlJobService.create_job(source)
-            CrawlJobService.run_job(job)
+        with patch('documents.services._DocumentIndexingBatchService.index_paths_bulk', side_effect=RuntimeError('boom_bulk')):
+            with patch('documents.services._DocumentIndexingBatchService.index_path', side_effect=RuntimeError('boom')):
+                job = CrawlJobService.create_job(source)
+                CrawlJobService.run_job(job)
 
         state = IndexedSourceFileState.objects.get(source=source, relative_path='broken.pdf')
         self.assertEqual(state.status, 'FAILED')
@@ -919,6 +931,30 @@ class ModularApiSmokeTests(APITestCase):
         payload = json.loads(task.kwargs)
         self.assertEqual(payload['batch_size'], 123)
         self.assertTrue(payload['force_full_hash'])
+
+    def test_bom_service_update_raises_validation_error_on_save(self):
+        serializer = MagicMock()
+        serializer.instance.parent = self.pl_item
+        serializer.save.side_effect = DjangoValidationError({'field': ['Invalid value']})
+
+        request = MagicMock()
+        request.user = self.user
+        request.META = {}
+
+        with self.assertRaises(ValidationError):
+            BomService.update(serializer, request)
+
+    def test_bom_tree_max_depth_validation(self):
+        invalid_response = self.client.get(
+            f'/api/v1/pl-items/{self.pl_item.id}/bom-tree/?max_depth=invalid'
+        )
+        self.assertEqual(invalid_response.status_code, 400)
+        self.assertEqual(invalid_response.data['detail'], 'max_depth must be an integer')
+
+        valid_response = self.client.get(
+            f'/api/v1/pl-items/{self.pl_item.id}/bom-tree/?max_depth=10'
+        )
+        self.assertEqual(valid_response.status_code, 200)
 
     def test_bom_compare_reports_added_line_between_baselines(self):
         child = PlItem.objects.create(id='87654321', name='Child PL', description='Child item')
@@ -1007,6 +1043,48 @@ class ModularApiSmokeTests(APITestCase):
         self.assertTrue(PermissionService.scope_queryset(WorkRecord.objects.all(), legacy_user, 'view_workrecord').filter(pk=legacy_work.pk).exists())
         self.assertTrue(PermissionService.scope_queryset(PlItem.objects.all(), legacy_user, 'view_plitem').filter(pk=legacy_pl.pk).exists())
 
+    def test_crawl_job_handles_exception_during_run(self):
+        source = IndexedSource.objects.create(
+            name='Test Exception Source',
+            root_path='/tmp',
+            is_active=True,
+            watch_enabled=False,
+        )
+        job = CrawlJobService.create_job(source)
+
+        with patch('documents.services.Path.rglob') as mock_rglob:
+            mock_rglob.side_effect = Exception("Test crawl failure")
+
+            with self.assertRaises(Exception) as context:
+                CrawlJobService.run_job(job)
+
+            self.assertEqual(str(context.exception), "Test crawl failure")
+
+        self.assertEqual(job.status, 'FAILED')
+        self.assertEqual(job.error_message, "Test crawl failure")
+
+    def test_hash_backfill_job_handles_exception_during_run(self):
+        from documents.models import HashBackfillJob
+        from documents.services import HashBackfillJobService
+        source = IndexedSource.objects.create(
+            name='Test Backfill Source',
+            root_path='/tmp',
+            is_active=True,
+            watch_enabled=False,
+        )
+        job = HashBackfillJobService.create_job(source=source)
+
+        with patch('documents.services.Document.objects.filter') as mock_filter:
+            mock_filter.side_effect = Exception("Test backfill failure")
+
+            with self.assertRaises(Exception) as context:
+                HashBackfillJobService.run_job(job)
+
+            self.assertEqual(str(context.exception), "Test backfill failure")
+
+        self.assertEqual(job.status, 'FAILED')
+        self.assertEqual(job.error_message, "Test backfill failure")
+
     def test_document_admin_views_are_guardian_scoped_for_regular_users(self):
         regular_user = User.objects.create_user(username='doc-admin-user', password='pass12345')
         other_user = User.objects.create_user(username='other-doc-admin-user', password='pass12345')
@@ -1030,3 +1108,41 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(crawl_response.status_code, 200)
         self.assertEqual(crawl_response.data['total'], 1)
         self.assertEqual(crawl_response.data['results'][0]['id'], str(crawl_job.id))
+
+
+class ExtractTextUtilityTests(SimpleTestCase):
+    @patch('edms_api.ocr_service.get_ocr_service')
+    def test_extract_text_success(self, mock_get_service):
+        mock_service = MagicMock()
+        mock_service.extract_text.return_value = OcrResult(
+            text='extracted text',
+            confidence=0.95,
+            engine='test_engine',
+        )
+        mock_get_service.return_value = mock_service
+
+        text, confidence, engine, error = ocr_extract_text('dummy/path.pdf')
+
+        mock_service.extract_text.assert_called_once_with('dummy/path.pdf')
+        self.assertEqual(text, 'extracted text')
+        self.assertEqual(confidence, 0.95)
+        self.assertEqual(engine, 'test_engine')
+        self.assertIsNone(error)
+
+    @patch('edms_api.ocr_service.get_ocr_service')
+    def test_extract_text_error(self, mock_get_service):
+        mock_service = MagicMock()
+        mock_service.extract_text.return_value = OcrResult(
+            text='',
+            confidence=0.0,
+            engine='test_engine',
+            error='some error',
+        )
+        mock_get_service.return_value = mock_service
+
+        text, confidence, engine, error = ocr_extract_text('dummy/path.pdf')
+
+        self.assertEqual(text, '')
+        self.assertEqual(confidence, 0.0)
+        self.assertEqual(engine, 'test_engine')
+        self.assertEqual(error, 'some error')
