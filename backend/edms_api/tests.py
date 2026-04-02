@@ -42,6 +42,11 @@ from config_mgmt.services import BomService
 
 
 class ModularApiSmokeTests(APITestCase):
+    def _create_temp_dir(self):
+        temp_dir_obj = tempfile.TemporaryDirectory()
+        self.addCleanup(temp_dir_obj.cleanup)
+        return temp_dir_obj.name
+
     def setUp(self):
         self.user = User.objects.create_user(
             username='tester',
@@ -497,9 +502,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertTrue(any(result['id'] == document.id for result in response.data['documents']))
 
     def test_shared_folder_indexing_marks_older_duplicate_and_search_filters_it(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         older_path = os.path.join(temp_dir, 'shared_duplicate_older.pdf')
         newer_path = os.path.join(temp_dir, 'shared_duplicate_newer.pdf')
         payload = b'duplicate payload for network share indexing'
@@ -576,9 +579,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual([item['id'] for item in recent_response.data['documents']], [recent_document.id])
 
     def test_document_search_ranks_master_ahead_of_duplicate_for_same_query(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         older_path = os.path.join(temp_dir, 'ranking_duplicate_older.pdf')
         newer_path = os.path.join(temp_dir, 'ranking_duplicate_newer.pdf')
         payload = b'ranking duplicate payload'
@@ -656,9 +657,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(response.data['documents'][0]['matched_assertions'][0]['field_key'], assertion.field_key)
 
     def test_family_key_keeps_same_hash_different_drawings_out_of_duplicate_state(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         first_path = os.path.join(temp_dir, 'DWG-AXLE-778.pdf')
         second_path = os.path.join(temp_dir, 'DWG-BOGIE-991.pdf')
         payload = b'same-content-different-families'
@@ -684,9 +683,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(len(dedup_response.data), 0)
 
     def test_family_key_stays_stable_across_drawing_revision_variants(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         older_path = os.path.join(temp_dir, 'DWG-AXLE-778_revA.pdf')
         newer_path = os.path.join(temp_dir, 'DWG-AXLE-778_revB.pdf')
         payload = b'same-content-same-family'
@@ -746,9 +743,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertTrue(BaselineItem.objects.filter(baseline=baseline).exists())
 
     def test_indexed_source_schedule_uses_queue_task_and_disables_when_inactive(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         source = IndexedSource.objects.create(
             name='Schedule Source',
             root_path=temp_dir,
@@ -767,9 +762,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertFalse(task.enabled)
 
     def test_run_indexed_source_crawl_accepts_source_id(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         shared_file = os.path.join(temp_dir, 'index-me.pdf')
         with open(shared_file, 'wb') as handle:
             handle.write(b'network share payload')
@@ -789,9 +782,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(job.indexed_count, 1)
 
     def test_indexed_source_file_state_tracks_missing_files(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         shared_file = os.path.join(temp_dir, 'tracked.pdf')
         with open(shared_file, 'wb') as handle:
             handle.write(b'tracked payload')
@@ -825,9 +816,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(source_index.get('relative_path'), 'tracked.pdf')
 
     def test_indexed_source_file_state_tracks_failures_per_file(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         shared_file = os.path.join(temp_dir, 'broken.pdf')
         with open(shared_file, 'wb') as handle:
             handle.write(b'broken payload')
@@ -854,9 +843,7 @@ class ModularApiSmokeTests(APITestCase):
         self.assertEqual(job.failed_count, 1)
 
     def test_indexed_source_move_relinks_existing_document_state(self):
-        temp_dir_obj = tempfile.TemporaryDirectory()
-        self.addCleanup(temp_dir_obj.cleanup)
-        temp_dir = temp_dir_obj.name
+        temp_dir = self._create_temp_dir()
         original_path = os.path.join(temp_dir, 'original.pdf')
         moved_path = os.path.join(temp_dir, 'renamed.pdf')
         with open(original_path, 'wb') as handle:
@@ -878,15 +865,13 @@ class ModularApiSmokeTests(APITestCase):
 
         os.rename(original_path, moved_path)
 
-        move_job = CrawlJobService.create_job(
-            source,
-            parameters={
-                'trigger': 'moved',
-                'paths': [moved_path],
-                'old_path': original_path,
-                'new_path': moved_path,
-            },
-        )
+        move_parameters = {
+            'trigger': 'moved',
+            'paths': [moved_path],
+            'old_path': original_path,
+            'new_path': moved_path,
+        }
+        move_job = CrawlJobService.create_job(source, parameters=move_parameters)
         CrawlJobService.run_job(move_job)
 
         state.refresh_from_db()
