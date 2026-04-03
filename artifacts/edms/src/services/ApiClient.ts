@@ -28,6 +28,13 @@ interface ApiErrorResponse {
   detail?: string;
   message?: string;
   errors?: Record<string, string[]>;
+  error?: {
+    code?: string;
+    message?: string;
+    details?: Record<string, string[] | string> | null;
+    correlation_id?: string;
+  };
+  status?: string;
 }
 
 interface RetryConfig {
@@ -79,8 +86,14 @@ export class ApiClient {
 
     // Handle responses and errors
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        response.data = this.unwrapSuccessEnvelope(response.data);
+        return response;
+      },
       (error: AxiosError<ApiErrorResponse>) => {
+        if (error.response) {
+          error.response.data = this.unwrapErrorEnvelope(error.response.data);
+        }
         if (this.shouldRedirectOnUnauthorized(error)) {
           // Token expired or invalid
           this.clearStoredAuth();
@@ -123,6 +136,50 @@ export class ApiClient {
     } else {
       localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
+  }
+
+  private unwrapSuccessEnvelope(payload: any): any {
+    if (!payload || typeof payload !== 'object') {
+      return payload;
+    }
+    if (payload.status !== 'success' || !('data' in payload)) {
+      return payload;
+    }
+
+    const data = payload.data;
+    const meta = payload.meta;
+
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      return {
+        ...data,
+        ...(meta && typeof meta === 'object' ? { meta } : {}),
+        ...((meta && typeof meta.total === 'number' && data.total == null) ? { total: meta.total } : {}),
+      };
+    }
+
+    return data;
+  }
+
+  private unwrapErrorEnvelope(payload: ApiErrorResponse | any): ApiErrorResponse {
+    if (!payload || typeof payload !== 'object') {
+      return payload;
+    }
+    if (payload.error && typeof payload.error === 'object') {
+      const details = payload.error.details;
+      return {
+        detail: payload.error.message || payload.detail || payload.message,
+        message: payload.error.message || payload.message,
+        errors: details && typeof details === 'object'
+          ? Object.fromEntries(
+              Object.entries(details).map(([key, value]) => [
+                key,
+                Array.isArray(value) ? value.map(String) : [String(value)],
+              ]),
+            )
+          : payload.errors,
+      };
+    }
+    return payload;
   }
 
   // ─────────────────────────────────────────────────────────────────────────

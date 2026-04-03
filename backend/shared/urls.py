@@ -13,6 +13,8 @@ from .views import (
     ReportJobDetailView,
     ReportJobListCreateView,
     SearchHistoryView,
+    SearchFacetsView,
+    SavedQueryCreateView,
     SearchView,
     WorkflowItemActionView,
 )
@@ -28,11 +30,14 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('search/', SearchView.as_view(), name='search'),
     path('search/history/', SearchHistoryView.as_view(), name='search_history'),
+    path('search/facets/', SearchFacetsView.as_view(), name='search_facets'),
+    path('search/saved-query/', SavedQueryCreateView.as_view(), name='search_saved_query'),
     path('inbox/', InboxView.as_view(), name='inbox'),
     path('workflow-items/<path:item_id>/act/', WorkflowItemActionView.as_view(), name='workflow-item-action'),
     path('report-jobs/', ReportJobListCreateView.as_view(), name='report-jobs'),
     path('report-jobs/<uuid:job_id>/', ReportJobDetailView.as_view(), name='report-job-detail'),
     path('report-jobs/<uuid:job_id>/retry/', ReportJobRetryView.as_view(), name='report-job-retry'),
     path('health/status/', HealthStatusView.as_view(), name='health_status'),
+    path('system/health/', HealthStatusView.as_view(), name='system_health'),
     path('dashboard/stats/', DashboardStatsView.as_view(), name='dashboard_stats'),
 ]

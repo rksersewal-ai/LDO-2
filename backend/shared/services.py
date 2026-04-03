@@ -781,6 +781,23 @@ class SearchService:
         )
         return [entry for entry in history if entry]
 
+    @classmethod
+    def facets_for_user(cls, user, *, query=''):
+        document_queryset = cls._document_queryset(
+            query or '',
+            duplicate_filter='include',
+            user=user,
+            source_filter='',
+            class_filter='',
+            hash_status='',
+            pl_linked='',
+            status_filters=[],
+            date_range='',
+        )
+        return {
+            'documents': cls._document_facets(document_queryset),
+        }
+
 
 class DashboardService:
     @staticmethod
