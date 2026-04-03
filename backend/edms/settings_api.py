@@ -4,6 +4,17 @@ Add these settings to your main Django settings.py
 """
 
 import os
+import platform
+import sys
+
+# Celery imports currently trigger Python 3.14's Windows WMI-backed
+# platform lookup, which can hang during Django startup. Return the known
+# platform name directly so management commands and local preview work.
+if sys.platform == 'win32':
+    def _windows_platform_system():
+        return 'Windows'
+
+    platform.system = _windows_platform_system
 
 # ─────────────────────────────────────────────────────────────────────────────
 # REST Framework Configuration

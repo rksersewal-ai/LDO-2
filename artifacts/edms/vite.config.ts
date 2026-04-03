@@ -192,6 +192,15 @@ export default defineConfig(async ({ mode }) => {
   const basePath = env.BASE_PATH ?? "/";
   const apiProxyTarget = env.VITE_API_PROXY_TARGET ?? "http://127.0.0.1:8420";
   const enableMockApi = env.VITE_ENABLE_DEV_MOCK_API === "true";
+  const apiProxy = enableMockApi
+    ? undefined
+    : {
+        "/api": {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          secure: false,
+        },
+      };
 
   return {
     base: basePath,
@@ -231,15 +240,7 @@ export default defineConfig(async ({ mode }) => {
       strictPort: true,
       host: "0.0.0.0",
       allowedHosts: true,
-      proxy: enableMockApi
-        ? undefined
-        : {
-            "/api": {
-              target: apiProxyTarget,
-              changeOrigin: true,
-              secure: false,
-            },
-          },
+      proxy: apiProxy,
       fs: {
         strict: true,
         deny: ["**/.*"],
@@ -250,6 +251,7 @@ export default defineConfig(async ({ mode }) => {
       strictPort: true,
       host: "0.0.0.0",
       allowedHosts: true,
+      proxy: apiProxy,
     },
   };
 });
