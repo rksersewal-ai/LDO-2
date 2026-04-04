@@ -1,0 +1,3 @@
+## 2025-04-04 - Sidebar Accessibility Enhancements
+**Learning:** Found interactive user profiles represented as `div` tags and icon-only buttons missing ARIA labels in the navigation sidebar, hindering screen reader users and keyboard navigation.
+**Action:** Always use semantic HTML elements like `<button>` for interactive elements. Ensure all icon-only buttons contain descriptive `aria-label`s, and `aria-expanded` properties reflect actual component states. Incorporate `focus-visible` styles to indicate keyboard focus clearly.
