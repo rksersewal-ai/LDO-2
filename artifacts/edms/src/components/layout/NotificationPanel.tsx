@@ -67,7 +67,7 @@ export function NotificationPanel({
             <span className="bg-rose-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unread}</span>
           )}
         </div>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground/90 transition-colors">
+        <button onClick={onClose} aria-label="Close notifications" className="text-muted-foreground hover:text-foreground/90 transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -234,6 +234,7 @@ export function NotificationPanel({
             navigate('/notifications');
             onClose();
           }}
+          aria-label="View all notifications"
           className="text-xs text-primary hover:text-primary/90 transition-colors flex items-center gap-1"
         >
           <ExternalLink className="w-3 h-3" /> View all notifications

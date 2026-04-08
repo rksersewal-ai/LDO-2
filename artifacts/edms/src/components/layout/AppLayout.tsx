@@ -101,6 +101,7 @@ export default function AppLayout() {
               {canScrollLeft && (
                 <button
                   onClick={() => scroll('left')}
+                  aria-label="Scroll left"
                   className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -128,6 +129,7 @@ export default function AppLayout() {
                     <span className="max-w-[180px] truncate">{tab.name}</span>
                     <button
                       onClick={(e) => handleCloseTab(tab.id, e)}
+                      aria-label="Close tab"
                       className="ml-1 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600"
                     >
                       <X className="w-3 h-3" />
@@ -140,6 +142,7 @@ export default function AppLayout() {
               {canScrollRight && (
                 <button
                   onClick={() => scroll('right')}
+                  aria-label="Scroll right"
                   className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0"
                 >
                   <ChevronRight className="w-4 h-4" />
