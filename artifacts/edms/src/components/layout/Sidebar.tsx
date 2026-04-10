@@ -99,7 +99,12 @@ export function Sidebar() {
         </div>
       )}
       
-      <div className="flex items-center p-4 gap-3 border-b border-sidebar-border min-h-[52px] hover:bg-sidebar-accent transition-colors">
+      <button
+        className="flex items-center p-4 gap-3 border-b border-sidebar-border min-h-[52px] hover:bg-sidebar-accent transition-colors w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        onClick={() => setIsHovered(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+      >
         <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center shrink-0 shadow-sm">
           <span className="text-sidebar-primary-foreground font-bold text-sm">L2</span>
         </div>
@@ -116,7 +121,7 @@ export function Sidebar() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </button>
 
       <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
         {navGroups.map((group) => {
