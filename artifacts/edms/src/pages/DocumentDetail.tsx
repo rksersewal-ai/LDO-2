@@ -881,7 +881,7 @@ export default function DocumentDetail() {
             {ocrStatusOverride ? 'Running…' : 'Rerun OCR'}
           </button>
           <button onClick={() => setIsFullscreen(f => !f)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Toggle fullscreen">
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Toggle fullscreen" aria-label="Toggle fullscreen">
             <Maximize2 className="w-4 h-4" />
           </button>
         </div>
@@ -926,12 +926,12 @@ export default function DocumentDetail() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0 gap-2">
             <div className="flex items-center gap-1">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="Previous page">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-xs text-muted-foreground px-1 font-mono">{currentPage} / {pageCount}</span>
               <button onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage >= pageCount}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="Next page">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -942,17 +942,17 @@ export default function DocumentDetail() {
                   <span className="text-[10px] text-muted-foreground font-mono">Rev {activeDoc.revision}</span>
                 </div>
               )}
-              <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Zoom Out">
+              <button onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Zoom Out" aria-label="Zoom out">
                 <ZoomOut className="w-4 h-4" />
               </button>
               <span className="text-xs text-muted-foreground w-12 text-center font-mono">{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom(z => Math.min(3, z + 0.25))} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Zoom In">
+              <button onClick={() => setZoom(z => Math.min(3, z + 0.25))} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Zoom In" aria-label="Zoom in">
                 <ZoomIn className="w-4 h-4" />
               </button>
               <button onClick={() => setZoom(1)} className="px-2 py-1 rounded-lg text-muted-foreground hover:text-foreground/90 text-[10px] hover:bg-secondary/60 transition-all border border-border/40">
                 Fit
               </button>
-              <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Rotate">
+              <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 transition-all" title="Rotate" aria-label="Rotate document">
                 <RotateCw className="w-4 h-4" />
               </button>
             </div>
