@@ -75,8 +75,9 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
           {/* Close button when expanded */}
           {isExpanded && (
             <button
+              aria-label="Close sidebar"
               onClick={() => setIsExpanded(false)}
-              className="absolute top-4 right-4 w-8 h-8 bg-sidebar-accent/50 hover:bg-sidebar-accent rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+              className="absolute top-4 right-4 w-8 h-8 bg-sidebar-accent/50 hover:bg-sidebar-accent rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:ring-2 focus-visible:ring-sidebar-foreground outline-none"
             >
               <X className="w-4 h-4 text-sidebar-foreground" />
             </button>
@@ -107,9 +108,10 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
               return (
                 <div key={item.id} className="relative group">
                   <button
+                    aria-label={item.name}
                     onClick={() => handleNavigationClick(item.id)}
                     className={cn(
-                      "transition-all duration-300 flex items-center relative overflow-hidden",
+                      "transition-all duration-300 flex items-center relative overflow-hidden focus-visible:ring-2 focus-visible:ring-sidebar-primary outline-none",
                       "hover:scale-110 hover:shadow-lg",
                       isExpanded 
                         ? "w-full px-4 py-3 justify-start rounded-xl" 
@@ -177,12 +179,14 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
         {/* User Profile Section */}
         <div className="p-4 flex justify-center">
           <div className="relative group">
-            <div 
-              className="w-12 h-12 bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 cursor-pointer"
+            <button
+              aria-label="Toggle user profile"
+              aria-expanded={isExpanded}
+              className="w-12 h-12 bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 cursor-pointer focus-visible:ring-2 focus-visible:ring-sidebar-primary outline-none"
               onClick={() => setIsExpanded(!isExpanded)}
             >
               <span className="text-sidebar-primary-foreground font-semibold text-lg">LG</span>
-            </div>
+            </button>
             
             {/* Profile tooltip for collapsed state */}
             {!isExpanded && (
