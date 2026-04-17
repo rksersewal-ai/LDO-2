@@ -59,12 +59,15 @@ export default function BannerManagement() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => toggleActive(b.id)}
-                  className={`w-10 h-5 rounded-full transition-colors relative ${b.active ? 'bg-teal-500' : 'bg-slate-700'}`}
+                  role="switch"
+                  aria-checked={b.active}
+                  aria-label="Toggle active status"
+                  className={`w-10 h-5 rounded-full transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${b.active ? 'bg-teal-500' : 'bg-slate-700'}`}
                 >
                   <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${b.active ? 'translate-x-5' : 'translate-x-0.5'}`} />
                 </button>
-                <Button variant="ghost" className="px-2 py-1" onClick={() => { setEditBanner(b); setShowForm(true); }}><Edit3 className="w-3.5 h-3.5" /></Button>
-                <Button variant="ghost" className="px-2 py-1 text-rose-400 hover:bg-rose-500/10"><Trash2 className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" aria-label="Edit announcement" className="px-2 py-1" onClick={() => { setEditBanner(b); setShowForm(true); }}><Edit3 className="w-3.5 h-3.5" /></Button>
+                <Button variant="ghost" aria-label="Delete announcement" className="px-2 py-1 text-rose-400 hover:bg-rose-500/10"><Trash2 className="w-3.5 h-3.5" /></Button>
               </div>
             </div>
           ))}
@@ -78,7 +81,7 @@ export default function BannerManagement() {
           <GlassCard className="w-full max-w-lg p-6" onClick={(e: React.MouseEvent) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg text-white" style={{ fontWeight: 700 }}>{editBanner ? 'Edit Announcement' : 'New Announcement'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowForm(false)} aria-label="Close modal" className="text-slate-400 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded"><X className="w-5 h-5" /></button>
             </div>
             <div className="space-y-4">
               <div><label className="block text-sm text-slate-300 mb-1">Title</label><Input className="w-full" defaultValue={editBanner?.title} placeholder="Announcement title" /></div>
