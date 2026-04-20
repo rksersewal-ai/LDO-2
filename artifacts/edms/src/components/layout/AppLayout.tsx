@@ -128,7 +128,7 @@ export default function AppLayout() {
                     <span className="max-w-[180px] truncate">{tab.name}</span>
                     <button
                       onClick={(e) => handleCloseTab(tab.id, e)}
-                      className="ml-1 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600"
+                      aria-label={`Close tab ${tab.name}`} className="ml-1 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600 outline-none"
                     >
                       <X className="w-3 h-3" />
                     </button>

@@ -837,7 +837,7 @@ export default function WorkLedger() {
                       <button
                         onClick={e => copyId(w.id, e)}
                         title="Copy ID"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity ml-0.5 text-slate-600 hover:text-primary"
+                        aria-label="Copy ID" className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 rounded transition-all ml-0.5 text-slate-600 hover:text-primary outline-none"
                       >
                         {copiedId === w.id ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                       </button>

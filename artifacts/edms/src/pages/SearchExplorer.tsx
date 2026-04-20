@@ -749,7 +749,7 @@ export default function SearchExplorer() {
                       </button>
                       <button
                         onMouseDown={() => deleteSaved(i)}
-                        className="mr-2 w-5 h-5 flex items-center justify-center text-slate-700 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all"
+                        aria-label="Delete saved search" className="mr-2 w-5 h-5 flex items-center justify-center text-slate-700 hover:text-rose-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 rounded transition-all outline-none"
                       >
                         <Trash2 className="w-3 h-3" />
                       </button>
@@ -1028,7 +1028,7 @@ export default function SearchExplorer() {
                     </button>
                     <button
                       onClick={() => deleteSaved(i)}
-                      className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-all"
+                      aria-label="Delete saved search" className="w-5 h-5 flex items-center justify-center rounded text-slate-700 hover:text-rose-400 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 transition-all outline-none"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>

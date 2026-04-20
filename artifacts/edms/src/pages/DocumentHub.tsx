@@ -407,10 +407,10 @@ export default function DocumentHub() {
                       onClick={() => navigate(`/documents/${doc.id}${search ? `?q=${encodeURIComponent(search)}` : ''}`)}
                     >
                       <td className="py-3 pl-3" onClick={e => toggleSelect(doc.id, e)}>
-                        <button className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
+                        <button aria-label={`Select document ${doc.name}`} className="flex items-center justify-center text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 rounded transition-colors outline-none">
                           {isSelected
                             ? <CheckSquare className="w-4 h-4 text-primary" />
-                            : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
                           }
                         </button>
                       </td>
@@ -508,11 +508,11 @@ export default function DocumentHub() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={e => toggleSelect(doc.id, e)}
-                        className="text-slate-600 hover:text-primary transition-colors"
+                        aria-label={`Select document ${doc.name}`} className="text-slate-600 hover:text-primary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-teal-500/50 rounded transition-colors outline-none"
                       >
                         {isSelected
                           ? <CheckSquare className="w-4 h-4 text-primary" />
-                          : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity" />
                         }
                       </button>
                       <div className="w-8 h-8 rounded-xl bg-secondary/60 border border-border flex items-center justify-center">
