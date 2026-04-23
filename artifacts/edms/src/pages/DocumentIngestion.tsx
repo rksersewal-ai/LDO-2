@@ -323,7 +323,8 @@ export default function DocumentIngestion() {
                           fileInputRef.current.value = '';
                         }
                       }}
-                      className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-slate-700/60 transition-colors"
+                      aria-label="Remove file"
+                      className="shrink-0 p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-slate-700/60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <X className="w-4 h-4" />
                     </button>

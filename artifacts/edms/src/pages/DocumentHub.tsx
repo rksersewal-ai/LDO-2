@@ -407,7 +407,10 @@ export default function DocumentHub() {
                       onClick={() => navigate(`/documents/${doc.id}${search ? `?q=${encodeURIComponent(search)}` : ''}`)}
                     >
                       <td className="py-3 pl-3" onClick={e => toggleSelect(doc.id, e)}>
-                        <button className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
+                        <button
+                          aria-label={isSelected ? "Deselect document" : "Select document"}
+                          className="flex items-center justify-center text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        >
                           {isSelected
                             ? <CheckSquare className="w-4 h-4 text-primary" />
                             : <Square className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -508,7 +511,8 @@ export default function DocumentHub() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={e => toggleSelect(doc.id, e)}
-                        className="text-slate-600 hover:text-primary transition-colors"
+                        aria-label={isSelected ? "Deselect document" : "Select document"}
+                        className="text-slate-600 hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
                       >
                         {isSelected
                           ? <CheckSquare className="w-4 h-4 text-primary" />

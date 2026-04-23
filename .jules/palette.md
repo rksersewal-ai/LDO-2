@@ -1,0 +1,3 @@
+## 2024-04-23 - Accessibility Improvements for Icon Buttons
+**Learning:** Found several icon-only buttons across the codebase (e.g., Document Ingestion clear file button, Document Hub selection checkboxes) missing `aria-label`s. This is a common pattern that reduces accessibility for screen readers. In interactive UI like Document Ingestion upload area or data tables, icon-only actions must explicitly label their function. Also, focus states should be applied.
+**Action:** When adding or updating icon-only buttons (like `X` for removing files or `CheckSquare`/`Square` for selection), always ensure they have an appropriate `aria-label` and `focus-visible:ring-2` to support both screen readers and keyboard navigation.
