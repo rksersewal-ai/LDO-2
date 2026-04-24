@@ -1,21 +1,15 @@
-'use client'
-
-import { useSearchParams } from 'next/navigation'
+import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shared/page-header'
+import { EmptyState } from '@/components/shared/empty-state'
+import { Search } from 'lucide-react'
+
+export const metadata: Metadata = { title: 'Full-Text Search' }
 
 export default function SearchPage() {
-  const searchParams = useSearchParams()
-  const query = searchParams.get('q') || ''
-
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Search Results"
-        description={query ? `Showing results for "${query}"` : 'Enter a search query'}
-      />
-      <div className="rounded-lg border bg-card p-8 text-center text-muted-foreground">
-        Full-text search module — coming soon
-      </div>
+      <PageHeader title="Full-Text Search" description="Search across all document content and metadata" />
+      <EmptyState icon={Search} title="Search coming soon" description="Full-text search via GET /search?q= will be wired in next sprint." />
     </div>
   )
 }

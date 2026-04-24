@@ -1,72 +1,42 @@
-import { Suspense } from 'react'
-import { KpiCard } from '@/components/dashboard/kpi-card'
-import { RecentDocuments } from '@/components/dashboard/recent-documents'
-import { ActivityFeed } from '@/components/dashboard/activity-feed'
-import { DocumentStatsChart } from '@/components/dashboard/document-stats-chart'
+import type { Metadata } from 'next'
+import { FileText, ScanLine, GitMerge, AlertTriangle, Upload } from 'lucide-react'
 import { PageHeader } from '@/components/shared/page-header'
-import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
-import { FileText, ScanLine, Settings2, HardDrive } from 'lucide-react'
+import { KpiCard } from '@/components/dashboard/kpi-card'
+import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { RecentDocuments } from '@/components/dashboard/recent-documents'
+import { DocumentStatsChart } from '@/components/dashboard/document-stats-chart'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+
+export const metadata: Metadata = { title: 'Dashboard' }
+
+const kpis = [
+  { title: 'Total Documents', value: '1,842', trend: '+124 this month', trendUp: true, description: '', icon: FileText, iconColor: 'bg-blue-500/10 text-blue-600' },
+  { title: 'OCR Processed', value: '1,634', trend: '88.7% coverage', trendUp: true, description: '', icon: ScanLine, iconColor: 'bg-orange-500/10 text-orange-600' },
+  { title: 'Active BOMs', value: '247', trend: '+18 this month', trendUp: true, description: '', icon: GitMerge, iconColor: 'bg-green-500/10 text-green-600' },
+  { title: 'Duplicates Found', value: '23', trend: '12 resolved', trendUp: false, description: '', icon: AlertTriangle, iconColor: 'bg-rose-500/10 text-rose-600' },
+]
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard"
-        description="Overview of LDO-2 Locomotive Document Organization System"
+        description="Overview of LDO-2 document management activity"
+        action={
+          <Button asChild size="sm">
+            <Link href="/documents/upload"><Upload className="mr-2 h-4 w-4" />Upload Document</Link>
+          </Button>
+        }
       />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title="Total Documents"
-          value="2,847"
-          trend="+12%"
-          trendUp={true}
-          description="vs last month"
-          icon={FileText}
-          iconColor="bg-blue-500/10 text-blue-600"
-        />
-        <KpiCard
-          title="Pending OCR Jobs"
-          value="34"
-          trend="-8%"
-          trendUp={false}
-          description="vs last month"
-          icon={ScanLine}
-          iconColor="bg-orange-500/10 text-orange-600"
-        />
-        <KpiCard
-          title="BOM Configurations"
-          value="128"
-          trend="+3%"
-          trendUp={true}
-          description="WAG9 / WAP7 configs"
-          icon={Settings2}
-          iconColor="bg-green-500/10 text-green-600"
-        />
-        <KpiCard
-          title="Storage Used"
-          value="47.2 GB"
-          trend="+5%"
-          trendUp={false}
-          description="of 200 GB total"
-          icon={HardDrive}
-          iconColor="bg-purple-500/10 text-purple-600"
-        />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi) => <KpiCard key={kpi.title} {...kpi} />)}
       </div>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <Suspense fallback={<LoadingSkeleton rows={5} />}>
-            <DocumentStatsChart />
-          </Suspense>
-        </div>
-        <div className="col-span-3">
-          <Suspense fallback={<LoadingSkeleton rows={5} />}>
-            <ActivityFeed />
-          </Suspense>
-        </div>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3"><DocumentStatsChart /></div>
+        <div className="lg:col-span-2"><ActivityFeed /></div>
       </div>
-      <Suspense fallback={<LoadingSkeleton rows={5} />}>
-        <RecentDocuments />
-      </Suspense>
+      <RecentDocuments />
     </div>
   )
 }
