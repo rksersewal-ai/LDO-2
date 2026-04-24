@@ -1,99 +1,75 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Train } from 'lucide-react'
+import { Train, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { apiClient } from '@/lib/api/client'
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
 })
-
-type LoginFormValues = z.infer<typeof loginSchema>
+type LoginSchema = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
-
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginFormValues>({
+  const [showPassword, setShowPassword] = React.useState(false)
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginSchema>({
     resolver: zodResolver(loginSchema),
   })
 
-  const onSubmit = async (data: LoginFormValues) => {
-    setError(null)
-    try {
-      const response = await apiClient.post('/auth/login', data)
-      const { access_token } = response.data
-      localStorage.setItem('ldo_token', access_token)
-      router.push('/dashboard')
-    } catch {
-      setError('Invalid username or password. Please try again.')
-    }
+  const onSubmit = async (data: LoginSchema) => {
+    await new Promise((r) => setTimeout(r, 800))
+    // TODO: POST /auth/login -> store JWT -> router.push('/')
+    console.log(data)
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="flex flex-col items-center space-y-2 text-center">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-primary text-primary-foreground">
-            <Train className="h-6 w-6" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
+            <Train className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">LDO-2</h1>
-          <p className="text-sm text-muted-foreground">Locomotive Document Organization System</p>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-white">LDO-2</h1>
+            <p className="text-sm text-slate-400">Locomotive Document Organization</p>
+          </div>
         </div>
-        <Card>
+        <Card className="border-slate-700/50 bg-slate-800/60 backdrop-blur">
           <CardHeader>
-            <CardTitle className="text-xl">Sign in</CardTitle>
-            <CardDescription>Enter your credentials to access the system</CardDescription>
+            <CardTitle className="text-white">Sign in</CardTitle>
+            <CardDescription className="text-slate-400">Enter your credentials to continue</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="Enter username"
-                  autoComplete="username"
-                  {...register('username')}
-                />
-                {errors.username && (
-                  <p className="text-xs text-destructive">{errors.username.message}</p>
-                )}
+                <Label htmlFor="username" className="text-slate-300">Username</Label>
+                <Input id="username" placeholder="admin" className="bg-slate-700/50 border-slate-600 text-white" {...register('username')} />
+                {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter password"
-                  autoComplete="current-password"
-                  {...register('password')}
-                />
-                {errors.password && (
-                  <p className="text-xs text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-              {error && (
-                <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
+                <Label htmlFor="password" className="text-slate-300">Password</Label>
+                <div className="relative">
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="bg-slate-700/50 border-slate-600 text-white pr-10" {...register('password')} />
+                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8 text-slate-400" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
-              )}
+                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+              </div>
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign in
+                {isSubmitting ? 'Signing in...' : 'Sign in'}
               </Button>
             </form>
           </CardContent>
         </Card>
-        <p className="text-center text-xs text-muted-foreground">LDO-2 v2.0 &mdash; Enterprise EDMS</p>
+        <p className="text-center text-xs text-slate-500">LDO-2 v2.0.0 — Authorised access only</p>
       </div>
     </div>
   )
