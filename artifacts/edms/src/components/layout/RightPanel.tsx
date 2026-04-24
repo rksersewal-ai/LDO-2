@@ -47,7 +47,8 @@ export function RightPanel({ content, onClose }: RightPanelProps) {
             {content.headerActions}
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground/90 hover:bg-slate-700/50 transition-colors flex items-center justify-center"
+              aria-label="Close panel"
+              className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground/90 hover:bg-slate-700/50 transition-colors flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
             >
               <X className="w-4 h-4" />
             </button>
@@ -62,7 +63,9 @@ export function RightPanel({ content, onClose }: RightPanelProps) {
             <div key={i} className="border-border/30">
               <button
                 onClick={() => toggleSection(i)}
-                className="w-full flex items-center justify-between px-6 py-3 hover:bg-secondary/30 transition-colors"
+                aria-expanded={expandedSections.has(i)}
+                aria-controls={`section-content-${i}`}
+                className="w-full flex items-center justify-between px-6 py-3 hover:bg-secondary/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
               >
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {section.heading}
@@ -74,7 +77,11 @@ export function RightPanel({ content, onClose }: RightPanelProps) {
                 />
               </button>
               {expandedSections.has(i) && (
-                <div className="px-6 py-3 bg-slate-950/40 border-t border-border/20 text-sm text-foreground/90">
+                <div
+                  id={`section-content-${i}`}
+                  role="region"
+                  className="px-6 py-3 bg-slate-950/40 border-t border-border/20 text-sm text-foreground/90"
+                >
                   {section.content}
                 </div>
               )}

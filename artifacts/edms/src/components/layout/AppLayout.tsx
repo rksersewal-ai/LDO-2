@@ -101,7 +101,8 @@ export default function AppLayout() {
               {canScrollLeft && (
                 <button
                   onClick={() => scroll('left')}
-                  className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0"
+                  aria-label="Scroll tabs left"
+                  className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -112,13 +113,23 @@ export default function AppLayout() {
                 ref={tabsContainerRef}
                 onScroll={checkScroll}
                 className="flex items-center gap-1 px-3 py-1 overflow-x-auto scrollbar-hide flex-1"
+                role="tablist"
               >
                 {tabs.map(tab => (
                   <div
                     key={tab.id}
                     {...getDocumentContextAttributes(tab.id, tab.name)}
+                    role="tab"
+                    tabIndex={0}
+                    aria-selected={activeDocId === tab.id}
                     onClick={() => navigate(`/documents/${tab.id}`)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-t-xl cursor-pointer text-xs font-medium whitespace-nowrap transition-all group border-b-2 ${
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/documents/${tab.id}`);
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-t-xl cursor-pointer text-xs font-medium whitespace-nowrap transition-all group border-b-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset ${
                       activeDocId === tab.id
                         ? 'bg-secondary/70 text-primary/90 border-teal-500'
                         : 'bg-card/40 text-muted-foreground hover:text-foreground/90 border-transparent hover:bg-secondary/40'
@@ -127,8 +138,9 @@ export default function AppLayout() {
                     <FileText className="w-3.5 h-3.5 shrink-0" />
                     <span className="max-w-[180px] truncate">{tab.name}</span>
                     <button
+                      aria-label={`Close ${tab.name} tab`}
                       onClick={(e) => handleCloseTab(tab.id, e)}
-                      className="ml-1 opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600"
+                      className="ml-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 p-0.5 rounded hover:bg-rose-500/20 hover:text-rose-400 transition-all text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -140,7 +152,8 @@ export default function AppLayout() {
               {canScrollRight && (
                 <button
                   onClick={() => scroll('right')}
-                  className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0"
+                  aria-label="Scroll tabs right"
+                  className="p-1.5 text-muted-foreground hover:text-foreground/90 hover:bg-secondary/50 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
