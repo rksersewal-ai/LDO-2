@@ -926,12 +926,12 @@ export default function DocumentDetail() {
           <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0 gap-2">
             <div className="flex items-center gap-1">
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="Previous page">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <span className="text-xs text-muted-foreground px-1 font-mono">{currentPage} / {pageCount}</span>
               <button onClick={() => setCurrentPage(p => Math.min(pageCount, p + 1))} disabled={currentPage >= pageCount}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-secondary/60 disabled:opacity-30 disabled:cursor-not-allowed transition-all" aria-label="Next page">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
