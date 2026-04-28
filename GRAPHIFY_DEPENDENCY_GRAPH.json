@@ -1,0 +1,3178 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "file:src/App.tsx",
+        "label": "src/App.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 13,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/App.tsx:App",
+        "label": "App",
+        "type": "component",
+        "meta": {
+          "file": "src/App.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/ActivityFeed.tsx",
+        "label": "src/components/ActivityFeed.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 56,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/ActivityFeed.tsx:ActivityFeed",
+        "label": "ActivityFeed",
+        "type": "component",
+        "meta": {
+          "file": "src/components/ActivityFeed.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/Dashboard.tsx",
+        "label": "src/components/Dashboard.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 49,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/Dashboard.tsx:Dashboard",
+        "label": "Dashboard",
+        "type": "component",
+        "meta": {
+          "file": "src/components/Dashboard.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/Documents.tsx",
+        "label": "src/components/Documents.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 191,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/components/Documents.tsx:Documents",
+        "label": "Documents",
+        "type": "component",
+        "meta": {
+          "file": "src/components/Documents.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/Layout.tsx",
+        "label": "src/components/Layout.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 51,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/Layout.tsx:Layout",
+        "label": "Layout",
+        "type": "component",
+        "meta": {
+          "file": "src/components/Layout.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/QuickActions.tsx",
+        "label": "src/components/QuickActions.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 48,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/QuickActions.tsx:QuickActions",
+        "label": "QuickActions",
+        "type": "component",
+        "meta": {
+          "file": "src/components/QuickActions.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/RecentFilesList.tsx",
+        "label": "src/components/RecentFilesList.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 59,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/RecentFilesList.tsx:RecentFilesList",
+        "label": "RecentFilesList",
+        "type": "component",
+        "meta": {
+          "file": "src/components/RecentFilesList.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/Sidebar.tsx",
+        "label": "src/components/Sidebar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 213,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/components/Sidebar.tsx:Sidebar",
+        "label": "Sidebar",
+        "type": "component",
+        "meta": {
+          "file": "src/components/Sidebar.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/StorageAnalytics.tsx",
+        "label": "src/components/StorageAnalytics.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 164,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/components/StorageAnalytics.tsx:StorageAnalytics",
+        "label": "StorageAnalytics",
+        "type": "component",
+        "meta": {
+          "file": "src/components/StorageAnalytics.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/StorageOverviewCard.tsx",
+        "label": "src/components/StorageOverviewCard.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 54,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/StorageOverviewCard.tsx:StorageOverviewCard",
+        "label": "StorageOverviewCard",
+        "type": "component",
+        "meta": {
+          "file": "src/components/StorageOverviewCard.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/figma/ImageWithFallback.tsx",
+        "label": "src/components/figma/ImageWithFallback.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 27,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/components/figma/ImageWithFallback.tsx:ImageWithFallback",
+        "label": "ImageWithFallback",
+        "type": "component",
+        "meta": {
+          "file": "src/components/figma/ImageWithFallback.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/ui/accordion.tsx",
+        "label": "src/components/ui/accordion.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 66,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/alert-dialog.tsx",
+        "label": "src/components/ui/alert-dialog.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 157,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/alert.tsx",
+        "label": "src/components/ui/alert.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 66,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/aspect-ratio.tsx",
+        "label": "src/components/ui/aspect-ratio.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 11,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/avatar.tsx",
+        "label": "src/components/ui/avatar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 53,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/badge.tsx",
+        "label": "src/components/ui/badge.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 46,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/breadcrumb.tsx",
+        "label": "src/components/ui/breadcrumb.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 109,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/button.tsx",
+        "label": "src/components/ui/button.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 58,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/calendar.tsx",
+        "label": "src/components/ui/calendar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 75,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/card.tsx",
+        "label": "src/components/ui/card.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 92,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/carousel.tsx",
+        "label": "src/components/ui/carousel.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 241,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "file:src/components/ui/chart.tsx",
+        "label": "src/components/ui/chart.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 353,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/components/ui/chart.tsx:ChartConfig",
+        "label": "ChartConfig",
+        "type": "component",
+        "meta": {
+          "file": "src/components/ui/chart.tsx"
+        }
+      },
+      {
+        "id": "file:src/components/ui/checkbox.tsx",
+        "label": "src/components/ui/checkbox.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 32,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/collapsible.tsx",
+        "label": "src/components/ui/collapsible.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 33,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/command.tsx",
+        "label": "src/components/ui/command.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 177,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/context-menu.tsx",
+        "label": "src/components/ui/context-menu.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 252,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "file:src/components/ui/dialog.tsx",
+        "label": "src/components/ui/dialog.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 135,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/drawer.tsx",
+        "label": "src/components/ui/drawer.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 132,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/dropdown-menu.tsx",
+        "label": "src/components/ui/dropdown-menu.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 257,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "file:src/components/ui/form.tsx",
+        "label": "src/components/ui/form.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 168,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/hover-card.tsx",
+        "label": "src/components/ui/hover-card.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 44,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/input-otp.tsx",
+        "label": "src/components/ui/input-otp.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 77,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/input.tsx",
+        "label": "src/components/ui/input.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 21,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/label.tsx",
+        "label": "src/components/ui/label.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 24,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/menubar.tsx",
+        "label": "src/components/ui/menubar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 276,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "file:src/components/ui/navigation-menu.tsx",
+        "label": "src/components/ui/navigation-menu.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 168,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/pagination.tsx",
+        "label": "src/components/ui/pagination.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 127,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/popover.tsx",
+        "label": "src/components/ui/popover.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 48,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/progress.tsx",
+        "label": "src/components/ui/progress.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 31,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/radio-group.tsx",
+        "label": "src/components/ui/radio-group.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 45,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/resizable.tsx",
+        "label": "src/components/ui/resizable.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 56,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/scroll-area.tsx",
+        "label": "src/components/ui/scroll-area.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 58,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/select.tsx",
+        "label": "src/components/ui/select.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 189,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/separator.tsx",
+        "label": "src/components/ui/separator.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 28,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/sheet.tsx",
+        "label": "src/components/ui/sheet.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 139,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "file:src/components/ui/sidebar.tsx",
+        "label": "src/components/ui/sidebar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 726,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "file:src/components/ui/skeleton.tsx",
+        "label": "src/components/ui/skeleton.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 13,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/slider.tsx",
+        "label": "src/components/ui/slider.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 63,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/sonner.tsx",
+        "label": "src/components/ui/sonner.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 25,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/switch.tsx",
+        "label": "src/components/ui/switch.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 31,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/table.tsx",
+        "label": "src/components/ui/table.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 116,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/tabs.tsx",
+        "label": "src/components/ui/tabs.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 66,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/textarea.tsx",
+        "label": "src/components/ui/textarea.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 18,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/toggle-group.tsx",
+        "label": "src/components/ui/toggle-group.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 73,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/toggle.tsx",
+        "label": "src/components/ui/toggle.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 47,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/tooltip.tsx",
+        "label": "src/components/ui/tooltip.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 61,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/components/ui/use-mobile.ts",
+        "label": "src/components/ui/use-mobile.ts",
+        "type": "file",
+        "meta": {
+          "loc": 21,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "hook:src/components/ui/use-mobile.ts:useIsMobile",
+        "label": "useIsMobile",
+        "type": "hook",
+        "meta": {
+          "file": "src/components/ui/use-mobile.ts"
+        }
+      },
+      {
+        "id": "file:src/components/ui/utils.ts",
+        "label": "src/components/ui/utils.ts",
+        "type": "file",
+        "meta": {
+          "loc": 6,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/main.tsx",
+        "label": "src/main.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 7,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/src/components/layout/AppLayout.tsx",
+        "label": "src/src/components/layout/AppLayout.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 49,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/components/layout/AppLayout.tsx:AppLayout",
+        "label": "AppLayout",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/layout/AppLayout.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/components/layout/Header.tsx",
+        "label": "src/src/components/layout/Header.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 138,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/components/layout/Header.tsx:Header",
+        "label": "Header",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/layout/Header.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/components/layout/NotificationPanel.tsx",
+        "label": "src/src/components/layout/NotificationPanel.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 65,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/components/layout/NotificationPanel.tsx:NotificationPanel",
+        "label": "NotificationPanel",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/layout/NotificationPanel.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/components/layout/Sidebar.tsx",
+        "label": "src/src/components/layout/Sidebar.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 168,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/components/layout/Sidebar.tsx:Sidebar",
+        "label": "Sidebar",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/layout/Sidebar.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/components/ui/Shared.tsx",
+        "label": "src/src/components/ui/Shared.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 47,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/components/ui/Shared.tsx:GlassCard",
+        "label": "GlassCard",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/ui/Shared.tsx"
+        }
+      },
+      {
+        "id": "component:src/src/components/ui/Shared.tsx:Badge",
+        "label": "Badge",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/ui/Shared.tsx"
+        }
+      },
+      {
+        "id": "component:src/src/components/ui/Shared.tsx:Button",
+        "label": "Button",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/ui/Shared.tsx"
+        }
+      },
+      {
+        "id": "component:src/src/components/ui/Shared.tsx:Input",
+        "label": "Input",
+        "type": "component",
+        "meta": {
+          "file": "src/src/components/ui/Shared.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/lib/auth.tsx",
+        "label": "src/src/lib/auth.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 184,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/lib/auth.tsx:UserRole",
+        "label": "UserRole",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/auth.tsx"
+        }
+      },
+      {
+        "id": "component:src/src/lib/auth.tsx:User",
+        "label": "User",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/auth.tsx"
+        }
+      },
+      {
+        "id": "component:src/src/lib/auth.tsx:AuthProvider",
+        "label": "AuthProvider",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/auth.tsx"
+        }
+      },
+      {
+        "id": "hook:src/src/lib/auth.tsx:useAuth",
+        "label": "useAuth",
+        "type": "hook",
+        "meta": {
+          "file": "src/src/lib/auth.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/lib/bomData.test.ts",
+        "label": "src/src/lib/bomData.test.ts",
+        "type": "file",
+        "meta": {
+          "loc": 57,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "file:src/src/lib/bomData.ts",
+        "label": "src/src/lib/bomData.ts",
+        "type": "file",
+        "meta": {
+          "loc": 943,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:NodeType",
+        "label": "NodeType",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:LifecycleState",
+        "label": "LifecycleState",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:DocType",
+        "label": "DocType",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:LinkedDocument",
+        "label": "LinkedDocument",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:LinkedDrawing",
+        "label": "LinkedDrawing",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:WhereUsedEntry",
+        "label": "WhereUsedEntry",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:ChangeHistoryEntry",
+        "label": "ChangeHistoryEntry",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:PLRecord",
+        "label": "PLRecord",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:BOMNode",
+        "label": "BOMNode",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:BOMVersion",
+        "label": "BOMVersion",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:FlatBOMEntry",
+        "label": "FlatBOMEntry",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:PL_DATABASE",
+        "label": "PL_DATABASE",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/bomData.ts:INITIAL_BOM_TREE",
+        "label": "INITIAL_BOM_TREE",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/bomData.ts"
+        }
+      },
+      {
+        "id": "file:src/src/lib/designSystem.ts",
+        "label": "src/src/lib/designSystem.ts",
+        "type": "file",
+        "meta": {
+          "loc": 1143,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:DESIGN_TOKENS",
+        "label": "DESIGN_TOKENS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:ComponentEntry",
+        "label": "ComponentEntry",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:COMPONENT_INVENTORY",
+        "label": "COMPONENT_INVENTORY",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:ScreenMapping",
+        "label": "ScreenMapping",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:SCREEN_MAP",
+        "label": "SCREEN_MAP",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:FlowEntry",
+        "label": "FlowEntry",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:USER_FLOWS",
+        "label": "USER_FLOWS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:StateDefinition",
+        "label": "StateDefinition",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:STATE_MATRIX",
+        "label": "STATE_MATRIX",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:NAMING_CONVENTIONS",
+        "label": "NAMING_CONVENTIONS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/designSystem.ts:FIGMA_FILE_STRUCTURE",
+        "label": "FIGMA_FILE_STRUCTURE",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/designSystem.ts"
+        }
+      },
+      {
+        "id": "file:src/src/lib/mock.ts",
+        "label": "src/src/lib/mock.ts",
+        "type": "file",
+        "meta": {
+          "loc": 173,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mock.ts:MOCK_DOCUMENTS",
+        "label": "MOCK_DOCUMENTS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mock.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mock.ts:MOCK_PL_RECORDS",
+        "label": "MOCK_PL_RECORDS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mock.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mock.ts:MOCK_BOM_TREE",
+        "label": "MOCK_BOM_TREE",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mock.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mock.ts:MOCK_AUDIT_LOG",
+        "label": "MOCK_AUDIT_LOG",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mock.ts"
+        }
+      },
+      {
+        "id": "file:src/src/lib/mockExtended.ts",
+        "label": "src/src/lib/mockExtended.ts",
+        "type": "file",
+        "meta": {
+          "loc": 76,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_SEARCH_RESULTS",
+        "label": "MOCK_SEARCH_RESULTS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_WORK_LEDGER",
+        "label": "MOCK_WORK_LEDGER",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_CASES",
+        "label": "MOCK_CASES",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_APPROVALS",
+        "label": "MOCK_APPROVALS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_OCR_JOBS",
+        "label": "MOCK_OCR_JOBS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_AUDIT_EXTENDED",
+        "label": "MOCK_AUDIT_EXTENDED",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_NOTIFICATIONS",
+        "label": "MOCK_NOTIFICATIONS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_BANNERS",
+        "label": "MOCK_BANNERS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "component:src/src/lib/mockExtended.ts:MOCK_REPORTS",
+        "label": "MOCK_REPORTS",
+        "type": "component",
+        "meta": {
+          "file": "src/src/lib/mockExtended.ts"
+        }
+      },
+      {
+        "id": "file:src/src/pages/AdminWorkspace.tsx",
+        "label": "src/src/pages/AdminWorkspace.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 150,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/AdminWorkspace.tsx:AdminWorkspace",
+        "label": "AdminWorkspace",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/AdminWorkspace.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Approvals.tsx",
+        "label": "src/src/pages/Approvals.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 127,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Approvals.tsx:Approvals",
+        "label": "Approvals",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Approvals.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/AuditLog.tsx",
+        "label": "src/src/pages/AuditLog.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 119,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/pages/AuditLog.tsx:AuditLog",
+        "label": "AuditLog",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/AuditLog.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/BOMExplorer.tsx",
+        "label": "src/src/pages/BOMExplorer.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 821,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/BOMExplorer.tsx:BOMExplorer",
+        "label": "BOMExplorer",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/BOMExplorer.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/BannerManagement.tsx",
+        "label": "src/src/pages/BannerManagement.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 106,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/pages/BannerManagement.tsx:BannerManagement",
+        "label": "BannerManagement",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/BannerManagement.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Cases.tsx",
+        "label": "src/src/pages/Cases.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 145,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Cases.tsx:Cases",
+        "label": "Cases",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Cases.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Dashboard.tsx",
+        "label": "src/src/pages/Dashboard.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 131,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Dashboard.tsx:Dashboard",
+        "label": "Dashboard",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Dashboard.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/DesignSystem.tsx",
+        "label": "src/src/pages/DesignSystem.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 771,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/DesignSystem.tsx:DesignSystem",
+        "label": "DesignSystem",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/DesignSystem.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/DocumentDetail.tsx",
+        "label": "src/src/pages/DocumentDetail.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 623,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/DocumentDetail.tsx:DocumentDetail",
+        "label": "DocumentDetail",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/DocumentDetail.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Documents.tsx",
+        "label": "src/src/pages/Documents.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 553,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Documents.tsx:Documents",
+        "label": "Documents",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Documents.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/LedgerReports.tsx",
+        "label": "src/src/pages/LedgerReports.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 122,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/LedgerReports.tsx:LedgerReports",
+        "label": "LedgerReports",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/LedgerReports.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Login.tsx",
+        "label": "src/src/pages/Login.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 157,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Login.tsx:Login",
+        "label": "Login",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Login.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/OCRMonitor.tsx",
+        "label": "src/src/pages/OCRMonitor.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 141,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/OCRMonitor.tsx:OCRMonitor",
+        "label": "OCRMonitor",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/OCRMonitor.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/PLDetail.tsx",
+        "label": "src/src/pages/PLDetail.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 761,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/PLDetail.tsx:PLDetail",
+        "label": "PLDetail",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/PLDetail.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/PLKnowledgeHub.tsx",
+        "label": "src/src/pages/PLKnowledgeHub.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 218,
+          "complexity": "high"
+        }
+      },
+      {
+        "id": "component:src/src/pages/PLKnowledgeHub.tsx:PLKnowledgeHub",
+        "label": "PLKnowledgeHub",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/PLKnowledgeHub.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Placeholder.tsx",
+        "label": "src/src/pages/Placeholder.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 15,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Placeholder.tsx:Placeholder",
+        "label": "Placeholder",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Placeholder.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Reports.tsx",
+        "label": "src/src/pages/Reports.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 102,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Reports.tsx:Reports",
+        "label": "Reports",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Reports.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/RestrictedAccess.tsx",
+        "label": "src/src/pages/RestrictedAccess.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 19,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "component:src/src/pages/RestrictedAccess.tsx:RestrictedAccess",
+        "label": "RestrictedAccess",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/RestrictedAccess.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/Settings.tsx",
+        "label": "src/src/pages/Settings.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 128,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/Settings.tsx:Settings",
+        "label": "Settings",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/Settings.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/pages/WorkLedger.tsx",
+        "label": "src/src/pages/WorkLedger.tsx",
+        "type": "file",
+        "meta": {
+          "loc": 164,
+          "complexity": "medium"
+        }
+      },
+      {
+        "id": "component:src/src/pages/WorkLedger.tsx:WorkLedger",
+        "label": "WorkLedger",
+        "type": "component",
+        "meta": {
+          "file": "src/src/pages/WorkLedger.tsx"
+        }
+      },
+      {
+        "id": "file:src/src/routes.ts",
+        "label": "src/src/routes.ts",
+        "type": "file",
+        "meta": {
+          "loc": 54,
+          "complexity": "low"
+        }
+      },
+      {
+        "id": "package:react-router",
+        "label": "react-router",
+        "type": "package",
+        "meta": {
+          "consumers": 17
+        }
+      },
+      {
+        "id": "package:lucide-react",
+        "label": "lucide-react",
+        "type": "package",
+        "meta": {
+          "consumers": 30
+        }
+      },
+      {
+        "id": "package:react",
+        "label": "react",
+        "type": "package",
+        "meta": {
+          "consumers": 68
+        }
+      },
+      {
+        "id": "package:recharts",
+        "label": "recharts",
+        "type": "package",
+        "meta": {
+          "consumers": 4
+        }
+      },
+      {
+        "id": "package:lucide-react@0.487.0",
+        "label": "lucide-react@0.487.0",
+        "type": "package",
+        "meta": {
+          "consumers": 18
+        }
+      },
+      {
+        "id": "package:class-variance-authority@0.7.1",
+        "label": "class-variance-authority@0.7.1",
+        "type": "package",
+        "meta": {
+          "consumers": 7
+        }
+      },
+      {
+        "id": "package:@radix-ui/react-slot@1.1.2",
+        "label": "@radix-ui/react-slot@1.1.2",
+        "type": "package",
+        "meta": {
+          "consumers": 5
+        }
+      },
+      {
+        "id": "route:*",
+        "label": "*",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:/",
+        "label": "/",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:/login",
+        "label": "/login",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:admin",
+        "label": "admin",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:approvals",
+        "label": "approvals",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:audit",
+        "label": "audit",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:banners",
+        "label": "banners",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:bom",
+        "label": "bom",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:cases",
+        "label": "cases",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:design-system",
+        "label": "design-system",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:documents",
+        "label": "documents",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:documents/:id",
+        "label": "documents/:id",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:ledger",
+        "label": "ledger",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:ledger-reports",
+        "label": "ledger-reports",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:ocr",
+        "label": "ocr",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:pl",
+        "label": "pl",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:pl/:id",
+        "label": "pl/:id",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:reports",
+        "label": "reports",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:restricted",
+        "label": "restricted",
+        "type": "route",
+        "meta": {}
+      },
+      {
+        "id": "route:settings",
+        "label": "settings",
+        "type": "route",
+        "meta": {}
+      }
+    ],
+    "edges": [
+      {
+        "source": "file:src/App.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "file:src/src/routes.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "file:src/src/lib/auth.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ActivityFeed.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ActivityFeed.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ActivityFeed.tsx",
+        "target": "file:src/components/ui/avatar.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Dashboard.tsx",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Dashboard.tsx",
+        "target": "file:src/components/StorageOverviewCard.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Dashboard.tsx",
+        "target": "file:src/components/RecentFilesList.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Dashboard.tsx",
+        "target": "file:src/components/QuickActions.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Dashboard.tsx",
+        "target": "file:src/components/ActivityFeed.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Documents.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Documents.tsx",
+        "target": "file:src/components/ui/input.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Documents.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Documents.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Documents.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Layout.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Layout.tsx",
+        "target": "file:src/components/Sidebar.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Layout.tsx",
+        "target": "file:src/components/Dashboard.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Layout.tsx",
+        "target": "file:src/components/Documents.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Layout.tsx",
+        "target": "file:src/components/StorageAnalytics.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/QuickActions.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/QuickActions.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/QuickActions.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/RecentFilesList.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/RecentFilesList.tsx",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/RecentFilesList.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Sidebar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Sidebar.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/Sidebar.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageAnalytics.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageAnalytics.tsx",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageAnalytics.tsx",
+        "target": "package:recharts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageAnalytics.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageOverviewCard.tsx",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageOverviewCard.tsx",
+        "target": "file:src/components/ui/progress.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/StorageOverviewCard.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/figma/ImageWithFallback.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/accordion.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/accordion.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/accordion.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert-dialog.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert-dialog.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert-dialog.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/alert.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/avatar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/avatar.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/badge.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/badge.tsx",
+        "target": "package:@radix-ui/react-slot@1.1.2",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/badge.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/badge.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/breadcrumb.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/breadcrumb.tsx",
+        "target": "package:@radix-ui/react-slot@1.1.2",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/breadcrumb.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/breadcrumb.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/button.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/button.tsx",
+        "target": "package:@radix-ui/react-slot@1.1.2",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/button.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/button.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/calendar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/calendar.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/calendar.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/calendar.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/card.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/card.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/carousel.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/carousel.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/carousel.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/carousel.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/chart.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/chart.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/checkbox.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/checkbox.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/checkbox.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/command.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/command.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/command.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/command.tsx",
+        "target": "file:src/components/ui/dialog.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/context-menu.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/context-menu.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/context-menu.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dialog.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dialog.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dialog.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/drawer.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/drawer.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dropdown-menu.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dropdown-menu.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/dropdown-menu.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/form.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/form.tsx",
+        "target": "package:@radix-ui/react-slot@1.1.2",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/form.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/form.tsx",
+        "target": "file:src/components/ui/label.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/hover-card.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/hover-card.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/input-otp.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/input-otp.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/input-otp.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/input.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/input.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/label.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/label.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/menubar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/menubar.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/menubar.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/navigation-menu.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/navigation-menu.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/navigation-menu.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/navigation-menu.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/pagination.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/pagination.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/pagination.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/pagination.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/popover.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/popover.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/progress.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/progress.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/radio-group.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/radio-group.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/radio-group.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/resizable.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/resizable.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/resizable.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/scroll-area.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/scroll-area.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/select.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/select.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/select.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/separator.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/separator.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sheet.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sheet.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sheet.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "package:@radix-ui/react-slot@1.1.2",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "package:lucide-react@0.487.0",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/use-mobile.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/input.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/separator.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/sheet.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/skeleton.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/sidebar.tsx",
+        "target": "file:src/components/ui/tooltip.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/skeleton.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/slider.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/slider.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/switch.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/switch.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/table.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/table.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/tabs.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/tabs.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/textarea.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/textarea.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle-group.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle-group.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle-group.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle-group.tsx",
+        "target": "file:src/components/ui/toggle.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle.tsx",
+        "target": "package:class-variance-authority@0.7.1",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/toggle.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/tooltip.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/tooltip.tsx",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/components/ui/use-mobile.ts",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/AppLayout.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/AppLayout.tsx",
+        "target": "file:src/src/components/layout/Sidebar.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/AppLayout.tsx",
+        "target": "file:src/src/components/layout/Header.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/AppLayout.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Header.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Header.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Header.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Header.tsx",
+        "target": "file:src/src/components/layout/NotificationPanel.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/NotificationPanel.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/NotificationPanel.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Sidebar.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Sidebar.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/layout/Sidebar.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/components/ui/Shared.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/lib/auth.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/lib/bomData.test.ts",
+        "target": "file:src/src/lib/bomData.ts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/AdminWorkspace.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/AdminWorkspace.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Approvals.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Approvals.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Approvals.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/AuditLog.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/AuditLog.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/BOMExplorer.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/BOMExplorer.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/BOMExplorer.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/BannerManagement.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/BannerManagement.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Cases.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Cases.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Cases.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Dashboard.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Dashboard.tsx",
+        "target": "package:recharts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/DesignSystem.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/DesignSystem.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/DocumentDetail.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/DocumentDetail.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/DocumentDetail.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Documents.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Documents.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Documents.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/LedgerReports.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/LedgerReports.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/LedgerReports.tsx",
+        "target": "package:recharts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Login.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Login.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Login.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/OCRMonitor.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/OCRMonitor.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/OCRMonitor.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLDetail.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLDetail.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLDetail.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLKnowledgeHub.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLKnowledgeHub.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/PLKnowledgeHub.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Reports.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Reports.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Reports.tsx",
+        "target": "package:recharts",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/RestrictedAccess.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/RestrictedAccess.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Settings.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/Settings.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/WorkLedger.tsx",
+        "target": "package:react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/WorkLedger.tsx",
+        "target": "package:lucide-react",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/pages/WorkLedger.tsx",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "package:react-router",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/components/layout/AppLayout.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Dashboard.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Documents.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/DocumentDetail.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/BOMExplorer.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/PLKnowledgeHub.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/PLDetail.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/AdminWorkspace.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Login.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/WorkLedger.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/LedgerReports.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Cases.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Approvals.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Reports.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/OCRMonitor.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/AuditLog.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/Settings.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/BannerManagement.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/RestrictedAccess.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "file:src/src/routes.ts",
+        "target": "file:src/src/pages/DesignSystem.tsx",
+        "relation": "imports"
+      },
+      {
+        "source": "component:src/App.tsx:App",
+        "target": "component:src/src/lib/auth.tsx:AuthProvider",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/ActivityFeed.tsx:ActivityFeed",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/ActivityFeed.tsx:ActivityFeed",
+        "target": "file:src/components/ui/avatar.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Dashboard.tsx:Dashboard",
+        "target": "component:src/components/StorageOverviewCard.tsx:StorageOverviewCard",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Dashboard.tsx:Dashboard",
+        "target": "component:src/components/RecentFilesList.tsx:RecentFilesList",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Dashboard.tsx:Dashboard",
+        "target": "component:src/components/QuickActions.tsx:QuickActions",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Dashboard.tsx:Dashboard",
+        "target": "component:src/components/ActivityFeed.tsx:ActivityFeed",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Dashboard.tsx:Dashboard",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Documents.tsx:Documents",
+        "target": "file:src/components/ui/input.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Documents.tsx:Documents",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Documents.tsx:Documents",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Layout.tsx:Layout",
+        "target": "component:src/components/Sidebar.tsx:Sidebar",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Layout.tsx:Layout",
+        "target": "component:src/components/Dashboard.tsx:Dashboard",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Layout.tsx:Layout",
+        "target": "component:src/components/Documents.tsx:Documents",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/Layout.tsx:Layout",
+        "target": "component:src/components/StorageAnalytics.tsx:StorageAnalytics",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/components/QuickActions.tsx:QuickActions",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/QuickActions.tsx:QuickActions",
+        "target": "file:src/components/ui/button.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/RecentFilesList.tsx:RecentFilesList",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/RecentFilesList.tsx:RecentFilesList",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/Sidebar.tsx:Sidebar",
+        "target": "file:src/components/ui/utils.ts",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/StorageAnalytics.tsx:StorageAnalytics",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/StorageAnalytics.tsx:StorageAnalytics",
+        "target": "file:src/components/ui/badge.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/StorageOverviewCard.tsx:StorageOverviewCard",
+        "target": "file:src/components/ui/card.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/components/StorageOverviewCard.tsx:StorageOverviewCard",
+        "target": "file:src/components/ui/progress.tsx",
+        "relation": "wraps"
+      },
+      {
+        "source": "component:src/src/components/layout/AppLayout.tsx:AppLayout",
+        "target": "component:src/src/components/layout/Sidebar.tsx:Sidebar",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/src/components/layout/AppLayout.tsx:AppLayout",
+        "target": "component:src/src/components/layout/Header.tsx:Header",
+        "relation": "uses"
+      },
+      {
+        "source": "component:src/src/components/layout/Header.tsx:Header",
+        "target": "component:src/src/components/layout/NotificationPanel.tsx:NotificationPanel",
+        "relation": "uses"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:*",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:/",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:/login",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:admin",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:approvals",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:audit",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:banners",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:bom",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:cases",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:design-system",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:documents",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:documents/:id",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:ledger",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:ledger-reports",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:ocr",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:pl",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:pl/:id",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:reports",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:restricted",
+        "relation": "wraps"
+      },
+      {
+        "source": "file:src/App.tsx",
+        "target": "route:settings",
+        "relation": "wraps"
+      }
+    ]
+  }
+}
