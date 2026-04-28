@@ -161,7 +161,7 @@ export function DatePicker({
           <div className="flex items-center justify-between border-b border-border bg-gradient-to-r from-slate-950/40 via-slate-900/20 to-teal-500/5 px-4 py-3">
             {view === 'day' && (
               <>
-                <button onClick={prevMonth} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90">
+                <button aria-label="Previous month" onClick={prevMonth} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90">
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <div className="flex items-center gap-1">
@@ -178,23 +178,23 @@ export function DatePicker({
                     {year}
                   </button>
                 </div>
-                <button onClick={nextMonth} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90">
+                <button aria-label="Next month" onClick={nextMonth} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90">
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </>
             )}
             {view === 'month' && (
               <>
-                <button onClick={prevYear} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronLeft className="w-4 h-4" /></button>
+                <button aria-label="Previous year" onClick={prevYear} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronLeft className="w-4 h-4" /></button>
                 <button onClick={() => setView('year')} className="rounded-lg px-2 py-1 text-sm font-semibold text-foreground transition-colors hover:bg-secondary/70 hover:text-teal-200">{year}</button>
-                <button onClick={nextYear} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronRight className="w-4 h-4" /></button>
+                <button aria-label="Next year" onClick={nextYear} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronRight className="w-4 h-4" /></button>
               </>
             )}
             {view === 'year' && (
               <>
-                <button onClick={() => setViewDate(new Date(year - 12, month, 1))} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronLeft className="w-4 h-4" /></button>
+                <button aria-label="Previous 12 years" onClick={() => setViewDate(new Date(year - 12, month, 1))} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronLeft className="w-4 h-4" /></button>
                 <span className="text-sm font-semibold text-foreground">{yearRange[0]} – {yearRange[11]}</span>
-                <button onClick={() => setViewDate(new Date(year + 12, month, 1))} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronRight className="w-4 h-4" /></button>
+                <button aria-label="Next 12 years" onClick={() => setViewDate(new Date(year + 12, month, 1))} className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-secondary/70 hover:text-primary/90"><ChevronRight className="w-4 h-4" /></button>
               </>
             )}
           </div>
