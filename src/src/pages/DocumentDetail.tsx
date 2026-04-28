@@ -258,24 +258,24 @@ export default function DocumentDetail() {
           <div className="h-10 border-b border-slate-800/50 flex items-center justify-between px-3 bg-slate-900/50 shrink-0">
             <div className="flex items-center gap-2">
               <button onClick={() => setShowLeftPanel(!showLeftPanel)}
-                className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-slate-300">
+                className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-slate-300" aria-label="Toggle left panel">
                 {showLeftPanel ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
               </button>
               <div className="w-px h-4 bg-slate-800" />
               {/* Page navigation */}
               <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}
-                className="p-1 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30"><ChevronLeft className="w-3.5 h-3.5" /></button>
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30" aria-label="Previous page"><ChevronLeft className="w-3.5 h-3.5" /></button>
               <span className="text-[10px] text-slate-300 font-mono min-w-[80px] text-center">
                 Page {currentPage} / {doc.pages}
               </span>
               <button onClick={() => setCurrentPage(p => Math.min(doc.pages, p + 1))} disabled={currentPage >= doc.pages}
-                className="p-1 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30"><ChevronRight className="w-3.5 h-3.5" /></button>
+                className="p-1 hover:bg-slate-800 rounded text-slate-400 disabled:opacity-30" aria-label="Next page"><ChevronRight className="w-3.5 h-3.5" /></button>
             </div>
 
             <div className="flex items-center gap-1">
-              <button onClick={() => setZoom(z => Math.max(25, z - 25))} className="p-1 hover:bg-slate-800 rounded text-slate-400"><ZoomOut className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setZoom(z => Math.max(25, z - 25))} className="p-1 hover:bg-slate-800 rounded text-slate-400" aria-label="Zoom Out"><ZoomOut className="w-3.5 h-3.5" /></button>
               <span className="text-[10px] text-slate-400 font-mono w-10 text-center">{zoom}%</span>
-              <button onClick={() => setZoom(z => Math.min(300, z + 25))} className="p-1 hover:bg-slate-800 rounded text-slate-400"><ZoomIn className="w-3.5 h-3.5" /></button>
+              <button onClick={() => setZoom(z => Math.min(300, z + 25))} className="p-1 hover:bg-slate-800 rounded text-slate-400" aria-label="Zoom In"><ZoomIn className="w-3.5 h-3.5" /></button>
               <div className="w-px h-4 bg-slate-800 mx-1" />
               <button onClick={() => setRotation(r => (r + 90) % 360)} className="p-1 hover:bg-slate-800 rounded text-slate-400" title="Rotate">
                 <RotateCw className="w-3.5 h-3.5" />
@@ -288,7 +288,7 @@ export default function DocumentDetail() {
               </button>
               <div className="w-px h-4 bg-slate-800 mx-1" />
               <button onClick={() => setShowRightPanel(!showRightPanel)}
-                className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-slate-300">
+                className="p-1 hover:bg-slate-800 rounded text-slate-500 hover:text-slate-300" aria-label="Toggle right panel">
                 {showRightPanel ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
               </button>
             </div>
