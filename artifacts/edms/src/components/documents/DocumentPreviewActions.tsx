@@ -40,6 +40,7 @@ export function DocumentPreviewButton({
       variant={variant}
       className={className}
       title={title ? `Preview ${title}` : 'Preview document'}
+      aria-label={iconOnly ? (title ? `Preview ${title}` : 'Preview document') : undefined}
       onClick={(event) => {
         if (stopPropagation) {
           event.stopPropagation();
@@ -81,6 +82,7 @@ export function DocumentDetailsButton({
       variant={variant}
       className={className}
       title="Open document details"
+      aria-label={iconOnly ? 'Open document details' : undefined}
       onClick={(event) => {
         if (stopPropagation) {
           event.stopPropagation();
