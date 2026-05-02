@@ -44,7 +44,7 @@ function TreeNode({ node, depth = 0 }: { node: BomNode; depth?: number }) {
     <Collapsible defaultOpen={depth === 0}>
       <div className={cn('flex items-center gap-2 py-1.5 rounded-md hover:bg-muted/50 px-2', depth > 0 && 'ml-4')}>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" disabled={!hasChildren}>
+          <Button variant="ghost" size="icon" aria-label="Toggle children" className="h-5 w-5 shrink-0" disabled={!hasChildren}>
             {hasChildren ? <ChevronRight className="h-3 w-3 transition-transform duration-200 group-data-[state=open]:rotate-90" /> : <span className="h-3 w-3" />}
           </Button>
         </CollapsibleTrigger>

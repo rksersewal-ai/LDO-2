@@ -46,7 +46,7 @@ export function OcrJobQueue() {
               {job.status === 'processing' && <Progress value={job.progress} className="h-1.5" />}
             </div>
             {job.status === 'completed' && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" asChild>
+              <Button variant="ghost" size="icon" aria-label="View job result" className="h-7 w-7 shrink-0" asChild>
                 <Link href={`/ocr/${job.id}`}><Eye className="h-3.5 w-3.5" /></Link>
               </Button>
             )}
