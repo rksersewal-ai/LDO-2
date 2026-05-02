@@ -24,7 +24,7 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
       {/* PDF Viewer Panel */}
       <div className="flex-1 flex flex-col rounded-lg border bg-card overflow-hidden">
         <div className="flex items-center gap-2 border-b px-4 py-2 bg-muted/30">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
+          <Button variant="ghost" size="icon" aria-label="Previous page" className="h-7 w-7" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Input
@@ -36,22 +36,22 @@ export function DocumentViewer({ documentId }: DocumentViewerProps) {
             max={totalPages}
           />
           <span className="text-sm text-muted-foreground">/ {totalPages}</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>
+          <Button variant="ghost" size="icon" aria-label="Next page" className="h-7 w-7" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Separator orientation="vertical" className="h-5" />
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.min(200, zoom + 25))}>
+          <Button variant="ghost" size="icon" aria-label="Zoom in" className="h-7 w-7" onClick={() => setZoom(Math.min(200, zoom + 25))}>
             <ZoomIn className="h-4 w-4" />
           </Button>
           <span className="text-sm text-muted-foreground w-12 text-center">{zoom}%</span>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setZoom(Math.max(50, zoom - 25))}>
+          <Button variant="ghost" size="icon" aria-label="Zoom out" className="h-7 w-7" onClick={() => setZoom(Math.max(50, zoom - 25))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
           <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Button variant="ghost" size="icon" aria-label="Download document" className="h-7 w-7">
               <Download className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
+            <Button variant="ghost" size="icon" aria-label="Maximize viewer" className="h-7 w-7">
               <Maximize2 className="h-4 w-4" />
             </Button>
           </div>
