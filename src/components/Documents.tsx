@@ -68,13 +68,14 @@ export function Documents() {
             />
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted/50">
+            <Button variant="ghost" size="icon" aria-label="Filter documents" className="rounded-xl hover:bg-muted/50">
               <Filter className="w-4 h-4 text-muted-foreground" />
             </Button>
             <div className="h-6 w-px bg-border/40 mx-1"></div>
             <Button 
               variant="ghost" 
               size="icon" 
+              aria-label="List view"
               className={`rounded-xl ${viewMode === 'list' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50'}`}
               onClick={() => setViewMode("list")}
             >
@@ -83,6 +84,7 @@ export function Documents() {
             <Button 
               variant="ghost" 
               size="icon" 
+              aria-label="Grid view"
               className={`rounded-xl ${viewMode === 'grid' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/50'}`}
               onClick={() => setViewMode("grid")}
             >
@@ -107,7 +109,7 @@ export function Documents() {
                       <p className="text-xs text-muted-foreground mt-0.5">{folder.items} items</p>
                     </div>
                   </div>
-                  <button className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button aria-label={"Options for " + folder.name} className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary rounded transition-opacity">
                     <MoreVertical className="w-4 h-4" />
                   </button>
                 </CardContent>
@@ -150,7 +152,7 @@ export function Documents() {
                         {file.date}
                       </div>
                       <div className="col-span-3 sm:col-span-2 md:col-span-1 text-right">
-                        <button className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                        <button aria-label={"Options for " + file.name} className="p-2 text-muted-foreground hover:text-foreground hover:bg-background rounded-full transition-colors opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary rounded">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
@@ -167,7 +169,7 @@ export function Documents() {
                   <Card key={i} className="shadow-sm hover:shadow-md transition-all duration-300 border-border/40 bg-card rounded-2xl group cursor-pointer hover:-translate-y-1">
                     <CardContent className="p-4 flex flex-col items-center text-center space-y-4">
                       <div className="w-full flex justify-end">
-                        <button className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button aria-label={"Options for " + file.name} className="text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary rounded transition-opacity">
                           <MoreVertical className="w-4 h-4" />
                         </button>
                       </div>
