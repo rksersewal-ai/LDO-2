@@ -49,14 +49,22 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username" className="text-slate-300">Username</Label>
-                <Input id="username" placeholder="admin" className="bg-slate-700/50 border-slate-600 text-white" {...register('username')} />
+                <Input id="username" placeholder="admin" className="bg-slate-700/50 border-slate-600 text-white" autoFocus {...register('username')} />
                 {errors.username && <p className="text-xs text-destructive">{errors.username.message}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-slate-300">Password</Label>
                 <div className="relative">
                   <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" className="bg-slate-700/50 border-slate-600 text-white pr-10" {...register('password')} />
-                  <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1 h-8 w-8 text-slate-400" onClick={() => setShowPassword(!showPassword)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1 h-8 w-8 text-slate-400"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
