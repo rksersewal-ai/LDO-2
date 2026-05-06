@@ -1,3 +1,1 @@
-## 2026-04-26 - ARIA labels for icon-only buttons
-**Learning:** Icon-only buttons without `aria-label` attributes are a common accessibility anti-pattern in the codebase, particularly in complex UI components like document viewers where visual space is constrained.
-**Action:** Always verify that buttons lacking descriptive text content include an appropriate `aria-label` to ensure screen reader users can interact with the controls.
+## 2024-05-06 - Dynamic ARIA labels in tables\n **Learning:** When adding ARIA labels to actions inside data tables (like View, Edit, Delete), static labels like "View" are ambiguous for screen reader users when repeated across rows.\n **Action:** Always use dynamic template literals (e.g. \`View document ${row.title}\`) to inject row-specific context into the ARIA label.
