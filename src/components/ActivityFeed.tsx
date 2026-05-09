@@ -46,7 +46,10 @@ export function ActivityFeed() {
           })}
         </div>
         <div className="p-4 px-6 border-t border-border/10 shrink-0">
-          <button className="w-full py-2 text-sm font-medium text-center text-primary bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors">
+          <button
+            aria-label="View complete activity log"
+            className="w-full py-2 text-sm font-medium text-center text-primary bg-primary/5 hover:bg-primary/10 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
             View Activity Log
           </button>
         </div>
