@@ -76,7 +76,8 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
           {isExpanded && (
             <button
               onClick={() => setIsExpanded(false)}
-              className="absolute top-4 right-4 w-8 h-8 bg-sidebar-accent/50 hover:bg-sidebar-accent rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
+              aria-label="Close sidebar"
+              className="absolute top-4 right-4 w-8 h-8 bg-sidebar-accent/50 hover:bg-sidebar-accent rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary"
             >
               <X className="w-4 h-4 text-sidebar-foreground" />
             </button>
@@ -108,8 +109,10 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
                 <div key={item.id} className="relative group">
                   <button
                     onClick={() => handleNavigationClick(item.id)}
+                    aria-label={item.name}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "transition-all duration-300 flex items-center relative overflow-hidden",
+                      "transition-all duration-300 flex items-center relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary",
                       "hover:scale-110 hover:shadow-lg",
                       isExpanded 
                         ? "w-full px-4 py-3 justify-start rounded-xl" 
@@ -178,8 +181,17 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
         <div className="p-4 flex justify-center">
           <div className="relative group">
             <div 
-              className="w-12 h-12 bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 cursor-pointer"
+              role="button"
+              tabIndex={0}
+              aria-label={isExpanded ? "Collapse user profile" : "Expand user profile"}
+              className="w-12 h-12 bg-gradient-to-br from-sidebar-primary to-sidebar-primary/80 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-all duration-300 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-primary focus-visible:ring-offset-2"
               onClick={() => setIsExpanded(!isExpanded)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setIsExpanded(!isExpanded);
+                }
+              }}
             >
               <span className="text-sidebar-primary-foreground font-semibold text-lg">LG</span>
             </div>
