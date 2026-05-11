@@ -75,6 +75,7 @@ export function Sidebar({ currentPage, onPageChange }: SidebarProps) {
           {/* Close button when expanded */}
           {isExpanded && (
             <button
+              aria-label="Close sidebar"
               onClick={() => setIsExpanded(false)}
               className="absolute top-4 right-4 w-8 h-8 bg-sidebar-accent/50 hover:bg-sidebar-accent rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110"
             >

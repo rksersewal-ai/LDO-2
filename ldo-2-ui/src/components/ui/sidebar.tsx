@@ -194,6 +194,7 @@ function SidebarRail({ className, ...props }: React.HTMLAttributes<HTMLButtonEle
   const { open, setOpen } = useSidebar()
   return (
     <button
+      aria-label="Toggle Sidebar"
       className={cn('absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 sm:flex', className)}
       onClick={() => setOpen(!open)}
       {...props}
