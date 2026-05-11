@@ -1,3 +1,3 @@
-## 2026-04-26 - ARIA labels for icon-only buttons
-**Learning:** Icon-only buttons without `aria-label` attributes are a common accessibility anti-pattern in the codebase, particularly in complex UI components like document viewers where visual space is constrained.
-**Action:** Always verify that buttons lacking descriptive text content include an appropriate `aria-label` to ensure screen reader users can interact with the controls.
+## 2024-05-24 - Missing ARIA labels on Icon-only Buttons
+**Learning:** Found an accessibility issue pattern specific to this app's components where `<button>` elements that only contain icons (such as those in lists, sidebars, and option menus) consistently lack `aria-label` attributes. This breaks accessibility for screen-readers, making the buttons unidentifiable to visually-impaired users.
+**Action:** Always ensure that when creating or modifying reusable UI components or standard UI lists with icon-only buttons, the `aria-label` attribute is included to provide descriptive fallback text (e.g. `aria-label="More options"`).

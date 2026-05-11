@@ -45,7 +45,7 @@ export function RecentFilesList() {
                   <Badge variant="secondary" className="bg-background border-border/40 font-normal shadow-sm hidden sm:inline-flex">
                     {file.type.toUpperCase()}
                   </Badge>
-                  <button className="p-2 text-muted-foreground hover:bg-background rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                  <button aria-label={`More options for ${file.name}`} className="p-2 text-muted-foreground hover:bg-background rounded-full transition-colors opacity-0 group-hover:opacity-100">
                     <MoreHorizontal className="w-5 h-5" />
                   </button>
                 </div>
