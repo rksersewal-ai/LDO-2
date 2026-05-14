@@ -23,8 +23,8 @@ const columns: ColumnDef<BOMItem>[] = [
     id: 'actions', header: 'Actions',
     cell: ({ row }) => (
       <div className="flex gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link href={`/bom/${row.original.id}`}><Eye className="h-3.5 w-3.5" /></Link></Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild><Link href={`/bom/${row.original.id}`}><GitBranch className="h-3.5 w-3.5" /></Link></Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" asChild aria-label={`View ${row.original.part_number}`}><Link href={`/bom/${row.original.id}`}><Eye className="h-3.5 w-3.5" /></Link></Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" asChild aria-label={`Branch ${row.original.part_number}`}><Link href={`/bom/${row.original.id}`}><GitBranch className="h-3.5 w-3.5" /></Link></Button>
       </div>
     ),
   },
