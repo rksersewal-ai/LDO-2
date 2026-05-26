@@ -35,8 +35,8 @@ export function DeduplicationResults() {
               {item.status}
             </Badge>
             <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7"><Eye className="h-3.5 w-3.5" /></Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`View duplicate ${item.duplicate}`}><Eye className="h-3.5 w-3.5" /></Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label={`Delete duplicate ${item.duplicate}`}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           </CardContent>
         </Card>
