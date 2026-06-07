@@ -91,7 +91,7 @@ export function DocumentUploadZone() {
                   {uf.status === 'uploading' && <Progress value={uf.progress} className="h-1" />}
                 </div>
                 {uf.status === 'pending' && (
-                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeFile(uf.id)}>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeFile(uf.id)} aria-label={`Remove file ${uf.file.name}`}>
                     <X className="h-3 w-3" />
                   </Button>
                 )}
