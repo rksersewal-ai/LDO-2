@@ -31,7 +31,7 @@ const columns: ColumnDef<Document>[] = [
       <Checkbox
         checked={row.getIsSelected()}
         onCheckedChange={(v) => row.toggleSelected(!!v)}
-        aria-label="Select row"
+        aria-label={`Select document ${row.original.title}`}
       />
     ),
     enableSorting: false,
@@ -84,13 +84,13 @@ const columns: ColumnDef<Document>[] = [
     header: 'Actions',
     cell: ({ row }) => (
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`View document ${row.original.title}`} asChild>
           <Link href={`/documents/${row.original.id}`}><Eye className="h-3.5 w-3.5" /></Link>
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit document ${row.original.title}`} asChild>
           <Link href={`/documents/${row.original.id}/edit`}><Pencil className="h-3.5 w-3.5" /></Link>
         </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive">
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" aria-label={`Delete document ${row.original.title}`}>
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
